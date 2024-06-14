@@ -37,6 +37,14 @@ endif()
 add_executable(
     ${PROJECT_NAME} 
     src/main.cpp
+	src/utils.cpp
+	src/mesh.cpp
+	src/InertiaEnergy.cpp
+	src/ElasticEnergy.cpp
+	include/FEM_IPC/ElasticEnergy.h
+	include/FEM_IPC/InertiaEnergy.h
+	include/FEM_IPC/utils.h
+	include/FEM_IPC/materials.h
 	include/FEM_IPC/mesh.h)
     
     

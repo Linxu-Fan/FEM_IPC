@@ -1,0 +1,6 @@
+For all energies:
+1) The energy is a scalar. It is calculated
+	a) per element for Elastic energy
+	b) per vertex for InertiaEnergy
+2) Its gradient wrt position (dE/dx) is a 3x1 vector;
+3) Its hessian (d2E/dx1dx2) is a 3x3 matrix. 
