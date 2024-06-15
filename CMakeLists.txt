@@ -41,6 +41,10 @@ add_executable(
 	src/mesh.cpp
 	src/InertiaEnergy.cpp
 	src/ElasticEnergy.cpp
+	src/simulator.cpp
+	src/GravityEnergy.cpp
+	include/FEM_IPC/GravityEnergy.h
+	include/FEM_IPC/simulator.h
 	include/FEM_IPC/ElasticEnergy.h
 	include/FEM_IPC/InertiaEnergy.h
 	include/FEM_IPC/utils.h

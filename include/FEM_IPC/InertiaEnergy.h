@@ -7,14 +7,14 @@
 
 namespace InertiaEnergy
 {
-	// compute the inertia energy
+	// compute the inertia energy; vertIndex: the index of the vertex
 	double Val(double nodeMass, double dt, Eigen::Vector3d& xt, Eigen::Vector3d& v, Eigen::Vector3d& x, Eigen::Vector3d& fe);
 
 	// compute the energy gradient wrt vertex's position.
-	Eigen::Vector3d Grad(double nodeMass, double dt, Eigen::Vector3d& xt, Eigen::Vector3d& v, Eigen::Vector3d& x, Eigen::Vector3d& fe);
+	std::vector<Eigen::Triplet<double>> Grad(double nodeMass, double dt, Eigen::Vector3d& xt, Eigen::Vector3d& v, Eigen::Vector3d& x, Eigen::Vector3d& fe, int vertIndex);
 
 	// the hessian is just an Identity matrix
-	Eigen::Matrix3d Hess();
+	std::vector<Eigen::Triplet<double>> Hess(double nodeMass, int vertIndex);
 
 }
 

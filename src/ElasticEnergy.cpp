@@ -99,7 +99,7 @@ double ElasticEnergy::Val(Material& mat, std::string model, Eigen::Matrix3d& F, 
 }
 
 // compute the energy gradient dPHI/dF (PK1 stress). Return a vectorized gradient which is a 9x1 matrix
-Eigen::Matrix<double, 12, 1> ElasticEnergy::Grad(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx)
+std::vector<Eigen::Triplet<double>> ElasticEnergy::Grad(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd)
 {
 	Vector9d grad_tmp;
 	if (model == "neoHookean")
@@ -160,11 +160,23 @@ Eigen::Matrix<double, 12, 1> ElasticEnergy::Grad(Material& mat, std::string mode
 		grad_tmp = flatenMatrix3d(PK1);
 	}
 
-	return  dt * dt * vol * dFdx.transpose() * dFdx;
+	Eigen::Matrix<double, 12, 1> engGrad = dt * dt * vol * dFdx.transpose() * grad_tmp;
+	std::vector<Eigen::Triplet<double>> res;
+	for (int m = 0; m < 4; m++)
+	{
+		int x1_Ind = tetVertInd[m]; // the first vertex index
+		for (int xd = 0; xd < 3; xd++)
+		{
+			double value = engGrad(m * 3 + xd, 1);
+			res.emplace_back(x1_Ind * 3 + xd, 1, value);
+		}
+	}
+	return  res;
+
 }
 
 // compute the energy hessian dPHI2/d2F. Return a vectorized gradient which is a 9x9 matrix
-Eigen::Matrix<double, 12, 12> ElasticEnergy::Hess(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx)
+std::vector<Eigen::Triplet<double>> ElasticEnergy::Hess(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd)
 {
 
 	Eigen::Matrix<double, 9, 9> hessian = Eigen::Matrix<double, 9, 9>::Zero();
@@ -349,5 +361,24 @@ Eigen::Matrix<double, 12, 12> ElasticEnergy::Hess(Material& mat, std::string mod
 		hessian = mat.mu * I9;
 	}
 
-	return dt* dt* vol * dFdx.transpose()* hessian * dFdx;
+	Eigen::Matrix<double, 12, 12> engHess = dt * dt * vol * dFdx.transpose() * hessian * dFdx;
+	std::vector<Eigen::Triplet<double>> res;
+	for (int m = 0; m < 4; m++)
+	{
+		int x1_Ind = tetVertInd[m]; // the first vertex index
+		for (int n = 0; n < 4; n++)
+		{
+			int x2_Ind = tetVertInd[n]; // the second vertex index	
+			for (int xd = 0; xd < 3; xd++)
+			{
+				for (int yd = 0; yd < 3; yd++)
+				{
+					double value = engHess(m * 3 + xd, n * 3 + yd);
+					res.emplace_back(x1_Ind * 3 + xd, x2_Ind * 3 + yd, value);
+				}
+			}
+		}
+	}
+	return res;
+
 }
