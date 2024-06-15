@@ -2,7 +2,6 @@
 #define MESH_H
 
 #include "utils.h"
-#include "materials.h"
 
 
 struct objMesh 

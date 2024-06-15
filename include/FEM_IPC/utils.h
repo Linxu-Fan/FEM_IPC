@@ -44,12 +44,56 @@ typedef Eigen::Matrix<double, 9, 1> Vector9d;
 
 struct FEMParamters
 {
-    double dt = 1.0E-5; // simulation timestep size
-    int num_timesteps = 1000000; // the number of simulation timesteps
-    Eigen::Vector3d gravity = { 0,0,-9.8 }; // the gravity magnitude and direction
+    double dt = 1.0E-2; // simulation timestep size
+    int num_timesteps = 2000; // the number of simulation timesteps
+    Eigen::Vector3d gravity = { 0,0,0 }; // the gravity magnitude and direction
     int outputFrequency = 200; // export the simulation result per interval
-    std::string model = "ARAP";
+    std::string model = "neoHookean";
+	int numOfThreads = 5; // number of openMP threads
+
+	double searchResidual = 1.0e-2;
 };
+
+
+
+// Struct of material
+struct Material
+{
+	double density = 1000; // particle density
+	double E = 1.0E4; // Young's modulus
+	double nu = 0.3; //Poisson ratio
+
+	double mu = E / (2.0 * (1.0 + nu)); // lame parameter mu / shear modulus  ::::only for isotropic material
+	double lambda = E * nu / ((1.0 + nu) * (1.0 - 2.0 * nu)); // lame parameter lambda  ::::only for isotropic material
+	double K = 2.0 / 3.0 * mu + lambda; // bulk modulus  ::::only for isotropic material
+
+
+	// local damage field parameters
+	double thetaf = 480; // the reference stress for conventional phase field method
+	double Gf = 3;
+	double lch = sqrt(2) * 1.0;
+	double HsBar = thetaf * thetaf / 2.0 / E / Gf;
+	double Hs = HsBar * lch / (1.0 - HsBar * lch);
+
+	double thetaF = 480; // the reference stress for no-weakening phase field
+
+
+	// return mapping stress threshold(only for bending stress)
+	double bendingStressThreshold = 1.0E6;
+
+
+	void updateDenpendecies()
+	{
+		mu = E / (2.0 * (1.0 + nu)); // lame parameter mu / shear modulus  ::::only for isotropic material
+		lambda = E * nu / ((1.0 + nu) * (1.0 - 2.0 * nu)); // lame parameter lambda  ::::only for isotropic material
+		K = 2.0 / 3.0 * mu + lambda; // bulk modulus  ::::only for isotropic material
+
+		HsBar = thetaf * thetaf / 2.0 / E / Gf;
+		Hs = HsBar * lch / (1.0 - HsBar * lch);
+	}
+
+};
+
 
 
 
@@ -62,6 +106,8 @@ Vector9d flatenMatrix3d(const Eigen::Matrix3d & matrix);
 // convert a vector to a cross-product matrix. Eq.4.23 in Kim_Eberle_2022
 Eigen::Matrix3d vector2CrossProductMatrix(const Eigen::Vector3d& vec);
 
+// calculate the infinite norm of a vector contanining Eigen::Vector3d
+double infiniteNorm(std::vector<Eigen::Vector3d>& vec3d);
 
 
 

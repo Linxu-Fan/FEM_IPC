@@ -1,5 +1,21 @@
 ﻿#include "utils.h"
 
+// calculate the infinite norm of a vector contanining Eigen::Vector3d
+double infiniteNorm(std::vector<Eigen::Vector3d>& vec3d)
+{
+	double norm = 0;
+	for (int ii = 0; ii < vec3d.size(); ii++)
+	{
+		for (int jj = 0; jj < 3; jj++)
+		{
+			if (norm < abs(vec3d[ii][jj]))
+			{
+				norm = abs(vec3d[ii][jj]);
+			}
+		}
+	}
+	return norm;
+}
 
 // split a line from a text file
 std::vector<std::string> split(const std::string& s, const std::string& seperator) 

@@ -2,7 +2,6 @@
 #define ELASTICENERGY_H
 
 #include "utils.h"
-#include "materials.h"
 
 namespace ElasticEnergy
 {
@@ -13,7 +12,7 @@ namespace ElasticEnergy
 	double Val(Material& mat, std::string model, Eigen::Matrix3d& F, double dt);
 
 	// compute the energy gradient dPHI/dF (PK1 stress). Return a vectorized gradient which is a 9x1 matrix
-	std::vector<Eigen::Triplet<double>> Grad(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd); // timestep, and volume of the element
+	std::vector<std::pair<int, double>> Grad(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd); // timestep, and volume of the element
 
 	// compute the energy hessian dPHI2/d2F. Return a vectorized gradient which is a 9x9 matrix
 	std::vector<Eigen::Triplet<double>> Hess(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd); // timestep, and volume of the element

@@ -99,7 +99,7 @@ double ElasticEnergy::Val(Material& mat, std::string model, Eigen::Matrix3d& F, 
 }
 
 // compute the energy gradient dPHI/dF (PK1 stress). Return a vectorized gradient which is a 9x1 matrix
-std::vector<Eigen::Triplet<double>> ElasticEnergy::Grad(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd)
+std::vector<std::pair<int, double>> ElasticEnergy::Grad(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd)
 {
 	Vector9d grad_tmp;
 	if (model == "neoHookean")
@@ -161,14 +161,14 @@ std::vector<Eigen::Triplet<double>> ElasticEnergy::Grad(Material& mat, std::stri
 	}
 
 	Eigen::Matrix<double, 12, 1> engGrad = dt * dt * vol * dFdx.transpose() * grad_tmp;
-	std::vector<Eigen::Triplet<double>> res;
+	std::vector<std::pair<int, double>> res;
 	for (int m = 0; m < 4; m++)
 	{
 		int x1_Ind = tetVertInd[m]; // the first vertex index
 		for (int xd = 0; xd < 3; xd++)
 		{
 			double value = engGrad(m * 3 + xd, 1);
-			res.emplace_back(x1_Ind * 3 + xd, 1, value);
+			res.emplace_back(x1_Ind * 3 + xd, value);
 		}
 	}
 	return  res;
