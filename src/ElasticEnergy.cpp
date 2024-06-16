@@ -59,7 +59,7 @@ Eigen::Matrix<double, 9, 12> ElasticEnergy::dF_wrt_dx(Eigen::Matrix3d& DmInv)
 }
 
 // compute the elastic energy
-double ElasticEnergy::Val(Material& mat, std::string model, Eigen::Matrix3d& F, double dt)
+double ElasticEnergy::Val(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol)
 {
 	double energy = 0;
 	if (model == "neoHookean")
@@ -94,7 +94,7 @@ double ElasticEnergy::Val(Material& mat, std::string model, Eigen::Matrix3d& F, 
 		energy = mat.mu / 2.0 * (F - Eigen::Matrix3d::Identity()).squaredNorm();
 	}
 
-	return dt * dt * energy;
+	return dt * dt * energy * vol;
 
 }
 

@@ -8,34 +8,58 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 {
 	for (int timestep = 0; timestep < parameters.num_timesteps; timestep++)
 	{
+		std::cout << "timestep = " << timestep << std::endl;
+
+		if (timestep % parameters.outputFrequency == 0)
+		{
+			tetMesh.exportSurfaceMesh("surfMesh", timestep);
+		}
+
+
 		tetMesh.pos_node_prev = tetMesh.pos_node;
 		std::vector<Eigen::Vector3d> currentPosition = tetMesh.pos_node;
 
-		double dist_to_converge = 1.0e10;
+
 		double lastEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
-		do
+		std::vector<Eigen::Vector3d> direction = solve_linear_system(tetMesh, parameters, timestep);
+		double dist_to_converge = infiniteNorm(direction);
+
+		int iteration = 0;
+		while (dist_to_converge / parameters.dt > parameters.searchResidual)
 		{
-			// line search
+			iteration += 1;
+			std::cout << "	iteration = " << iteration << std::endl;
+			std::cout << "	lastEnergyVal = " << lastEnergyVal << std::endl;
+			std::cout << "	dist_to_converge = " << dist_to_converge << std::endl;
+
 			double step = 1.0;
-			std::vector<Eigen::Vector3d> direction = solve_linear_system(tetMesh, parameters, timestep);
 			step_forward(tetMesh, currentPosition, direction, step);
-			double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
+			double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);			
 			while (newEnergyVal > lastEnergyVal)
 			{
 				step /= 2.0;
-				step_forward(tetMesh, currentPosition, direction, step);		
+				step_forward(tetMesh, currentPosition, direction, step);
 				newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
 			}
+			currentPosition = tetMesh.pos_node;
 			lastEnergyVal = newEnergyVal;
 
+			direction = solve_linear_system(tetMesh, parameters, timestep);
 			dist_to_converge = infiniteNorm(direction);
-		} while (dist_to_converge / parameters.dt > parameters.searchResidual);
+
+			
+		}
+
+
+		double velNorm = infiniteNorm(tetMesh.pos_node);
+		std::cout << "	velNorm = " << velNorm << std::endl;
 
 		// update the velocity of the node
 		for (int i = 0; i < tetMesh.pos_node.size(); i++)
 		{
-			tetMesh.vel_node[i] = (tetMesh.pos_node[i] - tetMesh.pos_node_prev[i]) / parameters.dt;
+			tetMesh.vel_node[i] = (tetMesh.pos_node[i] - tetMesh.pos_node_prev[i]) / parameters.dt;			
 		}
+
 
 	}
 }
@@ -45,11 +69,11 @@ Eigen::Vector3d compute_external_force(Mesh& tetMesh, int vertInd, int timestep)
 {
 	Eigen::Vector3d extForce = Eigen::Vector3d::Zero();
 
-	if (tetMesh.pos_node[vertInd][2] <= 0.15)
+	if (tetMesh.pos_node[vertInd][0] <= 0.15)
 	{
 		extForce = { -100,0, 0 };
 	}
-	if (tetMesh.pos_node[vertInd][2] >= 0.85)
+	if (tetMesh.pos_node[vertInd][0] >= 0.85)
 	{
 		extForce = {100,0, 0 };
 	}
@@ -76,20 +100,29 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 		Eigen::Vector3d extForce = compute_external_force(tetMesh, vI, timestep);
 
 		// the external energy contribution
-		energyVal += ExternalEnergy::Val(nodeMass, parameters.dt, x, parameters, extForce);
+		//energyVal += ExternalEnergy::Val(nodeMass, parameters.dt, x, parameters, extForce);
 		// the inertia energy contribution
-		energyVal += InertiaEnergy::Val(nodeMass, parameters.dt, xt, v, x, extForce);
+		energyVal += InertiaEnergy::Val(nodeMass, parameters.dt, xt, v, x, extForce, parameters);
+
+
+		//std::cout << " inertiaEnergy = " << InertiaEnergy::Val(nodeMass, parameters.dt, xt, v, x, extForce, parameters) << " extforce = " << extForce[0]<<", " << extForce[1] << ", " << extForce[2] << std::endl;
 	}
 
+	double inerEng = energyVal;
 
 	// energy contribution per element
 	for (int eI = 0; eI < tetMesh.tetra_F.size(); eI++)
 	{
 		// the internal elastic energy contribution
-		Eigen::Matrix3d tmp = tetMesh.tetra_F[eI];
-		energyVal += ElasticEnergy::Val(tetMesh.materialMesh, parameters.model, tetMesh.tetra_F[eI], parameters.dt);
-	}
+		energyVal += ElasticEnergy::Val(tetMesh.materialMesh, parameters.model, tetMesh.tetra_F[eI], parameters.dt, tetMesh.tetra_vol[eI]);
 
+		if (eI == 0)
+		{
+			//std::cout << " FirstElementEng = " << ElasticEnergy::Val(tetMesh.materialMesh, parameters.model, tetMesh.tetra_F[eI], parameters.dt, tetMesh.tetra_vol[eI]) << std::endl;
+		}
+	}
+	
+	//std::cout << "		inertiaEnergy = " << inerEng << "; elasEng = " << energyVal - inerEng << std::endl;
 
 
 	return energyVal;
@@ -98,6 +131,9 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 // compute energy gradient and hessian of the linear system and solve the syetem
 std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 {
+
+
+
 	std::vector<Eigen::Vector3d> movingDir(tetMesh.pos_node.size());
 
 	// update defromation gradient
@@ -118,13 +154,14 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 
 		// the external energy contribution
 		std::vector<std::pair<int, double>> extEngGrad = ExternalEnergy::Grad(nodeMass, parameters.dt, x, parameters, extForce, vI);
-		grad_triplet.insert(grad_triplet.end(), extEngGrad.begin(), extEngGrad.end());
+		//grad_triplet.insert(grad_triplet.end(), extEngGrad.begin(), extEngGrad.end());
 
 		// the inertia energy contribution
-		std::vector<std::pair<int, double>> inerEngGrad = InertiaEnergy::Grad(nodeMass, parameters.dt, xt, v, x, extForce, vI);
+		std::vector<std::pair<int, double>> inerEngGrad = InertiaEnergy::Grad(nodeMass, parameters.dt, xt, v, x, extForce, vI, parameters);
 		std::vector<Eigen::Triplet<double>> inerEngHess = InertiaEnergy::Hess(nodeMass, vI);
 		grad_triplet.insert(grad_triplet.end(), inerEngGrad.begin(), inerEngGrad.end());
-		hessian_triplet.insert(hessian_triplet.end(), inerEngHess.begin(), inerEngHess.end());			
+		hessian_triplet.insert(hessian_triplet.end(), inerEngHess.begin(), inerEngHess.end());		
+
 	}
 
 	// energy contribution per element
@@ -142,17 +179,41 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	Eigen::SparseMatrix<double> leftHandSide(3 * tetMesh.pos_node.size(), 3 * tetMesh.pos_node.size());
 	leftHandSide.setFromTriplets(hessian_triplet.begin(), hessian_triplet.end());
 
+	double tmpsum = 0;
 	// assemable the right-hand side 
 	Eigen::VectorXd rightHandSide = Eigen::VectorXd(tetMesh.pos_node.size() * 3);
+	rightHandSide.setZero();
 	for (int i = 0; i < grad_triplet.size(); i++)
 	{
+		
 		std::pair<int, double> ele = grad_triplet[i];
-		rightHandSide[ele.first] = ele.second;
+		rightHandSide[ele.first] += ele.second;
+		//if (i < 100)
+		{
+			//std::cout << "		rv = " << ele.second << std::endl;
+		}
+		tmpsum += std::abs(ele.second);
+
+		//std::cout <<"	count = "<<i<< "; ele.first = " << ele.first << "; ele.second = " << ele.second << std::endl;
 	}
 
+
+	for (int i = 0; i < rightHandSide.size(); i++)
+	{
+		//std::cout  << "			value = " << rightHandSide[i] << std::endl;
+	}
+
+	//std::cout << "leftHandSide.norm() = " << leftHandSide.norm() << std::endl;
+	//std::cout <<"rightHandSide.squaredNorm() = " << rightHandSide.squaredNorm() << std::endl;
+
+
+	//
+	
+
+
 	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> solver;
-	solver.compute(-leftHandSide);
-	Eigen::VectorXd result = solver.solve(rightHandSide);
+	solver.compute(leftHandSide);
+	Eigen::VectorXd result = solver.solve(-rightHandSide);
 	
 	for (int i = 0; i < tetMesh.pos_node.size(); i++)
 	{
@@ -178,7 +239,7 @@ void lineSearch(Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, FEMParam
 	lastEnergyVal = newEnergyVal;
 }
 
-// move points' position according to the direction
+// move points' position according to the direction; Note this is a trial movement
 void step_forward(Mesh& tetMesh, std::vector<Eigen::Vector3d>& currentPosition, std::vector<Eigen::Vector3d>& direction, double step)
 {
 	for (int vI = 0; vI < tetMesh.pos_node.size(); vI++)
@@ -186,3 +247,5 @@ void step_forward(Mesh& tetMesh, std::vector<Eigen::Vector3d>& currentPosition, 
 		tetMesh.pos_node[vI] = currentPosition[vI] + step * direction[vI];
 	}
 }
+
+

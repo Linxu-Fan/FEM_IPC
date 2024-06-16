@@ -66,6 +66,7 @@ struct Mesh
 
 	std::vector<Eigen::Vector3d> pos_node_prev; // tetrahedral node's previous position
 
+
 	objMesh surfaceMesh;
 
 	Material materialMesh;

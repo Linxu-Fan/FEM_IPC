@@ -16,20 +16,17 @@ int main()
 
 
 	FEMParamters parameters;
-	parameters.dt = 1.0E-2;
+	parameters.dt = 1.0E-3;
 	parameters.gravity = {0, 0, 0};
-	parameters.num_timesteps = 2001;
-	parameters.outputFrequency = 100;
+	parameters.num_timesteps = 10001;
+	parameters.outputFrequency = 1000;
 	parameters.model = "neoHookean";
 	// neoHookean ARAP ARAP_linear ACAP
 
 
 
-	std::cout << tetMesh.pos_node.size() << std::endl;
-	std::cout << tetMesh.tetrahedrals.size() << std::endl;
 
-	//
-	//implicitFEM(tetMesh, parameters);
+	implicitFEM(tetMesh, parameters);
 
 
 
