@@ -99,7 +99,7 @@ double ElasticEnergy::Val(Material& mat, std::string model, Eigen::Matrix3d& F, 
 }
 
 // compute the energy gradient dPHI/dF (PK1 stress). Return a vectorized gradient which is a 9x1 matrix
-std::vector<std::pair<int, double>> ElasticEnergy::Grad(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd)
+std::vector<std::pair<int, double>> ElasticEnergy::Grad(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd, Eigen::Vector4i& tetVertInd_BC)
 {
 	Vector9d grad_tmp;
 	if (model == "neoHookean")
@@ -164,11 +164,14 @@ std::vector<std::pair<int, double>> ElasticEnergy::Grad(Material& mat, std::stri
 	std::vector<std::pair<int, double>> res;
 	for (int m = 0; m < 4; m++)
 	{
-		int x1_Ind = tetVertInd[m]; // the first vertex index
-		for (int xd = 0; xd < 3; xd++)
+		if (tetVertInd_BC[m] != 1)
 		{
-			double value = engGrad(m * 3 + xd, 1);
-			res.emplace_back(x1_Ind * 3 + xd, value);
+			int x1_Ind = tetVertInd[m]; // the first vertex index
+			for (int xd = 0; xd < 3; xd++)
+			{
+				double value = engGrad(m * 3 + xd, 1);
+				res.emplace_back(x1_Ind * 3 + xd, value);
+			}
 		}
 	}
 	return  res;
@@ -176,7 +179,7 @@ std::vector<std::pair<int, double>> ElasticEnergy::Grad(Material& mat, std::stri
 }
 
 // compute the energy hessian dPHI2/d2F. Return a vectorized gradient which is a 9x9 matrix
-std::vector<Eigen::Triplet<double>> ElasticEnergy::Hess(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd)
+std::vector<Eigen::Triplet<double>> ElasticEnergy::Hess(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd, Eigen::Vector4i& tetVertInd_BC)
 {
 
 	Eigen::Matrix<double, 9, 9> hessian = Eigen::Matrix<double, 9, 9>::Zero();
@@ -365,16 +368,22 @@ std::vector<Eigen::Triplet<double>> ElasticEnergy::Hess(Material& mat, std::stri
 	std::vector<Eigen::Triplet<double>> res;
 	for (int m = 0; m < 4; m++)
 	{
-		int x1_Ind = tetVertInd[m]; // the first vertex index
-		for (int n = 0; n < 4; n++)
+		if (tetVertInd_BC[m] != 1)
 		{
-			int x2_Ind = tetVertInd[n]; // the second vertex index	
-			for (int xd = 0; xd < 3; xd++)
+			int x1_Ind = tetVertInd[m]; // the first vertex index
+			for (int n = 0; n < 4; n++)
 			{
-				for (int yd = 0; yd < 3; yd++)
+				if (tetVertInd_BC[n] != 1)
 				{
-					double value = engHess(m * 3 + xd, n * 3 + yd);
-					res.emplace_back(x1_Ind * 3 + xd, x2_Ind * 3 + yd, value);
+					int x2_Ind = tetVertInd[n]; // the second vertex index	
+					for (int xd = 0; xd < 3; xd++)
+					{
+						for (int yd = 0; yd < 3; yd++)
+						{
+							double value = engHess(m * 3 + xd, n * 3 + yd);
+							res.emplace_back(x1_Ind * 3 + xd, x2_Ind * 3 + yd, value);
+						}
+					}
 				}
 			}
 		}

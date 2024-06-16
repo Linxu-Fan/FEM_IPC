@@ -100,6 +100,9 @@ void Mesh::initializeMesh() // initialize the mesh
 	{
 		Eigen::Vector3d vel = { 0,0,0 };
 		vel_node.push_back(vel);
+
+		boundaryCondition BC;
+		boundaryCondition_node.push_back(BC);
 	}
 
 	std::vector<std::vector<int>> nodePerElement_tmp(pos_node.size());
