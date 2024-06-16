@@ -28,9 +28,6 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 		while (dist_to_converge / parameters.dt > parameters.searchResidual)
 		{
 			iteration += 1;
-			std::cout << "	iteration = " << iteration << std::endl;
-			std::cout << "	lastEnergyVal = " << lastEnergyVal << std::endl;
-			std::cout << "	dist_to_converge = " << dist_to_converge << std::endl;
 
 			double step = 1.0;
 			step_forward(tetMesh, currentPosition, direction, step);
@@ -46,13 +43,9 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 
 			direction = solve_linear_system(tetMesh, parameters, timestep);
 			dist_to_converge = infiniteNorm(direction);
-
-			
+		
 		}
 
-
-		double velNorm = infiniteNorm(tetMesh.pos_node);
-		std::cout << "	velNorm = " << velNorm << std::endl;
 
 		// update the velocity of the node
 		for (int i = 0; i < tetMesh.pos_node.size(); i++)
@@ -100,7 +93,7 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 		Eigen::Vector3d extForce = compute_external_force(tetMesh, vI, timestep);
 
 		// the external energy contribution
-		//energyVal += ExternalEnergy::Val(nodeMass, parameters.dt, x, parameters, extForce);
+		energyVal += ExternalEnergy::Val(nodeMass, parameters.dt, x, parameters, extForce);
 		// the inertia energy contribution
 		energyVal += InertiaEnergy::Val(nodeMass, parameters.dt, xt, v, x, extForce, parameters);
 
@@ -154,7 +147,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 
 		// the external energy contribution
 		std::vector<std::pair<int, double>> extEngGrad = ExternalEnergy::Grad(nodeMass, parameters.dt, x, parameters, extForce, vI);
-		//grad_triplet.insert(grad_triplet.end(), extEngGrad.begin(), extEngGrad.end());
+		grad_triplet.insert(grad_triplet.end(), extEngGrad.begin(), extEngGrad.end());
 
 		// the inertia energy contribution
 		std::vector<std::pair<int, double>> inerEngGrad = InertiaEnergy::Grad(nodeMass, parameters.dt, xt, v, x, extForce, vI, parameters);
@@ -223,21 +216,6 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	return movingDir;
 }
 
-// do line search to find the optimal step
-void lineSearch(Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, FEMParamters& parameters, double& lastEnergyVal, int timestep)
-{
-	std::vector<Eigen::Vector3d> currentPosition = tetMesh.pos_node;
-	double step = 1.0;
-	step_forward(tetMesh, currentPosition, direction, step);
-	double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
-	while (newEnergyVal > lastEnergyVal)
-	{
-		step_forward(tetMesh, currentPosition, direction, step);
-		step /= 2.0;
-		newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
-	}
-	lastEnergyVal = newEnergyVal;
-}
 
 // move points' position according to the direction; Note this is a trial movement
 void step_forward(Mesh& tetMesh, std::vector<Eigen::Vector3d>& currentPosition, std::vector<Eigen::Vector3d>& direction, double step)

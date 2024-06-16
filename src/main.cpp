@@ -20,7 +20,7 @@ int main()
 	parameters.gravity = {0, 0, 0};
 	parameters.num_timesteps = 10001;
 	parameters.outputFrequency = 1000;
-	parameters.model = "neoHookean";
+	parameters.model = "ARAP_linear";
 	// neoHookean ARAP ARAP_linear ACAP
 
 
