@@ -4,17 +4,30 @@
 int main()
 {
 	Material mat1;
-	//mat1.density = 100;
-	//mat1.E = 100;
 	mat1.updateDenpendecies();
 
+	Material mat2;
+	mat2.density = 100;
+	mat2.updateDenpendecies();
+
+
+
+	//Mesh tetMesh;
+	//tetMesh.readMesh("./input/cube.msh", mat1);
+	//tetMesh.initializeMesh();
+	//tetMesh.extractSurfaceMesh();
+	//tetMesh.surfaceMesh.outputFile("surfMesh");
+
+
+	std::vector<std::pair<std::string, Material>> filePath_and_mat;
+	filePath_and_mat.push_back(std::make_pair("./input/cube.msh", mat1));
+	filePath_and_mat.push_back(std::make_pair("./input/cube.msh", mat2));
 	Mesh tetMesh;
-	tetMesh.readMesh("./input/cube.msh");
-	tetMesh.materialMesh = mat1;
+	tetMesh.readMeshes(filePath_and_mat);
 	tetMesh.initializeMesh();
-	tetMesh.cal_DS_or_DM(false);
 	tetMesh.extractSurfaceMesh();
 	tetMesh.surfaceMesh.outputFile("surfMesh");
+
 
 
 	FEMParamters parameters;

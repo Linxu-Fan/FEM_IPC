@@ -99,7 +99,8 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 	for (int eI = 0; eI < tetMesh.tetra_F.size(); eI++)
 	{
 		// the internal elastic energy contribution
-		energyVal += ElasticEnergy::Val(tetMesh.materialMesh, parameters.model, tetMesh.tetra_F[eI], parameters.dt, tetMesh.tetra_vol[eI]);
+		int matInd = tetMesh.materialInd[eI];
+		energyVal += ElasticEnergy::Val(tetMesh.materialMesh[matInd], parameters.model, tetMesh.tetra_F[eI], parameters.dt, tetMesh.tetra_vol[eI]);
 	}	
 
 	return energyVal;
@@ -150,9 +151,10 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 		}
 
 		// the internal elastic energy contribution
+		int matInd = tetMesh.materialInd[eI];
 		Eigen::Matrix<double, 9, 12> dFdx = ElasticEnergy::dF_wrt_dx(tetMesh.tetra_DM_inv[eI]);
-		std::vector<std::pair<int, double>> elasEngGrad = ElasticEnergy::Grad(tetMesh.materialMesh, parameters.model, tetMesh.tetra_F[eI], parameters.dt, tetMesh.tetra_vol[eI], dFdx, tetMesh.tetrahedrals[eI], tetVertInd_BC);
-		std::vector<Eigen::Triplet<double>> elasEngHess = ElasticEnergy::Hess(tetMesh.materialMesh, parameters.model, tetMesh.tetra_F[eI], parameters.dt, tetMesh.tetra_vol[eI], dFdx, tetMesh.tetrahedrals[eI], tetVertInd_BC);
+		std::vector<std::pair<int, double>> elasEngGrad = ElasticEnergy::Grad(tetMesh.materialMesh[matInd], parameters.model, tetMesh.tetra_F[eI], parameters.dt, tetMesh.tetra_vol[eI], dFdx, tetMesh.tetrahedrals[eI], tetVertInd_BC);
+		std::vector<Eigen::Triplet<double>> elasEngHess = ElasticEnergy::Hess(tetMesh.materialMesh[matInd], parameters.model, tetMesh.tetra_F[eI], parameters.dt, tetMesh.tetra_vol[eI], dFdx, tetMesh.tetrahedrals[eI], tetVertInd_BC);
 		grad_triplet.insert(grad_triplet.end(), elasEngGrad.begin(), elasEngGrad.end());
 		hessian_triplet.insert(hessian_triplet.end(), elasEngHess.begin(), elasEngHess.end());
 	}

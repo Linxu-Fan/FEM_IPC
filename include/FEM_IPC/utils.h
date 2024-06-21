@@ -52,6 +52,7 @@ struct FEMParamters
 	int numOfThreads = 5; // number of openMP threads
 
 	double searchResidual = 1.0e-4;
+
 };
 
 

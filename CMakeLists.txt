@@ -43,6 +43,8 @@ add_executable(
 	src/ElasticEnergy.cpp
 	src/simulator.cpp
 	src/ExternalEnergy.cpp
+	src/BarrierEnergy.cpp
+	include/FEM_IPC/BarrierEnergy.h
 	include/FEM_IPC/ExternalEnergy.h
 	include/FEM_IPC/simulator.h
 	include/FEM_IPC/ElasticEnergy.h

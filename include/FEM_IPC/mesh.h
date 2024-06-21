@@ -66,17 +66,21 @@ struct Mesh
 
 	std::vector<Eigen::Vector3d> pos_node_prev; // tetrahedral node's previous position
 
+	std::vector<int> materialInd; // index of the materials(materialMesh) used in this tetrahedral
+	std::vector<Material> materialMesh; // all materials used in the simulation
+
 
 	objMesh surfaceMesh;
 
-	Material materialMesh;
 
 
 	////////////////////////////////////////////////////////////////////////
 	// Is it possible that node and element are not placed in order? If possible, then the reading code may crash.
 	////////////////////////////////////////////////////////////////////////
 	// read .msh mesh file
-	void readMesh(std::string filePath);
+	void readMesh(std::string filePath, Material mat);
+	// read multiple meshes at the same time
+	void readMeshes(std::vector<std::pair<std::string, Material>> filePath_and_mat);
     
 
 	// initialize the mesh after reading
