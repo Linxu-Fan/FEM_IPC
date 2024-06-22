@@ -25,7 +25,6 @@ int main()
 	Mesh tetMesh;
 	tetMesh.readMeshes(filePath_and_mat);
 	tetMesh.initializeMesh();
-	tetMesh.extractSurfaceMesh();
 	tetMesh.surfaceMesh.outputFile("surfMesh");
 
 

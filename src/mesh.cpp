@@ -204,6 +204,9 @@ void Mesh::initializeMesh() // initialize the mesh
 	calculateNodeMass();
 
 
+	findBoundaryElements();
+
+
 	pos_node_prev = pos_node;
 }
 
@@ -246,21 +249,22 @@ void Mesh::output(int timestep)
 	outfile2.close();
 }
 
-// extract the surface mesh
-void Mesh::extractSurfaceMesh()
+// find boundary elements including vertices, edges and triangles
+void Mesh::findBoundaryElements()
 {
 	surfaceMesh.clear();
+	surfaceMesh.vertices = pos_node;
 
 	std::map<TriangleFace, std::pair<int, std::vector<int>>> faceCount;
 	for (const auto& tetr : tetrahedrals)
 	{
 		std::vector<TriangleFace> faces = {
 			TriangleFace(tetr[0], tetr[1], tetr[2]),
-			TriangleFace(tetr[0], tetr[1], tetr[3]),
-			TriangleFace(tetr[0], tetr[2], tetr[3]),
-			TriangleFace(tetr[1], tetr[2], tetr[3])
+			TriangleFace(tetr[0], tetr[3], tetr[1]),
+			TriangleFace(tetr[3], tetr[2], tetr[1]),
+			TriangleFace(tetr[0], tetr[2], tetr[3])
 		};
-		for (int i = 0; i < 4; i++) 
+		for (int i = 0; i < 4; i++)
 		{
 			faceCount[faces[i]].first++;
 			if (i == 0)
@@ -272,40 +276,71 @@ void Mesh::extractSurfaceMesh()
 			else if (i == 1)
 			{
 				faceCount[faces[i]].second.push_back(tetr[0]);
-				faceCount[faces[i]].second.push_back(tetr[1]);
 				faceCount[faces[i]].second.push_back(tetr[3]);
+				faceCount[faces[i]].second.push_back(tetr[1]);
 			}
 			else if (i == 2)
+			{
+				faceCount[faces[i]].second.push_back(tetr[3]);
+				faceCount[faces[i]].second.push_back(tetr[2]);
+				faceCount[faces[i]].second.push_back(tetr[1]);
+			}
+			else if (i == 3)
 			{
 				faceCount[faces[i]].second.push_back(tetr[0]);
 				faceCount[faces[i]].second.push_back(tetr[2]);
 				faceCount[faces[i]].second.push_back(tetr[3]);
 			}
-			else if (i == 3)
-			{
-				faceCount[faces[i]].second.push_back(tetr[1]);
-				faceCount[faces[i]].second.push_back(tetr[2]);
-				faceCount[faces[i]].second.push_back(tetr[3]);
-			}
-			
+
 		}
 	}
-
 	for (const auto& pair : faceCount)
 	{
 		if (pair.second.first == 1)
 		{
 			surfaceMesh.faces.push_back(pair.second.second);
+
+			Eigen::Vector3i tri = { pair.second.second[0], pair.second.second[1], pair.second.second[2]};
+			boundaryTriangles.push_back(tri);
 		}
 	}
-	surfaceMesh.vertices = pos_node;
 
-}
+	std::set<std::string> allEdges;
+	// find boundary vertices
+	for (int h = 0; h < boundaryTriangles.size(); h++)
+	{
+		Eigen::Vector3i tri = boundaryTriangles[h];
+		boundaryVertices[tri[0]].insert(h);
+		boundaryVertices[tri[1]].insert(h);
+		boundaryVertices[tri[2]].insert(h);
 
-// find boundary elements including vertices, edges and triangles
-void findBoundaryElements()
-{
 
+		// find all edges
+		std::string edge1 = std::to_string(std::min(tri[0], tri[1])) + "#" + std::to_string(std::max(tri[0], tri[1]));
+		std::string edge2 = std::to_string(std::min(tri[1], tri[2])) + "#" + std::to_string(std::max(tri[1], tri[2]));
+		std::string edge3 = std::to_string(std::min(tri[2], tri[0])) + "#" + std::to_string(std::max(tri[2], tri[0]));
+		allEdges.insert(edge1);
+		allEdges.insert(edge2);
+		allEdges.insert(edge3);
+	}
+
+
+	// find boundary edges
+	for (std::set<std::string>::iterator it = allEdges.begin(); it != allEdges.end(); it++)
+	{
+		std::string edge = *it;
+		std::vector<std::string> seg = split(edge, "#");
+		int v1 = std::stoi(seg[0]);
+		int v2 = std::stoi(seg[1]);
+		Eigen::Vector2i edg = {v1, v2};
+
+		std::set<int> v1Tris = boundaryVertices[v1], v2Tris = boundaryVertices[v2];
+		std::vector<int> edgeTris;
+		std::set_intersection(v1Tris.begin(), v1Tris.end(), v2Tris.begin(), v2Tris.end(),std::back_inserter(edgeTris));
+		Eigen::Vector2i tris = { edgeTris[0], edgeTris[1]};
+
+		boundaryEdges.push_back(std::make_pair(edg, tris));
+	}
 }
 
 // export surface mesh

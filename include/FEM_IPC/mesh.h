@@ -73,6 +73,12 @@ struct Mesh
 	objMesh surfaceMesh;
 
 
+	//  data structure of boundary elements
+	std::map<int, std::set<int>> boundaryVertices; // int: vertex's index in the original mesh; set<int>: neighbour triangles of this vertex
+	std::vector<std::pair<Eigen::Vector2i, Eigen::Vector2i>> boundaryEdges; // 1st Eigen::Vector2i: edge index containing two vertices in the ORIGINAL mesh; 2nd Eigen::Vector2i: triangle indices 
+	std::vector<Eigen::Vector3i> boundaryTriangles;
+	
+
 
 	////////////////////////////////////////////////////////////////////////
 	// Is it possible that node and element are not placed in order? If possible, then the reading code may crash.
@@ -93,10 +99,6 @@ struct Mesh
 
 	// output the mesh
 	void output(int timestep);
-	
-
-	// extract the surface mesh
-	void extractSurfaceMesh();
 	
 
 	// export surface mesh
