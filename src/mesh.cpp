@@ -229,7 +229,7 @@ void Mesh::cal_DS_or_DM(bool DS)
 		else
 		{
 			tetra_DM_inv.push_back(DMS.inverse());
-			tetra_vol.push_back(-DMS.determinant() / 6.0);
+			tetra_vol.push_back(std::abs(DMS.determinant() / 6.0));
 			//std::cout << "DMS.determinant() / 6.0 = " << DMS.determinant() / 6.0 << std::endl;
 		}
 	}
