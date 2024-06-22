@@ -77,7 +77,7 @@ std::tuple<int, Eigen::Vector3d, double>  BarrierEnergy::pointTriangleDistance(E
   
 }
 
-
+// compute the cloest distance between two edges in 3D
 edgeEdgeDis BarrierEnergy::edgeEdgeDistance(Eigen::Vector3d P1, Eigen::Vector3d P2, Eigen::Vector3d Q1, Eigen::Vector3d Q2)
 {
     edgeEdgeDis result;

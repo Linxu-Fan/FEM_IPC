@@ -251,7 +251,7 @@ void Mesh::extractSurfaceMesh()
 {
 	surfaceMesh.clear();
 
-	std::map<TriangleFace, int> faceCount;
+	std::map<TriangleFace, std::pair<int, std::vector<int>>> faceCount;
 	for (const auto& tetr : tetrahedrals)
 	{
 		std::vector<TriangleFace> faces = {
@@ -260,23 +260,51 @@ void Mesh::extractSurfaceMesh()
 			TriangleFace(tetr[0], tetr[2], tetr[3]),
 			TriangleFace(tetr[1], tetr[2], tetr[3])
 		};
-		for (const auto& face : faces) {
-			faceCount[face]++;
+		for (int i = 0; i < 4; i++) 
+		{
+			faceCount[faces[i]].first++;
+			if (i == 0)
+			{
+				faceCount[faces[i]].second.push_back(tetr[0]);
+				faceCount[faces[i]].second.push_back(tetr[1]);
+				faceCount[faces[i]].second.push_back(tetr[2]);
+			}
+			else if (i == 1)
+			{
+				faceCount[faces[i]].second.push_back(tetr[0]);
+				faceCount[faces[i]].second.push_back(tetr[1]);
+				faceCount[faces[i]].second.push_back(tetr[3]);
+			}
+			else if (i == 2)
+			{
+				faceCount[faces[i]].second.push_back(tetr[0]);
+				faceCount[faces[i]].second.push_back(tetr[2]);
+				faceCount[faces[i]].second.push_back(tetr[3]);
+			}
+			else if (i == 3)
+			{
+				faceCount[faces[i]].second.push_back(tetr[1]);
+				faceCount[faces[i]].second.push_back(tetr[2]);
+				faceCount[faces[i]].second.push_back(tetr[3]);
+			}
+			
 		}
 	}
 
 	for (const auto& pair : faceCount)
 	{
-		if (pair.second == 1)
+		if (pair.second.first == 1)
 		{
-			std::vector<int> fc;
-			fc.push_back(pair.first.n1);
-			fc.push_back(pair.first.n2);
-			fc.push_back(pair.first.n3);
-			surfaceMesh.faces.push_back(fc);
+			surfaceMesh.faces.push_back(pair.second.second);
 		}
 	}
 	surfaceMesh.vertices = pos_node;
+
+}
+
+// find boundary elements including vertices, edges and triangles
+void findBoundaryElements()
+{
 
 }
 

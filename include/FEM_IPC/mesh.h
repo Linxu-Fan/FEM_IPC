@@ -113,6 +113,10 @@ struct Mesh
 
 	// calculate the bounding box of the mesh
 	std::pair<Eigen::Vector3d, Eigen::Vector3d> calculateBoundingBox();
+
+
+	// find boundary elements including vertices, edges and triangles
+	void findBoundaryElements();
 	
 
 };
