@@ -2,9 +2,10 @@
 
 
 // compute the distance between a point and a triangle
-std::tuple<int, Eigen::Vector3d, double>  BarrierEnergy::pointTriangleDistance(Eigen::Vector3d P, Eigen::Vector3d A, Eigen::Vector3d B, Eigen::Vector3d C)
+pointTriangleDis  BarrierEnergy::pointTriangleDistance(Eigen::Vector3d P, Eigen::Vector3d A, Eigen::Vector3d B, Eigen::Vector3d C)
 {
-  
+    pointTriangleDis result;
+
     // Compute vectors
     Eigen::Vector3d AB = B - A;
     Eigen::Vector3d AC = C - A;
@@ -15,8 +16,10 @@ std::tuple<int, Eigen::Vector3d, double>  BarrierEnergy::pointTriangleDistance(E
     double d2 = AC.dot(AP);
     if (d1 <= 0.0 && d2 <= 0.0) 
     {
-        std::tuple<int, Eigen::Vector3d, double> res = std::make_tuple(0, A, (P - A).norm());
-        return res;
+        result.cloestPt = 0;
+        result.cloestPtCoor = A;
+        result.distance = (P - A).squaredNorm();
+        return result;
     }
 
     // Check if P in vertex region outside B
@@ -25,8 +28,10 @@ std::tuple<int, Eigen::Vector3d, double>  BarrierEnergy::pointTriangleDistance(E
     double d4 = AC.dot(BP);
     if (d3 >= 0.0 && d4 <= d3) 
     {
-        std::tuple<int, Eigen::Vector3d, double> res = std::make_tuple(1, B, (P - B).norm());
-        return res;
+        result.cloestPt = 1;
+        result.cloestPtCoor = B;
+        result.distance = (P - B).squaredNorm();
+        return result;
     }
 
     // Check if P in edge region of AB
@@ -35,8 +40,11 @@ std::tuple<int, Eigen::Vector3d, double>  BarrierEnergy::pointTriangleDistance(E
     {
         double v = d1 / (d1 - d3);
         Eigen::Vector3d closestPoint = A + v * AB;
-        std::tuple<int, Eigen::Vector3d, double> res = std::make_tuple(3, closestPoint, (P - closestPoint).norm());
-        return res;
+
+        result.cloestPt = 3;
+        result.cloestPtCoor = closestPoint;
+        result.distance = (P - closestPoint).squaredNorm();
+        return result;
     }
 
     // Check if P in vertex region outside C
@@ -45,8 +53,11 @@ std::tuple<int, Eigen::Vector3d, double>  BarrierEnergy::pointTriangleDistance(E
     double d6 = AC.dot(CP);
     if (d6 >= 0.0 && d5 <= d6) 
     {
-        std::tuple<int, Eigen::Vector3d, double> res = std::make_tuple(2, C, (P - C).norm());
-        return res;
+
+        result.cloestPt = 2;
+        result.cloestPtCoor = C;
+        result.distance = (P - C).squaredNorm();
+        return result;
     }
 
     // Check if P in edge region of AC
@@ -54,8 +65,11 @@ std::tuple<int, Eigen::Vector3d, double>  BarrierEnergy::pointTriangleDistance(E
     if (vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0) {
         double w = d2 / (d2 - d6);
         Eigen::Vector3d closestPoint = A + w * AC;
-        std::tuple<int, Eigen::Vector3d, double> res = std::make_tuple(5, closestPoint, (P - closestPoint).norm());
-        return res;
+
+        result.cloestPt = 5;
+        result.cloestPtCoor = closestPoint;
+        result.distance = (P - closestPoint).squaredNorm();
+        return result;
     }
 
     // Check if P in edge region of BC
@@ -63,8 +77,11 @@ std::tuple<int, Eigen::Vector3d, double>  BarrierEnergy::pointTriangleDistance(E
     if (va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0) {
         double w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
         Eigen::Vector3d closestPoint = B + w * (C - B);
-        std::tuple<int, Eigen::Vector3d, double> res = std::make_tuple(4, closestPoint, (P - closestPoint).norm());
-        return res;
+
+        result.cloestPt = 4;
+        result.cloestPtCoor = closestPoint;
+        result.distance = (P - closestPoint).squaredNorm();
+        return result;
     }
 
     // P inside face region. Compute Q through its barycentric coordinates (u, v, w)
@@ -72,8 +89,11 @@ std::tuple<int, Eigen::Vector3d, double>  BarrierEnergy::pointTriangleDistance(E
     double v = vb * denom;
     double w = vc * denom;
     Eigen::Vector3d closestPoint = A + AB * v + AC * w; // P is closest to the triangle's face
-    std::tuple<int, Eigen::Vector3d, double> res = std::make_tuple(6, closestPoint, (P - closestPoint).norm());
-    return res;
+
+    result.cloestPt = 6;
+    result.cloestPtCoor = closestPoint;
+    result.distance = (P - closestPoint).squaredNorm();
+    return result;
   
 }
 
@@ -249,11 +269,10 @@ edgeEdgeDis BarrierEnergy::edgeEdgeDistance(Eigen::Vector3d P1, Eigen::Vector3d 
     Eigen::Vector3d dP = closestPointP - closestPointQ;
     result.edge1CloestPtCoor = closestPointP;
     result.edge2CloestPtCoor = closestPointQ;
-    result.distance = dP.norm();
+    result.distance = dP.squaredNorm();
 
     return result;
 }
-
 
 // compute the elastic energy
 double BarrierEnergy::Val(double d_ij, double d_hat, double k_stiff, double contactArea)

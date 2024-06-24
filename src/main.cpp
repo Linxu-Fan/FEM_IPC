@@ -1,5 +1,10 @@
 #include "simulator.h" 
 
+// TODO
+// 1. Compute the barrier distance, energy and their derivative
+// 2. Accelerate and parallel openMP
+
+
 
 int main()
 {
