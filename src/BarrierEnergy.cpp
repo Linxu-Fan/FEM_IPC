@@ -98,20 +98,68 @@ pointTriangleDis  BarrierEnergy::pointTriangleBarriereEnergy(Eigen::Vector3d P, 
 }
 
 // compute the cloest distance between two edges in 3D
-edgeEdgeDis BarrierEnergy::edgeEdgeBarriereEnergy(Eigen::Vector4i vtInd, Eigen::Vector3d P1, Eigen::Vector3d P2, Eigen::Vector3d Q1, Eigen::Vector3d Q2, double d_hat)
+edgeEdgeDis BarrierEnergy::edgeEdgeBarriereEnergy(Eigen::Vector4i vtInd , Eigen::Vector4i vtInd_BC, Eigen::Vector3d P1, Eigen::Vector3d P2, Eigen::Vector3d Q1, Eigen::Vector3d Q2, double d_hat)
 {
+    double d_hat2 = d_hat * d_hat;
+
     edgeEdgeDis result;
 
     int type = edgeEdgeDisType(P1, P2, Q1, Q2);
-    disGradHess dis2_ = edgeEdgeDis2( type, P1, P2, Q1, Q2);
-    double dis2 = dis2_.val;
+    double dis2 = edgeEdgeDis2( type, P1, P2, Q1, Q2);
+    if (dis2 < d_hat2)
+    {
+        double b2 = -(dis2 - d_hat2) * (dis2 - d_hat2) * std::log(dis2 / (d_hat2));
+        double partial_b2_partial_d = -4.0 * (dis2 - d_hat2) * std::sqrt(dis2) * std::log(dis2 / d_hat2) - 2.0 / std::sqrt(dis2) * (dis2 - d_hat2) * (dis2 - d_hat2);
+        double partial2_b2_partial2_d = -4.0 * (3.0 * dis2 - d_hat2) * std::log(dis2 / d_hat2) - 8.0 * (dis2 - d_hat2) + 2.0 / dis2 * (dis2 - d_hat2) * (dis2 - d_hat2) - 8.0 * (dis2 - d_hat2);
 
-    double d_hat2 = d_hat* d_hat;
-    double b2 = -(dis2 - d_hat2) * (dis2 - d_hat2) * std::log(dis2 / (d_hat2));
-    double partial_b2_partial_d = -4.0 * (dis2 - d_hat2) * std::sqrt(dis2) * std::log(dis2 / d_hat2) - 2.0 / std::sqrt(dis2) * (dis2 - d_hat2) * (dis2 - d_hat2);
-    double partial2_b2_partial2_d = -4.0 * (3.0 * dis2 - d_hat2) * std::log(dis2 / d_hat2) - 8.0 * (dis2 - d_hat2) + 2.0 / dis2 * (dis2 - d_hat2) * (dis2 - d_hat2) - 8.0 * (dis2 - d_hat2);
+        std::vector<int> activePts; // active points that are participated in the distance and energy calculation
+        switch (type)
+        {
+        case 0:
+            activePts.push_back(0);
+            activePts.push_back(2);
 
 
+            Eigen::VectorXd grad = partial_b2_partial_d *
+
+        case 1:
+            activePts.push_back(0);
+            activePts.push_back(2);
+            activePts.push_back(3);
+        case 2:
+            activePts.push_back(0);
+            activePts.push_back(3);
+        case 3:
+            activePts.push_back(2);
+            activePts.push_back(0);
+            activePts.push_back(1);
+        case 4:
+            activePts.push_back(0);
+            activePts.push_back(1);
+            activePts.push_back(2);
+            activePts.push_back(3);
+        case 5:
+            activePts.push_back(3);
+            activePts.push_back(0);
+            activePts.push_back(1);
+        case 6:
+            activePts.push_back(1);
+            activePts.push_back(2);
+        case 7:
+            activePts.push_back(1);
+            activePts.push_back(2);
+            activePts.push_back(3);
+        case 8:
+            activePts.push_back(1);
+            activePts.push_back(3);
+        }
+
+
+
+        
+
+
+    }
 
 
     return result;

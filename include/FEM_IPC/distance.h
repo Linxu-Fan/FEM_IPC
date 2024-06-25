@@ -7,6 +7,9 @@
 struct disGradHess
 {
 	double val = 0;
+	Eigen::VectorXd grad;
+	Eigen::MatrixXd hess;
+
 	Vector6d grad_6;
 	Vector9d grad_9;
 	Vector12d grad_12;
@@ -25,6 +28,10 @@ int pointTriangleDisType(Eigen::Vector3d P, Eigen::Vector3d A, Eigen::Vector3d B
 double pointTriangleDis2(Eigen::Vector3d P, Eigen::Vector3d A, Eigen::Vector3d B, Eigen::Vector3d C);
 
 // calcualte the SQUARED point-triangle distance given the type
+double pointTriangleDis2(int type, Eigen::Vector3d P, Eigen::Vector3d A, Eigen::Vector3d B, Eigen::Vector3d C);
+// calcualte the SQUARED point-triangle distance given the type gradient
+double pointTriangleDis2(int type, Eigen::Vector3d P, Eigen::Vector3d A, Eigen::Vector3d B, Eigen::Vector3d C);
+// calcualte the SQUARED point-triangle distance given the type hessian
 double pointTriangleDis2(int type, Eigen::Vector3d P, Eigen::Vector3d A, Eigen::Vector3d B, Eigen::Vector3d C);
 
 

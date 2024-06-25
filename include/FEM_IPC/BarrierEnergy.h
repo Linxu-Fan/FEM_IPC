@@ -46,7 +46,7 @@ namespace BarrierEnergy
 	pointTriangleDis pointTriangleBarriereEnergy(Eigen::Vector3d P, Eigen::Vector3d A, Eigen::Vector3d B, Eigen::Vector3d C);
 
 	// compute the energy between two edges in 3D
-	edgeEdgeDis edgeEdgeBarriereEnergy(Eigen::Vector4i vtInd, Eigen::Vector3d P1, Eigen::Vector3d P2, Eigen::Vector3d Q1, Eigen::Vector3d Q2, double d_hat);
+	edgeEdgeDis edgeEdgeBarriereEnergy(Eigen::Vector4i vtInd, Eigen::Vector4i vtInd_BC, Eigen::Vector3d P1, Eigen::Vector3d P2, Eigen::Vector3d Q1, Eigen::Vector3d Q2, double d_hat);
 
 
 	// compute the barrier energy
