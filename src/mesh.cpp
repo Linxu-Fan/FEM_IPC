@@ -339,8 +339,56 @@ void Mesh::findBoundaryElements()
 		std::set_intersection(v1Tris.begin(), v1Tris.end(), v2Tris.begin(), v2Tris.end(),std::back_inserter(edgeTris));
 		Eigen::Vector2i tris = { edgeTris[0], edgeTris[1]};
 
-		boundaryEdges.push_back(std::make_pair(edg, tris));
+
+		int emin = std::min(v1, v2), emax = std::max(v1, v2);
+		boundaryEdges[emin][emax] = tris;
 	}
+}
+
+// update boundary elements' information: area
+void Mesh::updateBoundaryElementsInfo()
+{
+	boundaryVertices_area.clear();
+	boundaryEdges_area.clear();
+	boundaryTriangles_area.clear();
+
+	// calculate the area of each triangle
+	for (int i = 0; i < boundaryTriangles.size(); i++)
+	{
+		Eigen::Vector3i triangle = boundaryTriangles[i];
+		Eigen::Vector3d t1Coor = pos_node[triangle[0]], t2Coor = pos_node[triangle[1]], t3Coor = pos_node[triangle[2]];
+		Eigen::Vector3d t1t2 = t2Coor - t1Coor, t1t3 = t3Coor - t1Coor;
+		double triArea = 1.0 / 2.0 * (t1t2.cross(t1t3)).norm();
+		boundaryTriangles_area.push_back(triArea);
+	}
+
+	// calculate the distributed area of each vertex
+	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin(); it != boundaryVertices.end(); it++)
+	{
+		std::set<int> incidentTriangles = it->second;
+		double vertArea = 0;
+		for (std::set<int>::iterator it = incidentTriangles.begin(); it != incidentTriangles.end(); it++)
+		{
+			vertArea += boundaryTriangles_area[*it];
+		}
+		boundaryVertices_area[it->first] = vertArea;
+	}
+
+	// calculate the distributed area of each edge
+	for (std::map<int, std::map<int, Eigen::Vector2i>>::iterator it1 = boundaryEdges.begin(); it1 != boundaryEdges.end(); it1++)
+	{
+		int v1 = it1->first;
+		std::map<int, Eigen::Vector2i> trisInd = it1->second;	
+		for (std::map<int, Eigen::Vector2i>::iterator it2 = trisInd.begin(); it2 != trisInd.end(); it2++)
+		{
+			int v2 = it2->first;	
+			double edgeArea = 0;
+			edgeArea += boundaryTriangles_area[it2->second[0]];
+			edgeArea += boundaryTriangles_area[it2->second[1]];
+			boundaryEdges_area[v1][v2] = edgeArea;
+		}
+	}
+
 }
 
 // export surface mesh
@@ -364,6 +412,8 @@ void Mesh::update_F()
 		Ds << x1 - x0, x2 - x0, x3 - x0;
 		tetra_F[i] = Ds * tetra_DM_inv[i];
 	}
+
+	updateBoundaryElementsInfo();
 }
 
 // calculate the mass of each node

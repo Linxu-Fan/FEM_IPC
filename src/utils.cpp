@@ -88,7 +88,25 @@ Eigen::Matrix3d vector2CrossProductMatrix(const Eigen::Vector3d& vec)
 
 
 
-
+// find if an element exists in a multimap
+bool existInMultiMap_2(int x, int y, std::map<int, std::map<int, int>>& gridMap)
+{
+	if (gridMap.find(x) != gridMap.end())
+	{
+		if (gridMap[x].find(y) != gridMap[x].end())
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	else
+	{
+		return false;
+	}
+}
 
 
 

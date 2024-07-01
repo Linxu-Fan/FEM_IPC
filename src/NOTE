@@ -4,3 +4,7 @@ For all energies:
 	b) per vertex for InertiaEnergy
 2) Its gradient wrt position (dE/dx) is a 3x1 vector;
 3) Its hessian (d2E/dx1dx2) is a 3x3 matrix. 
+
+
+TODO:
+1) edge-edge mollifier

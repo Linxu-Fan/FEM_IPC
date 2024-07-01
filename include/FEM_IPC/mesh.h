@@ -74,9 +74,13 @@ struct Mesh
 
 
 	//  data structure of boundary elements
-	std::map<int, std::set<int>> boundaryVertices; // int: vertex's index in the original mesh; set<int>: neighbour triangles of this vertex
-	std::vector<std::pair<Eigen::Vector2i, Eigen::Vector2i>> boundaryEdges; // 1st Eigen::Vector2i: edge index containing two vertices in the ORIGINAL mesh; 2nd Eigen::Vector2i: triangle indices 
+	std::map<int, std::set<int>> boundaryVertices; // int: vertex's index in the original mesh; set<int>: neighbour triangles of this vertex	
+	std::map<int, double> boundaryVertices_area; // boundary vertex's area (distributed area of this vertex)	
+	std::map<int, std::map<int, Eigen::Vector2i>> boundaryEdges; // 1st (smaller one) & 2nd (larger one) int: edge index containing two vertices in the ORIGINAL mesh; Eigen::Vector2i: triangle indices
+	std::map<int, std::map<int, double>> boundaryEdges_area; // boundary edge's area (distributed area of this edge)
 	std::vector<Eigen::Vector3i> boundaryTriangles;
+	std::vector<double> boundaryTriangles_area; // boundary triangle's area
+	
 	
 
 
@@ -119,6 +123,10 @@ struct Mesh
 
 	// find boundary elements including vertices, edges and triangles
 	void findBoundaryElements();
+
+
+	// update boundary elements' information: area
+	void updateBoundaryElementsInfo();
 	
 
 };
