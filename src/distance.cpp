@@ -368,7 +368,7 @@ double pointEdgeDis2_val(Eigen::Vector3d P, Eigen::Vector3d A, Eigen::Vector3d B
 // calcualte the SQUARED point-edge distance
 Vector9d pointEdgeDis2_grad(Eigen::Vector3d P, Eigen::Vector3d A, Eigen::Vector3d B)
 {
-    Vector6d grad;
+    Vector9d grad;
     double v01 = P[0], v02 = P[1], v03 = P[2], v11 = A[0], v12 = A[1], v13 = A[2], v21 = B[0], v22 = B[1], v23 = B[2];
     {
         double t17, t18, t19, t20, t21, t22, t23, t24, t25, t42, t44, t45, t46, t43, t50, t51, t52;

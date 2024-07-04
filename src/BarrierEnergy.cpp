@@ -46,6 +46,7 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
         switch (type)
         {
         case 0:
+        {
             activePts.push_back(pt);
             activePts.push_back(t1);
             activePtsBC.push_back(vtInd_BC[0]);
@@ -64,9 +65,10 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
                     }
                 }
             }
-
-
+        }
+        break;
         case 1:
+        {
             activePts.push_back(pt);
             activePts.push_back(t2);
             activePtsBC.push_back(vtInd_BC[0]);
@@ -85,8 +87,11 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
                     }
                 }
             }
+        }       
+        break;
 
         case 2:
+        {
             activePts.push_back(pt);
             activePts.push_back(t3);
             activePtsBC.push_back(vtInd_BC[0]);
@@ -105,8 +110,11 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
 
         case 3:
+        {
             activePts.push_back(pt);
             activePts.push_back(t1);
             activePts.push_back(t2);
@@ -127,8 +135,11 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
 
         case 4:
+        {
             activePts.push_back(pt);
             activePts.push_back(t2);
             activePts.push_back(t3);
@@ -149,8 +160,11 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
 
         case 5:
+        {
             activePts.push_back(pt);
             activePts.push_back(t3);
             activePts.push_back(t1);
@@ -171,8 +185,11 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
 
         case 6:
+        {
             activePts.push_back(pt);
             activePts.push_back(t1);
             activePts.push_back(t2);
@@ -195,6 +212,8 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
 
         }
     
@@ -211,6 +230,7 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
         switch (type)
         {
         case 0:
+        {
             activePts.push_back(P1);
             activePts.push_back(Q1);
             activePtsBC.push_back(vtInd_BC[0]);
@@ -229,8 +249,11 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
             
         case 1:
+        {
             activePts.push_back(P1);
             activePts.push_back(Q1);
             activePts.push_back(Q2);
@@ -251,9 +274,12 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
 
             
         case 2:
+        {
             activePts.push_back(P1);
             activePts.push_back(Q2);
             activePtsBC.push_back(vtInd_BC[0]);
@@ -272,8 +298,11 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
             
         case 3:
+        {
             activePts.push_back(Q1);
             activePts.push_back(P1);
             activePts.push_back(P2);
@@ -294,9 +323,12 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
 
             
         case 4:
+        {
             activePts.push_back(P1);
             activePts.push_back(P2);
             activePts.push_back(Q1);
@@ -320,9 +352,12 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
 
             
         case 5:
+        {
             activePts.push_back(Q2);
             activePts.push_back(P1);
             activePts.push_back(P2);
@@ -343,9 +378,12 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
 
             
         case 6:
+        {
             activePts.push_back(P2);
             activePts.push_back(Q1);
             activePtsBC.push_back(vtInd_BC[1]);
@@ -364,9 +402,12 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
 
             
         case 7:
+        {
             activePts.push_back(P2);
             activePts.push_back(Q1);
             activePts.push_back(Q2);
@@ -387,9 +428,12 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
 
             
         case 8:
+        {
             activePts.push_back(P2);
             activePts.push_back(Q2);
             activePtsBC.push_back(vtInd_BC[1]);
@@ -408,9 +452,10 @@ std::vector<std::pair<int, double>> BarrierEnergy::Grad(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
 
-            
-
+           
         }
     }
 
@@ -439,6 +484,7 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
         switch (type)
         {
         case 0:
+        {
             activePts.push_back(pt);
             activePts.push_back(t1);
             activePtsBC.push_back(vtInd_BC[0]);
@@ -471,8 +517,12 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
                 }
             }
 
+        }
+        break;
+
 
         case 1:
+        {
             activePts.push_back(pt);
             activePts.push_back(t2);
             activePtsBC.push_back(vtInd_BC[0]);
@@ -505,7 +555,11 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
                 }
             }
 
+        }
+        break;
+           
         case 2:
+        {
             activePts.push_back(pt);
             activePts.push_back(t3);
             activePtsBC.push_back(vtInd_BC[0]);
@@ -537,8 +591,11 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
                     }
                 }
             }
-
+        }
+        break;
+            
         case 3:
+        {
             activePts.push_back(pt);
             activePts.push_back(t1);
             activePts.push_back(t2);
@@ -572,8 +629,12 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
+            
 
         case 4:
+        {
             activePts.push_back(pt);
             activePts.push_back(t2);
             activePts.push_back(t3);
@@ -607,8 +668,12 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
+            
 
         case 5:
+        {
             activePts.push_back(pt);
             activePts.push_back(t3);
             activePts.push_back(t1);
@@ -642,8 +707,12 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
+            
 
         case 6:
+        {
             activePts.push_back(pt);
             activePts.push_back(t1);
             activePts.push_back(t2);
@@ -679,6 +748,9 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
+            
 
         }
 
@@ -695,6 +767,7 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
         switch (type)
         {
         case 0:
+        {
             activePts.push_back(P1);
             activePts.push_back(Q1);
             activePtsBC.push_back(vtInd_BC[0]);
@@ -726,8 +799,12 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
+            
 
         case 1:
+        {
             activePts.push_back(P1);
             activePts.push_back(Q1);
             activePts.push_back(Q2);
@@ -761,9 +838,13 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
+            
 
 
         case 2:
+        {
             activePts.push_back(P1);
             activePts.push_back(Q2);
             activePtsBC.push_back(vtInd_BC[0]);
@@ -795,8 +876,12 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
+            
 
         case 3:
+        {
             activePts.push_back(Q1);
             activePts.push_back(P1);
             activePts.push_back(P2);
@@ -830,9 +915,13 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
+            
 
 
         case 4:
+        {
             activePts.push_back(P1);
             activePts.push_back(P2);
             activePts.push_back(Q1);
@@ -870,8 +959,12 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
                 }
             }
 
+        }
+        break;
+            
 
         case 5:
+        {
             activePts.push_back(Q2);
             activePts.push_back(P1);
             activePts.push_back(P2);
@@ -905,9 +998,13 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
+            
 
 
         case 6:
+        {
             activePts.push_back(P2);
             activePts.push_back(Q1);
             activePtsBC.push_back(vtInd_BC[1]);
@@ -939,9 +1036,13 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
+            
 
 
         case 7:
+        {
             activePts.push_back(P2);
             activePts.push_back(Q1);
             activePts.push_back(Q2);
@@ -975,9 +1076,13 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
                     }
                 }
             }
+        }
+        break;
+            
 
 
         case 8:
+        {
             activePts.push_back(P2);
             activePts.push_back(Q2);
             activePtsBC.push_back(vtInd_BC[1]);
@@ -1010,6 +1115,9 @@ std::vector<Eigen::Triplet<double>> BarrierEnergy::Hess(bool pointTriangle, int 
                 }
             }
 
+        }
+        break;
+            
 
 
         }

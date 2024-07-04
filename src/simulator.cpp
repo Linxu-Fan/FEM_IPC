@@ -135,6 +135,8 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep, 
 			}
 		}
 	}
+	
+	
 	// edge-edge barrier
 	for (std::map<int, std::map<int, Eigen::Vector2i>>::iterator ite11 = tetMesh.boundaryEdges.begin(); ite11 != tetMesh.boundaryEdges.end(); ite11++)
 	{
@@ -152,7 +154,7 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep, 
 
 					if (e1p1 != e2p1 && e1p1 != e2p2 && e1p2 != e2p1 && e1p2 != e2p2) // not duplicated and incident edges
 					{
-						Eigen::Vector3i P1 = tetMesh.pos_node[e1p1];
+						Eigen::Vector3d P1 = tetMesh.pos_node[e1p1];
 						Eigen::Vector3d P2 = tetMesh.pos_node[e1p2];
 						Eigen::Vector3d Q1 = tetMesh.pos_node[e2p1];
 						Eigen::Vector3d Q2 = tetMesh.pos_node[e2p2];
