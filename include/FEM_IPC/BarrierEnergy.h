@@ -4,6 +4,12 @@
 #include "distance.h"
 #include "mesh.h"
 
+struct BarrierEnergyRes
+{
+	double Val = 0;
+	std::vector<std::pair<int, double>> Grad;
+	std::vector<Eigen::Triplet<double>> Hess;
+};
 
 namespace BarrierEnergy
 {

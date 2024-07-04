@@ -16,13 +16,12 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 
 		tetMesh.pos_node_prev = tetMesh.pos_node;
 		std::vector<Eigen::Vector3d> currentPosition = tetMesh.pos_node;
-		std::vector<pointTriangleDis> pTBarrVec; 
-		std::vector<edgeEdgeDis> eEBarrVec;
+		std::vector<BarrierEnergyRes> pTeEBarrVec;
 
 
 
-		double lastEnergyVal = compute_IP_energy(tetMesh, parameters, timestep, pTBarrVec, eEBarrVec);
-		std::vector<Eigen::Vector3d> direction = solve_linear_system(tetMesh, parameters, timestep, pTBarrVec, eEBarrVec);
+		double lastEnergyVal = compute_IP_energy(tetMesh, parameters, timestep, pTeEBarrVec);
+		std::vector<Eigen::Vector3d> direction = solve_linear_system(tetMesh, parameters, timestep, pTeEBarrVec);
 		double dist_to_converge = infiniteNorm(direction);
 
 		int iteration = 0;
@@ -32,17 +31,17 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 
 			double step = 1.0;
 			step_forward(tetMesh, currentPosition, direction, step);
-			double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep, pTBarrVec, eEBarrVec);
+			double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep, pTeEBarrVec);
 			while (newEnergyVal > lastEnergyVal)
 			{
 				step /= 2.0;
 				step_forward(tetMesh, currentPosition, direction, step);
-				newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep, pTBarrVec, eEBarrVec);
+				newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep, pTeEBarrVec);
 			}
 			currentPosition = tetMesh.pos_node;
 			lastEnergyVal = newEnergyVal;
 
-			direction = solve_linear_system(tetMesh, parameters, timestep, pTBarrVec, eEBarrVec);
+			direction = solve_linear_system(tetMesh, parameters, timestep, pTeEBarrVec);
 			dist_to_converge = infiniteNorm(direction);
 		
 		}
@@ -76,12 +75,11 @@ Eigen::Vector3d compute_external_force(Mesh& tetMesh, int vertInd, int timestep)
 }
 
 // compute the incremental potential energy
-double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::vector<pointTriangleDis>& pTBarrVec, std::vector<edgeEdgeDis>& eEBarrVec)
+double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::vector<BarrierEnergyRes>& pTeEBarrVec)
 {
 	double energyVal = 0;
 	tetMesh.update_F();
-	pTBarrVec.clear();
-	eEBarrVec.clear();
+	pTeEBarrVec.clear();
 	
 	// energy contribution per vertex
 	for (int vI = 0; vI < tetMesh.pos_node.size(); vI++)
@@ -121,37 +119,72 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep, 
 				Eigen::Vector3d B = tetMesh.pos_node[tri[1]];
 				Eigen::Vector3d C = tetMesh.pos_node[tri[2]];
 
-				pointTriangleDis pTBarr = BarrierEnergy::pointTriangleDistance(P, A, B, C);
-				pTBarrVec.push_back(pTBarr);
-				energyVal += pTBarr.Val;
+				int type = pointTriangleDisType(P, A, B, C);
+				double dis2 = pointTriangleDis2(type, P, A, B, C);
+				BarrierEnergyRes res;
+				if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+				{
+					Eigen::Vector4i vtInd = { ptInd , tri[0] , tri[1] , tri[2] };
+					Eigen::Vector4i vtInd_BC = { tetMesh.boundaryCondition_node[ptInd].type, tetMesh.boundaryCondition_node[tri[0]].type , tetMesh.boundaryCondition_node[tri[1]].type , tetMesh.boundaryCondition_node[tri[2]].type };
+					res.Val = BarrierEnergy::Val(true, dis2, tetMesh, vtInd, parameters.IPC_dis, 1.0, parameters.dt);
+					res.Grad = BarrierEnergy::Grad(true, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1.0, parameters.dt);
+					res.Hess = BarrierEnergy::Hess(true, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1.0, parameters.dt);
+				}
+				pTeEBarrVec.push_back(res);
+				energyVal += res.Val;
 			}
 		}
 	}
 	// edge-edge barrier
-	for (int eI1 = 0; eI1 < tetMesh.boundaryEdges.size(); eI1++)
+	for (std::map<int, std::map<int, Eigen::Vector2i>>::iterator ite11 = tetMesh.boundaryEdges.begin(); ite11 != tetMesh.boundaryEdges.end(); ite11++)
 	{
-		Eigen::Vector2i eg1Pts = tetMesh.boundaryEdges[eI1].first;
-		int P1t = eg1Pts[0], P2t = eg1Pts[1];
-		for (int eI2 = eI1; eI2 < tetMesh.boundaryEdges.size(); eI2++)
+		int e1p1 = ite11->first;
+		for (std::map<int, Eigen::Vector2i>::iterator ite12 = ite11->second.begin(); ite12 != ite11->second.end(); ite12++)
 		{
-			Eigen::Vector2i eg2Pts = tetMesh.boundaryEdges[eI2].first;
-			int Q1t = eg2Pts[0], Q2t = eg2Pts[1];
-			if (P1t != Q1t && P1t != Q2t && P2t != Q1t && P2t != Q2t) // make sure these two edges are not connected
+			int e1p2 = ite12->first;
+
+			for (std::map<int, std::map<int, Eigen::Vector2i>>::iterator ite21 = tetMesh.boundaryEdges.begin(); ite21 != tetMesh.boundaryEdges.end(); ite21++)
 			{
-				edgeEdgeDis eEBarr = BarrierEnergy::edgeEdgeDistance(tetMesh.pos_node[P1t] , tetMesh.pos_node[P2t] , tetMesh.pos_node[Q1t] , tetMesh.pos_node[Q2t]);
-				eEBarrVec.push_back(eEBarr);
-				energyVal += eEBarr.Val;
+				int e2p1 = ite21->first;
+				for (std::map<int, Eigen::Vector2i>::iterator ite22 = ite11->second.begin(); ite22 != ite11->second.end(); ite22++)
+				{
+					int e2p2 = ite22->first;
+
+					if (e1p1 != e2p1 && e1p1 != e2p2 && e1p2 != e2p1 && e1p2 != e2p2) // not duplicated and incident edges
+					{
+						Eigen::Vector3i P1 = tetMesh.pos_node[e1p1];
+						Eigen::Vector3d P2 = tetMesh.pos_node[e1p2];
+						Eigen::Vector3d Q1 = tetMesh.pos_node[e2p1];
+						Eigen::Vector3d Q2 = tetMesh.pos_node[e2p2];
+
+						int type = edgeEdgeDisType(P1, P2, Q1, Q2);
+						double dis2 = edgeEdgeDis2(type, P1, P2, Q1, Q2);
+						BarrierEnergyRes res;
+						if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+						{
+							Eigen::Vector4i vtInd = { e1p1 , e1p2 , e2p1 , e2p2 };
+							Eigen::Vector4i vtInd_BC = { tetMesh.boundaryCondition_node[e1p1].type, tetMesh.boundaryCondition_node[e1p2].type , tetMesh.boundaryCondition_node[e2p1].type , tetMesh.boundaryCondition_node[e2p2].type };
+							res.Val = BarrierEnergy::Val(false, dis2, tetMesh, vtInd, parameters.IPC_dis, 1.0, parameters.dt);
+							res.Grad = BarrierEnergy::Grad(false, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1.0, parameters.dt);
+							res.Hess = BarrierEnergy::Hess(false, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1.0, parameters.dt);
+						}
+						pTeEBarrVec.push_back(res);
+						energyVal += res.Val;
+					}
+
+
+				}
 			}
 		}
 	}
+
 
 	return energyVal;
 }
 
 // compute energy gradient and hessian of the linear system and solve the syetem
-std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::vector<pointTriangleDis>& pTBarrVec, std::vector<edgeEdgeDis>& eEBarrVec)
+std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::vector<BarrierEnergyRes>& pTeEBarrVec)
 {
-
 	std::vector<Eigen::Vector3d> movingDir(tetMesh.pos_node.size());
 
 	// update defromation gradient
@@ -202,17 +235,11 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	}
 
 	// energy contribution from barrier
-	for (int ptI = 0; ptI < pTBarrVec.size(); ptI++)
+	for (int ptI = 0; ptI < pTeEBarrVec.size(); ptI++)
 	{
-		grad_triplet.insert(grad_triplet.end(), pTBarrVec[ptI].Grad.begin(), pTBarrVec[ptI].Grad.end());
-		hessian_triplet.insert(hessian_triplet.end(), pTBarrVec[ptI].Hess.begin(), pTBarrVec[ptI].Hess.end());
+		grad_triplet.insert(grad_triplet.end(), pTeEBarrVec[ptI].Grad.begin(), pTeEBarrVec[ptI].Grad.end());
+		hessian_triplet.insert(hessian_triplet.end(), pTeEBarrVec[ptI].Hess.begin(), pTeEBarrVec[ptI].Hess.end());
 	}
-	for (int eeI = 0; eeI < eEBarrVec.size(); eeI++)
-	{
-		grad_triplet.insert(grad_triplet.end(), eEBarrVec[eeI].Grad.begin(), eEBarrVec[eeI].Grad.end());
-		hessian_triplet.insert(hessian_triplet.end(), eEBarrVec[eeI].Hess.begin(), eEBarrVec[eeI].Hess.end());
-	}
-
 
 
 	// assemable the left-hand side 
