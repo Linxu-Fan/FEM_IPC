@@ -284,7 +284,6 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	return movingDir;
 }
 
-
 // move points' position according to the direction; Note this is a trial movement
 void step_forward(Mesh& tetMesh, std::vector<Eigen::Vector3d>& currentPosition, std::vector<Eigen::Vector3d>& direction, double step)
 {

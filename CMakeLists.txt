@@ -45,7 +45,9 @@ add_executable(
 	src/ExternalEnergy.cpp
 	src/BarrierEnergy.cpp
 	src/distance.cpp
+	src/CCD.cpp
 	include/FEM_IPC/distance.h
+	include/FEM_IPC/CCD.h
 	include/FEM_IPC/BarrierEnergy.h
 	include/FEM_IPC/ExternalEnergy.h
 	include/FEM_IPC/simulator.h
