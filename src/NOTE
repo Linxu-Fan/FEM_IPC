@@ -7,5 +7,10 @@ For all energies:
 
 
 TODO:
-1) edge-edge mollifier
-2) k_stiff value calculation
+1) (0)edge-edge mollifier
+2) (0)k_stiff value calculation
+3) (1)Project Hessian into SPD
+4) (2)Spatial hash to accelerate CCD
+
+QUESTIONS:
+1) Do we need to explicitly calculate the minimal distance between a point P and another points? P164 in IPC tutorial book.
