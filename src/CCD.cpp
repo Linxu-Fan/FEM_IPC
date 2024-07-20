@@ -1,12 +1,13 @@
 #include "CCD.h"
 
 // Check if two edges' boundingbox intersect or not
-bool edgeEdgeCCDBroadphase(const Eigen::Vector3d& P1, const Eigen::Vector3d& P2, const Eigen::Vector3d& P1_Next, const Eigen::Vector3d& P2_Next, const Eigen::Vector3d& Q1, const Eigen::Vector3d& Q2, const Eigen::Vector3d& Q1_Next, const Eigen::Vector3d& Q2_Next, double dist_threshold)
+bool edgeEdgeCCDBroadphase(const Eigen::Vector3d& P1, const Eigen::Vector3d& P2, const Eigen::Vector3d& dP1, 
+    const Eigen::Vector3d& dP2, const Eigen::Vector3d& Q1, const Eigen::Vector3d& Q2, const Eigen::Vector3d& dQ1, const Eigen::Vector3d& dQ2, double dist_threshold)
 {
-    auto max_1 = P1.array().max(P2.array()).max((P1_Next).array()).max((P2_Next).array());
-    auto min_1 = P1.array().min(P2.array()).min((P1_Next).array()).min((P2_Next).array());
-    auto max_2 = Q1.array().max(Q2.array()).max((Q1_Next).array()).max((Q2_Next).array());
-    auto min_2 = Q1.array().min(Q2.array()).min((Q1_Next).array()).min((Q2_Next).array());
+    auto max_1 = P1.array().max(P2.array()).max((P1 + dP1).array()).max((P2 + dP2).array());
+    auto min_1 = P1.array().min(P2.array()).min((P1 + dP1).array()).min((P2 + dP2).array());
+    auto max_2 = Q1.array().max(Q2.array()).max((Q1 + dQ1).array()).max((Q2 + dQ2).array());
+    auto min_2 = Q1.array().min(Q2.array()).min((Q1 + dQ1).array()).min((Q2 + dQ2).array());
     if ((min_1 - max_2 > dist_threshold).any() || (min_2 - max_1 > dist_threshold).any())
     {
         return false; // two bounding boxes don't intersect
@@ -20,12 +21,13 @@ bool edgeEdgeCCDBroadphase(const Eigen::Vector3d& P1, const Eigen::Vector3d& P2,
 
 
 // check if a point and a triangle's boundingboxes intersect or not
-bool pointTriangleCCDBroadphase(const Eigen::Vector3d& P, const Eigen::Vector3d& P_Next, const Eigen::Vector3d& A, const Eigen::Vector3d& A_Next, const Eigen::Vector3d& B, const Eigen::Vector3d& B_Next, const Eigen::Vector3d& C, const Eigen::Vector3d& C_Next, double dist_threshold)
+bool pointTriangleCCDBroadphase(const Eigen::Vector3d& P, const Eigen::Vector3d& dP, const Eigen::Vector3d& A, 
+    const Eigen::Vector3d& dA, const Eigen::Vector3d& B, const Eigen::Vector3d& dB, const Eigen::Vector3d& C, const Eigen::Vector3d& dC, double dist_threshold)
 {
-    auto max_P = P.array().max((P_Next).array());
-    auto min_P = P.array().min((P_Next).array());
-    auto max_T = A.array().max(B.array()).max(C.array()).max((A_Next).array()).max((B_Next).array()).max((C_Next).array());
-    auto min_T = A.array().min(B.array()).min(C.array()).min((A_Next).array()).min((B_Next).array()).min((C_Next).array());
+    auto max_P = P.array().max((P + dP).array());
+    auto min_P = P.array().min((P + dP).array());
+    auto max_T = A.array().max(B.array()).max(C.array()).max((A + dA).array()).max((B + dB).array()).max((C + dC).array());
+    auto min_T = A.array().min(B.array()).min(C.array()).min((A + dA).array()).min((B + dB).array()).min((C + dC).array());
     if ((min_P - max_T > dist_threshold).any() || (min_T - max_P > dist_threshold).any())
     {
         return false; // two bounding boxes don't intersect
@@ -37,7 +39,8 @@ bool pointTriangleCCDBroadphase(const Eigen::Vector3d& P, const Eigen::Vector3d&
 }
 
 
-bool edgeEdgeCCDNarrowphase(const Eigen::Vector3d& P1, const Eigen::Vector3d& P2, const Eigen::Vector3d& dP1, const Eigen::Vector3d& dP2, const Eigen::Vector3d& Q1, const Eigen::Vector3d& Q2, const Eigen::Vector3d& dQ1, const Eigen::Vector3d& dQ2, double eta)
+double edgeEdgeCCDNarrowphase(const Eigen::Vector3d& P1, const Eigen::Vector3d& P2, const Eigen::Vector3d& dP1, 
+    const Eigen::Vector3d& dP2, const Eigen::Vector3d& Q1, const Eigen::Vector3d& Q2, const Eigen::Vector3d& dQ1, const Eigen::Vector3d& dQ2, double eta)
 {
     Eigen::Vector3d P1_ = P1, P2_ = P2, Q1_ = Q1, Q2_ = Q2, dP1_ = dP1, dP2_ = dP2, dQ1_ = dQ1, dQ2_ = dQ2;
     Eigen::Vector3d mov = (dP1_ + dP2_ + dQ1_ + dQ2_) / 4.0; // Use relative displacement for better convergence
@@ -85,7 +88,9 @@ bool edgeEdgeCCDNarrowphase(const Eigen::Vector3d& P1, const Eigen::Vector3d& P2
     return toc;
 }
 
-bool pointTriangleCCDNarrowphase(const Eigen::Vector3d& P, const Eigen::Vector3d& dP, const Eigen::Vector3d& A, const Eigen::Vector3d& dA, const Eigen::Vector3d& B, const Eigen::Vector3d& dB, const Eigen::Vector3d& C, const Eigen::Vector3d& dC, double eta)
+
+double pointTriangleCCDNarrowphase(const Eigen::Vector3d& P, const Eigen::Vector3d& dP, const Eigen::Vector3d& A, 
+    const Eigen::Vector3d& dA, const Eigen::Vector3d& B, const Eigen::Vector3d& dB, const Eigen::Vector3d& C, const Eigen::Vector3d& dC, double eta)
 {
     Eigen::Vector3d P_ = P, A_ = A, B_ = B, C_ = C, dP_ = dP, dA_ = dA, dB_ = dB, dC_ = dC;
     Eigen::Vector3d mov = (dA_ + dB_ + dC_ + dP_) / 4;

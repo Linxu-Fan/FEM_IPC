@@ -60,6 +60,7 @@ struct FEMParamters
 	double searchResidual = 1.0e-4;
 
 	double IPC_dis = 0.01; // the distance of IPC gap, i.e., barrier energy emerges if the distance is smaller than this threshold
+	double IPC_eta = 0.1; // the distance ratio that bring two edges or point-triangle to
 
 };
 

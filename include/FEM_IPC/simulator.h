@@ -3,6 +3,7 @@
 
 #include "utils.h"  
 #include "mesh.h" 
+#include "CCD.h" 
 #include "ExternalEnergy.h" 
 #include "InertiaEnergy.h" 
 #include "ElasticEnergy.h" 
@@ -22,5 +23,11 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 
 // move points' position according to the direction; Note this is a trial movement
 void step_forward(Mesh& tetMesh, std::vector<Eigen::Vector3d>& currentPosition, std::vector<Eigen::Vector3d>& direction, double step);
+
+// calculate the contact info: a) contact or not; b) contact type; 3) contact energy, derivative and hessian; 
+void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::vector<BarrierEnergyRes>& pTeEBarrVec);
+
+// calculate the maximum feasible step size
+double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::vector<BarrierEnergyRes>& pTeEBarrVec, std::vector<Eigen::Vector3d>& direction);
 
 #endif
