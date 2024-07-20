@@ -109,7 +109,24 @@ bool existInMultiMap_2(int x, int y, std::map<int, std::map<int, int>>& gridMap)
 }
 
 
+std::pair<Eigen::Vector3d, Eigen::Vector3d> findBoundingBox_vec(std::vector<Eigen::Vector3d>& pos_node)
+{
+	double minx = 1.0E10, miny = 1.0E10, minz = 1.0E10, maxx = -1.0E10, maxy = -1.0E10, maxz = -1.0E10;
+	for (int i = 0; i < pos_node.size(); i++)
+	{
+		minx = std::min(minx, pos_node[i][0]);
+		miny = std::min(miny, pos_node[i][1]);
+		minz = std::min(minz, pos_node[i][2]);
 
+		maxx = std::max(maxx, pos_node[i][0]);
+		maxy = std::max(maxy, pos_node[i][1]);
+		maxz = std::max(maxz, pos_node[i][2]);
+	}
+	Eigen::Vector3d min = { minx , miny , minz };
+	Eigen::Vector3d max = { maxx , maxy , maxz };
+
+	return std::make_pair(min, max);
+}
 
 
 

@@ -337,46 +337,36 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 
 
 	// edge-edge barrier
-	for (std::map<int, std::map<int, Eigen::Vector2i>>::iterator ite11 = tetMesh.boundaryEdges.begin(); ite11 != tetMesh.boundaryEdges.end(); ite11++)
+	for (std::map<int, Eigen::Vector2i>::iterator it1 = tetMesh.index_boundaryEdge.begin(); it1 != tetMesh.index_boundaryEdge.end(); it1++)
 	{
-		int e1p1 = ite11->first;
-		for (std::map<int, Eigen::Vector2i>::iterator ite12 = ite11->second.begin(); ite12 != ite11->second.end(); ite12++)
+		for (std::map<int, Eigen::Vector2i>::iterator it2 = tetMesh.index_boundaryEdge.begin(); it2 != tetMesh.index_boundaryEdge.end(); it2++)
 		{
-			int e1p2 = ite12->first;
-
-			for (std::map<int, std::map<int, Eigen::Vector2i>>::iterator ite21 = tetMesh.boundaryEdges.begin(); ite21 != tetMesh.boundaryEdges.end(); ite21++)
+			if (it1->first != it2->first)
 			{
-				int e2p1 = ite21->first;
-				for (std::map<int, Eigen::Vector2i>::iterator ite22 = ite11->second.begin(); ite22 != ite11->second.end(); ite22++)
+				int e1p1 = it1->second[0], e1p2 = it1->second[1], e2p1 = it2->second[0], e2p2 = it2->second[1];
+				if (e1p1 != e2p1 && e1p1 != e2p2 && e1p2 != e2p1 && e1p2 != e2p2) // not duplicated and incident edges
 				{
-					int e2p2 = ite22->first;
+					Eigen::Vector3d P1 = tetMesh.pos_node[e1p1];
+					Eigen::Vector3d P2 = tetMesh.pos_node[e1p2];
+					Eigen::Vector3d Q1 = tetMesh.pos_node[e2p1];
+					Eigen::Vector3d Q2 = tetMesh.pos_node[e2p2];
 
-					if (e1p1 != e2p1 && e1p1 != e2p2 && e1p2 != e2p1 && e1p2 != e2p2) // not duplicated and incident edges
+					int type = edgeEdgeDisType(P1, P2, Q1, Q2);
+					double dis2 = edgeEdgeDis2(type, P1, P2, Q1, Q2);
+
+					if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
 					{
-						Eigen::Vector3d P1 = tetMesh.pos_node[e1p1];
-						Eigen::Vector3d P2 = tetMesh.pos_node[e1p2];
-						Eigen::Vector3d Q1 = tetMesh.pos_node[e2p1];
-						Eigen::Vector3d Q2 = tetMesh.pos_node[e2p2];
+						BarrierEnergyRes res;
+						res.pointTriangle = false;
+						res.PP_Index = { e1p1 , e1p2 , e2p1 , e2p2 };
 
-						int type = edgeEdgeDisType(P1, P2, Q1, Q2);
-						double dis2 = edgeEdgeDis2(type, P1, P2, Q1, Q2);
-						
-						if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
-						{
-							BarrierEnergyRes res;
-							res.pointTriangle = false;
-							res.PP_Index = { e1p1 , e1p2 , e2p1 , e2p2 };
+						Eigen::Vector4i vtInd = res.PP_Index;
+						Eigen::Vector4i vtInd_BC = { tetMesh.boundaryCondition_node[e1p1].type, tetMesh.boundaryCondition_node[e1p2].type , tetMesh.boundaryCondition_node[e2p1].type , tetMesh.boundaryCondition_node[e2p2].type };
+						res.Val = BarrierEnergy::Val(false, dis2, tetMesh, vtInd, parameters.IPC_dis, 1.0, parameters.dt);
+						res.Grad = BarrierEnergy::Grad(false, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1.0, parameters.dt);
+						res.Hess = BarrierEnergy::Hess(false, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1.0, parameters.dt);
 
-							Eigen::Vector4i vtInd = res.PP_Index;
-							Eigen::Vector4i vtInd_BC = { tetMesh.boundaryCondition_node[e1p1].type, tetMesh.boundaryCondition_node[e1p2].type , tetMesh.boundaryCondition_node[e2p1].type , tetMesh.boundaryCondition_node[e2p2].type };
-							res.Val = BarrierEnergy::Val(false, dis2, tetMesh, vtInd, parameters.IPC_dis, 1.0, parameters.dt);
-							res.Grad = BarrierEnergy::Grad(false, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1.0, parameters.dt);
-							res.Hess = BarrierEnergy::Hess(false, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1.0, parameters.dt);
-
-							pTeEBarrVec.push_back(res);
-						}
-						
-
+						pTeEBarrVec.push_back(res);
 					}
 
 
@@ -384,6 +374,7 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 			}
 		}
 	}
+
 
 
 }

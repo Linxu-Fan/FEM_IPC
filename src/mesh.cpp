@@ -326,6 +326,8 @@ void Mesh::findBoundaryElements()
 
 
 	// find boundary edges
+	// give each edge an unique index
+	int edgeIndex = 0;
 	for (std::set<std::string>::iterator it = allEdges.begin(); it != allEdges.end(); it++)
 	{
 		std::string edge = *it;
@@ -342,7 +344,21 @@ void Mesh::findBoundaryElements()
 
 		int emin = std::min(v1, v2), emax = std::max(v1, v2);
 		boundaryEdges[emin][emax] = tris;
+
+		boundaryEdge_index[emin][emax] = edgeIndex;
+		edgeIndex += 1;
 	}
+	// reverse index
+	for (std::map<int, std::map<int, int>>::iterator it1 = boundaryEdge_index.begin(); it1 != boundaryEdge_index.end(); it1++)
+	{
+		for (std::map<int, int>::iterator it2 = it1->second.begin(); it2 != it1->second.end(); it2++)
+		{
+			Eigen::Vector2i ed = {it1->first, it2->first};
+			int index = it2->second;
+			index_boundaryEdge[index] = ed;
+		}
+	}
+
 }
 
 // update boundary elements' information: area
