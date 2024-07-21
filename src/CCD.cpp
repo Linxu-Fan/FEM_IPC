@@ -228,8 +228,13 @@ void initSpatialHash(Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, dou
 }
 
 
-double calMaxStep_spatialHash(Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double dist_threshold, double eta, std::unordered_map<int, spatialHashCellData>& spatialHash)
+double calMaxStep_spatialHash(Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, double dist_threshold, double eta)
 {
+    // build and initialize a spatial hash
+    std::unordered_map<int, spatialHashCellData> spatialHash;
+    initSpatialHash(tetMesh, direction, cellSize, spatialHash);
+
+
     double step = 1.0;
 
     std::map<int, std::map<int, bool>> PTCal; // if vert (1st int) and triangle (2nd int) pair has been calculated or not

@@ -29,7 +29,7 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 		{
 			iteration += 1;
 
-			double step = 1.0;
+			double step = calMaxStepSize(tetMesh, parameters, timestep, pTeEBarrVec, direction);
 			step_forward(tetMesh, currentPosition, direction, step);
 			double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep, pTeEBarrVec);
 			while (newEnergyVal > lastEnergyVal)
@@ -79,7 +79,6 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep, 
 {
 	double energyVal = 0;
 	tetMesh.update_F();
-	pTeEBarrVec.clear();
 	
 	// energy contribution per vertex
 	for (int vI = 0; vI < tetMesh.pos_node.size(); vI++)
@@ -104,82 +103,12 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep, 
 		energyVal += ElasticEnergy::Val(tetMesh.materialMesh[matInd], parameters.model, tetMesh.tetra_F[eI], parameters.dt, tetMesh.tetra_vol[eI]);
 	}	
 
-	// energy contribution from barrier
-	// point-triangle barrier
-	for (std::map<int, std::set<int>>::iterator it = tetMesh.boundaryVertices.begin(); it != tetMesh.boundaryVertices.end(); it++)
+
+	calContactInfo(tetMesh, parameters, timestep, pTeEBarrVec);
+	for (int i = 0; i < pTeEBarrVec.size(); i++)
 	{
-		int ptInd = it->first;
-		Eigen::Vector3d P = tetMesh.pos_node[ptInd];
-		for (int tI = 0; tI < tetMesh.boundaryTriangles.size(); tI++)
-		{
-			if (it->second.find(tI) == it->second.end()) // this triangle is not incident with the point
-			{
-				Eigen::Vector3i tri = tetMesh.boundaryTriangles[tI];
-				Eigen::Vector3d A = tetMesh.pos_node[tri[0]];
-				Eigen::Vector3d B = tetMesh.pos_node[tri[1]];
-				Eigen::Vector3d C = tetMesh.pos_node[tri[2]];
-
-				int type = pointTriangleDisType(P, A, B, C);
-				double dis2 = pointTriangleDis2(type, P, A, B, C);
-				BarrierEnergyRes res;
-				if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
-				{
-					Eigen::Vector4i vtInd = { ptInd , tri[0] , tri[1] , tri[2] };
-					Eigen::Vector4i vtInd_BC = { tetMesh.boundaryCondition_node[ptInd].type, tetMesh.boundaryCondition_node[tri[0]].type , tetMesh.boundaryCondition_node[tri[1]].type , tetMesh.boundaryCondition_node[tri[2]].type };
-					res.Val = BarrierEnergy::Val(true, dis2, tetMesh, vtInd, parameters.IPC_dis, 1.0, parameters.dt);
-					res.Grad = BarrierEnergy::Grad(true, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1.0, parameters.dt);
-					res.Hess = BarrierEnergy::Hess(true, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1.0, parameters.dt);
-				}
-				pTeEBarrVec.push_back(res);
-				energyVal += res.Val;
-			}
-		}
+		energyVal += pTeEBarrVec[i].Val;
 	}
-	
-	
-	// edge-edge barrier
-	for (std::map<int, std::map<int, Eigen::Vector2i>>::iterator ite11 = tetMesh.boundaryEdges.begin(); ite11 != tetMesh.boundaryEdges.end(); ite11++)
-	{
-		int e1p1 = ite11->first;
-		for (std::map<int, Eigen::Vector2i>::iterator ite12 = ite11->second.begin(); ite12 != ite11->second.end(); ite12++)
-		{
-			int e1p2 = ite12->first;
-
-			for (std::map<int, std::map<int, Eigen::Vector2i>>::iterator ite21 = tetMesh.boundaryEdges.begin(); ite21 != tetMesh.boundaryEdges.end(); ite21++)
-			{
-				int e2p1 = ite21->first;
-				for (std::map<int, Eigen::Vector2i>::iterator ite22 = ite11->second.begin(); ite22 != ite11->second.end(); ite22++)
-				{
-					int e2p2 = ite22->first;
-
-					if (e1p1 != e2p1 && e1p1 != e2p2 && e1p2 != e2p1 && e1p2 != e2p2) // not duplicated and incident edges
-					{
-						Eigen::Vector3d P1 = tetMesh.pos_node[e1p1];
-						Eigen::Vector3d P2 = tetMesh.pos_node[e1p2];
-						Eigen::Vector3d Q1 = tetMesh.pos_node[e2p1];
-						Eigen::Vector3d Q2 = tetMesh.pos_node[e2p2];
-
-						int type = edgeEdgeDisType(P1, P2, Q1, Q2);
-						double dis2 = edgeEdgeDis2(type, P1, P2, Q1, Q2);
-						BarrierEnergyRes res;
-						if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
-						{
-							Eigen::Vector4i vtInd = { e1p1 , e1p2 , e2p1 , e2p2 };
-							Eigen::Vector4i vtInd_BC = { tetMesh.boundaryCondition_node[e1p1].type, tetMesh.boundaryCondition_node[e1p2].type , tetMesh.boundaryCondition_node[e2p1].type , tetMesh.boundaryCondition_node[e2p2].type };
-							res.Val = BarrierEnergy::Val(false, dis2, tetMesh, vtInd, parameters.IPC_dis, 1.0, parameters.dt);
-							res.Grad = BarrierEnergy::Grad(false, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1.0, parameters.dt);
-							res.Hess = BarrierEnergy::Hess(false, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1.0, parameters.dt);
-						}
-						pTeEBarrVec.push_back(res);
-						energyVal += res.Val;
-					}
-
-
-				}
-			}
-		}
-	}
-
 
 	return energyVal;
 }
@@ -436,7 +365,7 @@ double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep, std
 	}
 	else // use spatial hash to calculate the actual full CCD
 	{
-
+		return calMaxStep_spatialHash(tetMesh, direction, parameters.IPC_hashSize, parameters.IPC_dis, parameters.IPC_eta);
 	}
 
 }

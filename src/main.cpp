@@ -39,8 +39,12 @@ int main()
 	parameters.gravity = {0, 0, -9.8};
 	parameters.num_timesteps = 1001;
 	parameters.outputFrequency = 100;
-	parameters.model = "neoHookean";
-	// neoHookean ARAP ARAP_linear ACAP
+	parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+	parameters.IPC_dis = 0.001;
+	parameters.IPC_eta = 0.1;
+	parameters.IPC_hashSize = tetMesh.calLargestEdgeLength();
+
+	
 
 	for (int vI = 0; vI < tetMesh.pos_node.size(); vI++)
 	{

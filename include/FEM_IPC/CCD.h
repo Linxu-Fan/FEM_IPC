@@ -33,6 +33,6 @@ struct spatialHashCellData
 void initSpatialHash(Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, std::unordered_map<int, spatialHashCellData>& spatialHash);
 
 // use spatial hash to calculate the maximum feasible step
-double calMaxStep_spatialHash(Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, std::unordered_map<int, spatialHashCellData>& spatialHash);
+double calMaxStep_spatialHash(Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, double dist_threshold, double eta);
 
 #endif

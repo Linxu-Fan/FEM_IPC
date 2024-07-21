@@ -61,6 +61,7 @@ struct FEMParamters
 
 	double IPC_dis = 0.01; // the distance of IPC gap, i.e., barrier energy emerges if the distance is smaller than this threshold
 	double IPC_eta = 0.1; // the distance ratio that bring two edges or point-triangle to
+	double IPC_hashSize = 0.1; // the spatial hash's grid cell size
 
 };
 

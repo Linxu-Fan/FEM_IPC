@@ -469,6 +469,19 @@ std::pair<Eigen::Vector3d, Eigen::Vector3d> Mesh::calculateBoundingBox()
 	return std::make_pair(min , max);
 }
 
+double Mesh::calLargestEdgeLength()
+{
+	double largestLength = -1.0E9;
+	for (std::map<int, Eigen::Vector2i>::iterator it = index_boundaryEdge.begin(); it != index_boundaryEdge.end(); it++)
+	{
+		int v1_index = it->second[0], v2_index = it->second[1];
+		Eigen::Vector3d v1 = pos_node[v1_index], v2 = pos_node[v2_index];
+		double length = (v1 - v2).norm();
+		largestLength = std::max(largestLength, length);
+	}
+	return largestLength;
+}
+
 
 
 

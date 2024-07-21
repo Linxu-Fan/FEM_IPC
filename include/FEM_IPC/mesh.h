@@ -111,6 +111,8 @@ struct Mesh
 	void findBoundaryElements();
 	// update boundary elements' information: area
 	void updateBoundaryElementsInfo();
+	// check the largest edge length
+	double calLargestEdgeLength();
 	
 
 };
