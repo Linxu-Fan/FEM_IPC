@@ -21,13 +21,34 @@ namespace BarrierEnergy
 {
 
 	// compute the barrier energy
-	double Val(bool pointTriangle, double dis2, Mesh& tetMesh, Eigen::Vector4i vtInd, double d_hat, double k_stiff, double dt);
+	double Val(bool pointTriangle, double dis2, Mesh& tetMesh, Eigen::Vector4i& vtInd, double d_hat, double k_stiff, double dt);
 
-	// compute the energy gradient 
-	std::vector<std::pair<int, double>> Grad(bool pointTriangle, int type, double dis2, Mesh& tetMesh, Eigen::Vector4i vtInd, Eigen::Vector4i vtInd_BC, double d_hat, double k_stiff, double dt);
+	//// compute the energy gradient 
+	//std::vector<std::pair<int, double>> Grad(bool pointTriangle, int type, double dis2, Mesh& tetMesh, Eigen::Vector4i& vtInd, Eigen::Vector4i& vtInd_BC, double d_hat, double k_stiff, double dt);
 
-	// compute the energy hessian 
-	std::vector<Eigen::Triplet<double>> Hess(bool pointTriangle, int type, double dis2, Mesh& tetMesh, Eigen::Vector4i vtInd, Eigen::Vector4i vtInd_BC, double d_hat, double k_stiff, double dt);
+	//// compute the energy hessian 
+	//std::vector<Eigen::Triplet<double>> Hess(bool pointTriangle, int type, double dis2, Mesh& tetMesh, Eigen::Vector4i& vtInd, Eigen::Vector4i& vtInd_BC, double d_hat, double k_stiff, double dt);
+
+	// compute the energy gradient and hessian of point-triangle contact
+	std::pair<std::vector<std::pair<int, double>>, std::vector<Eigen::Triplet<double>>> gradAndHess_PT(int type, double dis2, 
+		Mesh& tetMesh, Eigen::Vector4i& vtInd, Eigen::Vector4i& vtInd_BC, double d_hat, double k_stiff, double dt);
+	
+	// compute the energy gradient and hessian of edge-edge contact
+	std::pair<std::vector<std::pair<int, double>>, std::vector<Eigen::Triplet<double>>> gradAndHess_EE(int type, double dis2,
+		Mesh& tetMesh, Eigen::Vector4i& vtInd, Eigen::Vector4i& vtInd_BC, double d_hat, double k_stiff, double dt);
+
+	// store gradient and hessian value
+	void store_grad_hess(std::vector<std::pair<int, double>>& res_grad, std::vector<Eigen::Triplet<double>>& res_hess, 
+		Vector6d& grad_, Matrix6d& hess_,
+		std::vector<int>& activePts, std::vector<int>& activePtsBC);
+
+	void store_grad_hess(std::vector<std::pair<int, double>>& res_grad, std::vector<Eigen::Triplet<double>>& res_hess,
+		Vector9d& grad_, Matrix9d& hess_,
+		std::vector<int>& activePts, std::vector<int>& activePtsBC);
+
+	void store_grad_hess(std::vector<std::pair<int, double>>& res_grad, std::vector<Eigen::Triplet<double>>& res_hess,
+		Vector12d& grad_, Matrix12d& hess_,
+		std::vector<int>& activePts, std::vector<int>& activePtsBC);
 
 }
 

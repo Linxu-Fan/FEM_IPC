@@ -270,16 +270,10 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 					Eigen::Vector4i vtInd = res.PP_Index;
 					Eigen::Vector4i vtInd_BC = { tetMesh.boundaryCondition_node[ptInd].type, tetMesh.boundaryCondition_node[tri[0]].type , tetMesh.boundaryCondition_node[tri[1]].type , tetMesh.boundaryCondition_node[tri[2]].type };
 					res.Val = BarrierEnergy::Val(true, dis2, tetMesh, vtInd, parameters.IPC_dis, 1000000.0, parameters.dt);
-					res.Grad = BarrierEnergy::Grad(true, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1000000.0, parameters.dt);
-					res.Hess = BarrierEnergy::Hess(true, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1000000.0, parameters.dt);
-
-
-					//std::cout << "P = (" << P[0] << " , " << P[1] << " , " << P[2] << ")" << std::endl;
-					//std::cout << "A = (" << A[0] << " , " << A[1] << " , " << A[2] << ")" << std::endl;
-					//std::cout << "B = (" << B[0] << " , " << B[1] << " , " << B[2] << ")" << std::endl;
-					//std::cout << "C = (" << C[0] << " , " << C[1] << " , " << C[2] << ")" << std::endl;
-					//std::cout << "dis2 = " << dis2 << std::endl;
-					//std::cout << "PT energy = " << res.Val << std::endl;
+					std::pair<std::vector<std::pair<int, double>>, std::vector<Eigen::Triplet<double>>> GH = BarrierEnergy::gradAndHess_PT(
+						dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1000000.0, parameters.dt);
+					res.Grad = GH.first;
+					res.Hess = GH.second;
 
 					pTeEBarrVec.push_back(res);
 				}
@@ -316,9 +310,11 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 						Eigen::Vector4i vtInd = res.PP_Index;
 						Eigen::Vector4i vtInd_BC = { tetMesh.boundaryCondition_node[e1p1].type, tetMesh.boundaryCondition_node[e1p2].type , tetMesh.boundaryCondition_node[e2p1].type , tetMesh.boundaryCondition_node[e2p2].type };
 						res.Val = BarrierEnergy::Val(false, dis2, tetMesh, vtInd, parameters.IPC_dis, 1000000.0, parameters.dt);
-						res.Grad = BarrierEnergy::Grad(false, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1000000.0, parameters.dt);
-						res.Hess = BarrierEnergy::Hess(false, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1000000.0, parameters.dt);
-						
+						std::pair<std::vector<std::pair<int, double>>, std::vector<Eigen::Triplet<double>>> GH = BarrierEnergy::gradAndHess_EE(
+							dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1000000.0, parameters.dt);
+						res.Grad = GH.first;
+						res.Hess = GH.second;
+
 						pTeEBarrVec.push_back(res);
 					}
 
