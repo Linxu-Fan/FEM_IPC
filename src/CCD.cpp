@@ -141,8 +141,10 @@ void initSpatialHash(Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, dou
         pos_node_current_and_next.push_back(tetMesh.pos_node[it->first] + direction[it->first]);
     }
     std::pair<Eigen::Vector3d, Eigen::Vector3d> bbx = findBoundingBox_vec(pos_node_current_and_next);
-    Eigen::Vector3i minFloor = { std::floor(bbx.first[0] / cellSize) , std::floor(bbx.first[1] / cellSize) , std::floor(bbx.first[2] / cellSize) };
-    Eigen::Vector3i maxFloor = { std::floor(bbx.second[0] / cellSize) , std::floor(bbx.second[1] / cellSize) , std::floor(bbx.second[2] / cellSize) };
+    Eigen::Vector3i minFloor = { static_cast<int>(std::floor(bbx.first[0] / cellSize)) ,
+        static_cast<int>(std::floor(bbx.first[1] / cellSize)) , static_cast<int>(std::floor(bbx.first[2] / cellSize)) };
+    Eigen::Vector3i maxFloor = { static_cast<int>(std::floor(bbx.second[0] / cellSize)) ,
+        static_cast<int>(std::floor(bbx.second[1] / cellSize)) , static_cast<int>(std::floor(bbx.second[2] / cellSize)) };
     Eigen::Vector3i numCell = maxFloor - minFloor + Eigen::Vector3i::Constant(1);
 
     // find spatial hash of boundary vertices
@@ -153,8 +155,10 @@ void initSpatialHash(Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, dou
         currNext.push_back(tetMesh.pos_node[it->first] + direction[it->first]);
 
         std::pair<Eigen::Vector3d, Eigen::Vector3d> bbx_cn = findBoundingBox_vec(currNext);
-        Eigen::Vector3i minFloor_cn = { std::floor((bbx_cn.first[0] - minFloor[0]) / cellSize) , std::floor((bbx_cn.first[1] - minFloor[1]) / cellSize) , std::floor((bbx_cn.first[2] - minFloor[2]) / cellSize) };
-        Eigen::Vector3i maxFloor_cn = { std::floor((bbx_cn.second[0] - minFloor[0]) / cellSize) , std::floor((bbx_cn.second[1] - minFloor[1]) / cellSize) , std::floor((bbx_cn.second[2] - minFloor[2]) / cellSize) };
+        Eigen::Vector3i minFloor_cn = { static_cast<int>(std::floor((bbx_cn.first[0] - minFloor[0]) / cellSize)) , 
+            static_cast<int>(std::floor((bbx_cn.first[1] - minFloor[1]) / cellSize)) , static_cast<int>(std::floor((bbx_cn.first[2] - minFloor[2]) / cellSize)) };
+        Eigen::Vector3i maxFloor_cn = { static_cast<int>(std::floor((bbx_cn.second[0] - minFloor[0]) / cellSize)) ,
+            static_cast<int>(std::floor((bbx_cn.second[1] - minFloor[1]) / cellSize)) , static_cast<int>(std::floor((bbx_cn.second[2] - minFloor[2]) / cellSize)) };
         for (int mnx = minFloor_cn[0]; mnx < maxFloor_cn[0] + 1; mnx++)
         {
             for (int mny = minFloor_cn[1]; mny < maxFloor_cn[1] + 1; mny++)
@@ -180,8 +184,10 @@ void initSpatialHash(Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, dou
         currNext.push_back(tetMesh.pos_node[p2] + direction[p2]);
 
         std::pair<Eigen::Vector3d, Eigen::Vector3d> bbx_cn = findBoundingBox_vec(currNext);
-        Eigen::Vector3i minFloor_cn = { std::floor((bbx_cn.first[0] - minFloor[0]) / cellSize) , std::floor((bbx_cn.first[1] - minFloor[1]) / cellSize) , std::floor((bbx_cn.first[2] - minFloor[2]) / cellSize) };
-        Eigen::Vector3i maxFloor_cn = { std::floor((bbx_cn.second[0] - minFloor[0]) / cellSize) , std::floor((bbx_cn.second[1] - minFloor[1]) / cellSize) , std::floor((bbx_cn.second[2] - minFloor[2]) / cellSize) };
+        Eigen::Vector3i minFloor_cn = { static_cast<int>(std::floor((bbx_cn.first[0] - minFloor[0]) / cellSize)) ,
+            static_cast<int>(std::floor((bbx_cn.first[1] - minFloor[1]) / cellSize)) , static_cast<int>(std::floor((bbx_cn.first[2] - minFloor[2]) / cellSize)) };
+        Eigen::Vector3i maxFloor_cn = { static_cast<int>(std::floor((bbx_cn.second[0] - minFloor[0]) / cellSize)) ,
+            static_cast<int>(std::floor((bbx_cn.second[1] - minFloor[1]) / cellSize)) , static_cast<int>(std::floor((bbx_cn.second[2] - minFloor[2]) / cellSize)) };
         for (int mnx = minFloor_cn[0]; mnx < maxFloor_cn[0] + 1; mnx++)
         {
             for (int mny = minFloor_cn[1]; mny < maxFloor_cn[1] + 1; mny++)
@@ -209,8 +215,10 @@ void initSpatialHash(Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, dou
         currNext.push_back(tetMesh.pos_node[p3] + direction[p3]);
 
         std::pair<Eigen::Vector3d, Eigen::Vector3d> bbx_cn = findBoundingBox_vec(currNext);
-        Eigen::Vector3i minFloor_cn = { std::floor((bbx_cn.first[0] - minFloor[0]) / cellSize) , std::floor((bbx_cn.first[1] - minFloor[1]) / cellSize) , std::floor((bbx_cn.first[2] - minFloor[2]) / cellSize) };
-        Eigen::Vector3i maxFloor_cn = { std::floor((bbx_cn.second[0] - minFloor[0]) / cellSize) , std::floor((bbx_cn.second[1] - minFloor[1]) / cellSize) , std::floor((bbx_cn.second[2] - minFloor[2]) / cellSize) };
+        Eigen::Vector3i minFloor_cn = { static_cast<int>(std::floor((bbx_cn.first[0] - minFloor[0]) / cellSize)) ,
+            static_cast<int>(std::floor((bbx_cn.first[1] - minFloor[1]) / cellSize)) , static_cast<int>(std::floor((bbx_cn.first[2] - minFloor[2]) / cellSize)) };
+        Eigen::Vector3i maxFloor_cn = { static_cast<int>(std::floor((bbx_cn.second[0] - minFloor[0]) / cellSize)) ,
+            static_cast<int>(std::floor((bbx_cn.second[1] - minFloor[1]) / cellSize)) , static_cast<int>(std::floor((bbx_cn.second[2] - minFloor[2]) / cellSize)) };
         for (int mnx = minFloor_cn[0]; mnx < maxFloor_cn[0] + 1; mnx++)
         {
             for (int mny = minFloor_cn[1]; mny < maxFloor_cn[1] + 1; mny++)
@@ -270,7 +278,7 @@ double calMaxStep_spatialHash(Mesh& tetMesh, std::vector<Eigen::Vector3d>& direc
                             double step_tmp = pointTriangleCCDNarrowphase(P, dP, A, dA, B, dB, C, dC, dist_threshold);
                             step = std::min(step , step_tmp);
                         }
-                        PTCal[vert][tri] == true;
+                        PTCal[vert][tri] = true;
                     }                
                 }
             }
@@ -305,7 +313,7 @@ double calMaxStep_spatialHash(Mesh& tetMesh, std::vector<Eigen::Vector3d>& direc
                             }
                         }
 
-                        EECal[*itE1][*itE2] == true;
+                        EECal[*itE1][*itE2] = true;
                     }
                 }
             }

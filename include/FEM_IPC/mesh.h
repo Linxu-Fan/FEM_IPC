@@ -45,9 +45,18 @@ struct boundaryCondition
 	// 1st and 2nd element are the starting and ending timestep when a boundary condition is applied
 	Eigen::Vector2i appliedTime = {0, 100000};
 	// for type2 particles, the applied force magnitude
-	Eigen::Vector3d forceMagnitude = {0,0,0};
+	Eigen::Vector3d force = {0,0,0};
 };
  
+
+// store key information of simulating mesh like velocity, material etc.
+struct meshConfiguration
+{
+	std::string filePath = "";
+	Material mesh_material;
+	Eigen::Vector3d velocity = {0, 0, 0};
+	Eigen::Vector3d shift = {0, 0, 0};
+};
 
 
 struct Mesh 
@@ -90,9 +99,9 @@ struct Mesh
 	// Is it possible that node and element are not placed in order? If possible, then the reading code may crash.
 	////////////////////////////////////////////////////////////////////////
 	// read .msh mesh file
-	void readMesh(std::string filePath, Material mat);
+	void readMesh(meshConfiguration& config);
 	// read multiple meshes at the same time
-	void readMeshes(std::vector<std::pair<std::string, Material>> filePath_and_mat);
+	void readMeshes(std::vector<meshConfiguration>& config);
 	// initialize the mesh after reading
 	void initializeMesh(); // initialize the mesh 
 	// calculate the DM_inv or DS matrix

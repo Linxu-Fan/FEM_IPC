@@ -17,46 +17,59 @@ int main()
 
 
 
+	//meshConfiguration m1;
+	//m1.filePath = "./input/cube.msh";
+	//m1.mesh_material = mat1;
+	//m1.velocity = { 0, 0 , 0 };
 	//Mesh tetMesh;
-	//tetMesh.readMesh("./input/cube.msh", mat1);
+	//tetMesh.readMesh(m1);
 	//tetMesh.initializeMesh();
-	//tetMesh.extractSurfaceMesh();
 	//tetMesh.surfaceMesh.outputFile("surfMesh");
 
 
-	std::vector<std::pair<std::string, Material>> filePath_and_mat;
-	filePath_and_mat.push_back(std::make_pair("./input/cube.msh", mat1));
-	filePath_and_mat.push_back(std::make_pair("./input/cube.msh", mat2));
+	std::vector<meshConfiguration> config;
+	meshConfiguration m1, m2;
+	m1.filePath = "./input/cube.msh";
+	m1.mesh_material = mat1;
+	m1.velocity = { 10, 0 , 0 };
+	config.push_back(m1);
+	m2 = m1;
+	m2.mesh_material = mat2;
+	m2.velocity = { -10, 0 , 0 };
+	m2.shift = {2.157, 0.3458, -0.235};
+	config.push_back(m2);
 	Mesh tetMesh;
-	tetMesh.readMeshes(filePath_and_mat);
+	tetMesh.readMeshes(config);
 	tetMesh.initializeMesh();
 	tetMesh.surfaceMesh.outputFile("surfMesh");
 
 
 
 	FEMParamters parameters;
-	parameters.dt = 1.0E-2;
-	parameters.gravity = {0, 0, -9.8};
+	parameters.dt = 1.0E-3;
+	parameters.gravity = {0, 0, 0};
 	parameters.num_timesteps = 1001;
-	parameters.outputFrequency = 100;
-	parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+	parameters.outputFrequency = 1;
+	parameters.model = "ARAP_linear"; // neoHookean ARAP ARAP_linear ACAP
 	parameters.IPC_dis = 0.001;
 	parameters.IPC_eta = 0.1;
-	parameters.IPC_hashSize = tetMesh.calLargestEdgeLength();
+	parameters.IPC_hashSize = tetMesh.calLargestEdgeLength() * 2.0;
 
 	
 
-	for (int vI = 0; vI < tetMesh.pos_node.size(); vI++)
-	{
-		if (tetMesh.pos_node[vI][0] <= 0.15)
-		{
-			tetMesh.boundaryCondition_node[vI].type = 1;
-		}
-		if (tetMesh.pos_node[vI][0] >= 0.85)
-		{
-			tetMesh.boundaryCondition_node[vI].type = 1;
-		}
-	}
+	//for (int vI = 0; vI < tetMesh.pos_node.size(); vI++)
+	//{
+	//	if (tetMesh.pos_node[vI][0] <= 0.15)
+	//	{
+	//		tetMesh.boundaryCondition_node[vI].type = 2;
+	//		tetMesh.boundaryCondition_node[vI].force = {-100, 0, 0};
+	//	}
+	//	if (tetMesh.pos_node[vI][0] >= 0.85)
+	//	{
+	//		tetMesh.boundaryCondition_node[vI].type = 2;
+	//		tetMesh.boundaryCondition_node[vI].force = { 100, 0, 0 };
+	//	}
+	//}
 
 
 

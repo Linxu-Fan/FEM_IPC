@@ -33,10 +33,10 @@ void objMesh::outputFile(std::string fileName, int timestep)
 // Is it possible that node and element are not placed in order? If possible, then the reading code may crash.
 ////////////////////////////////////////////////////////////////////////
 // read .msh mesh file
-void Mesh::readMesh(std::string filePath, Material mat)
+void Mesh::readMesh(meshConfiguration& config)
 {
 	std::ifstream in;
-	in.open(filePath);
+	in.open(config.filePath);
 	std::string line;
 	int nodeStart = 100000000000; // the line index where a node starts
 	int numNodes = 100000000000; // number of nodes
@@ -74,6 +74,7 @@ void Mesh::readMesh(std::string filePath, Material mat)
 			{
 				Eigen::Vector3d nd_pos = { std::stod(vecCoor[1]) , std::stod(vecCoor[2]) , std::stod(vecCoor[3])};
 				pos_node.push_back(nd_pos);
+				vel_node.push_back(config.velocity);
 			}
 
 			if (lineIndex >= elementStart && lineIndex <= elementStart + numElements - 1)
@@ -90,19 +91,20 @@ void Mesh::readMesh(std::string filePath, Material mat)
 	}
 	in.close();
 
-	materialMesh.push_back(mat);
+	materialMesh.push_back(config.mesh_material);
 
 }
 
 
-void Mesh::readMeshes(std::vector<std::pair<std::string, Material>> filePath_and_mat)
+void Mesh::readMeshes(std::vector<meshConfiguration>& config)
 {
 	int prevNodesNum = 0;
 	int currNodesNum = 0;
-	for (int ii = 0; ii < filePath_and_mat.size(); ii++)
+	for (int ii = 0; ii < config.size(); ii++)
 	{
-		std::string filePath = filePath_and_mat[ii].first;
-		Material mat = filePath_and_mat[ii].second;
+		std::string filePath = config[ii].filePath;
+		Material mat = config[ii].mesh_material;
+		Eigen::Vector3d shift = config[ii].shift;
 
 		materialMesh.push_back(mat);
 		{
@@ -144,7 +146,8 @@ void Mesh::readMeshes(std::vector<std::pair<std::string, Material>> filePath_and
 					if (lineIndex >= nodeStart && lineIndex <= nodeStart + numNodes - 1)
 					{
 						Eigen::Vector3d nd_pos = { std::stod(vecCoor[1]) , std::stod(vecCoor[2]) , std::stod(vecCoor[3]) };
-						pos_node.push_back(nd_pos);
+						pos_node.push_back(nd_pos + shift);
+						vel_node.push_back(config[ii].velocity);
 						currNodesNum += 1;
 					}
 
@@ -174,9 +177,6 @@ void Mesh::initializeMesh() // initialize the mesh
 {
 	for (int i = 0; i < pos_node.size(); i++)
 	{
-		Eigen::Vector3d vel = { 0,0,0 };
-		vel_node.push_back(vel);
-
 		boundaryCondition BC;
 		boundaryCondition_node.push_back(BC);
 	}

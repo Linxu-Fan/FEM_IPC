@@ -1,4 +1,4 @@
-#include "simulator.h" 
+#include "simulator.h"
 
 
 // implicit integration
@@ -30,6 +30,9 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 			iteration += 1;
 
 			double step = calMaxStepSize(tetMesh, parameters, timestep, pTeEBarrVec, direction);
+
+			std::cout << "Maximum stepsize is " << step << std::endl;
+
 			step_forward(tetMesh, currentPosition, direction, step);
 			double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep, pTeEBarrVec);
 			while (newEnergyVal > lastEnergyVal)
@@ -71,6 +74,12 @@ Eigen::Vector3d compute_external_force(Mesh& tetMesh, int vertInd, int timestep)
 	//	extForce = {100,0, 0 };
 	//}
 
+	if (tetMesh.boundaryCondition_node[vertInd].type == 2)
+	{
+		extForce = tetMesh.boundaryCondition_node[vertInd].force;
+	}
+
+
 	return extForce;
 }
 
@@ -103,12 +112,13 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep, 
 		energyVal += ElasticEnergy::Val(tetMesh.materialMesh[matInd], parameters.model, tetMesh.tetra_F[eI], parameters.dt, tetMesh.tetra_vol[eI]);
 	}	
 
-
+	double tmpEnergy = energyVal;
 	calContactInfo(tetMesh, parameters, timestep, pTeEBarrVec);
 	for (int i = 0; i < pTeEBarrVec.size(); i++)
 	{
 		energyVal += pTeEBarrVec[i].Val;
 	}
+	std::cout << "Energy increment is " << energyVal - tmpEnergy << std::endl;
 
 	return energyVal;
 }
@@ -186,7 +196,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 		rightHandSide[ele.first] += ele.second;
 	}
 
-	std::cout << "st" << std::endl;
+	
 	// apply the fixed boundary condition
 	for (int vI = 0; vI < tetMesh.pos_node.size(); vI++)
 	{
@@ -199,7 +209,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 			}
 		}
 	}
-	std::cout << "en" << std::endl;
+	
 
 	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> solver;
 	solver.compute(leftHandSide);
@@ -236,10 +246,16 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 		{
 			if (it->second.find(tI) == it->second.end()) // this triangle is not incident with the point
 			{
+
+
 				Eigen::Vector3i tri = tetMesh.boundaryTriangles[tI];
 				Eigen::Vector3d A = tetMesh.pos_node[tri[0]];
 				Eigen::Vector3d B = tetMesh.pos_node[tri[1]];
 				Eigen::Vector3d C = tetMesh.pos_node[tri[2]];
+
+				//std::cout << "ptInd = " << ptInd << std::endl;
+				//std::cout << "tI = " << tI << std::endl;
+				//std::cout << "tri = (" << tri[0] << " , " << tri[1] << " , " << tri[2] << ")" << std::endl;
 
 				int type = pointTriangleDisType(P, A, B, C);
 				double dis2 = pointTriangleDis2(type, P, A, B, C);
@@ -253,9 +269,17 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 
 					Eigen::Vector4i vtInd = res.PP_Index;
 					Eigen::Vector4i vtInd_BC = { tetMesh.boundaryCondition_node[ptInd].type, tetMesh.boundaryCondition_node[tri[0]].type , tetMesh.boundaryCondition_node[tri[1]].type , tetMesh.boundaryCondition_node[tri[2]].type };
-					res.Val = BarrierEnergy::Val(true, dis2, tetMesh, vtInd, parameters.IPC_dis, 1.0, parameters.dt);
-					res.Grad = BarrierEnergy::Grad(true, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1.0, parameters.dt);
-					res.Hess = BarrierEnergy::Hess(true, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1.0, parameters.dt);
+					res.Val = BarrierEnergy::Val(true, dis2, tetMesh, vtInd, parameters.IPC_dis, 1000000.0, parameters.dt);
+					res.Grad = BarrierEnergy::Grad(true, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1000000.0, parameters.dt);
+					res.Hess = BarrierEnergy::Hess(true, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1000000.0, parameters.dt);
+
+
+					//std::cout << "P = (" << P[0] << " , " << P[1] << " , " << P[2] << ")" << std::endl;
+					//std::cout << "A = (" << A[0] << " , " << A[1] << " , " << A[2] << ")" << std::endl;
+					//std::cout << "B = (" << B[0] << " , " << B[1] << " , " << B[2] << ")" << std::endl;
+					//std::cout << "C = (" << C[0] << " , " << C[1] << " , " << C[2] << ")" << std::endl;
+					//std::cout << "dis2 = " << dis2 << std::endl;
+					//std::cout << "PT energy = " << res.Val << std::endl;
 
 					pTeEBarrVec.push_back(res);
 				}
@@ -291,10 +315,10 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 
 						Eigen::Vector4i vtInd = res.PP_Index;
 						Eigen::Vector4i vtInd_BC = { tetMesh.boundaryCondition_node[e1p1].type, tetMesh.boundaryCondition_node[e1p2].type , tetMesh.boundaryCondition_node[e2p1].type , tetMesh.boundaryCondition_node[e2p2].type };
-						res.Val = BarrierEnergy::Val(false, dis2, tetMesh, vtInd, parameters.IPC_dis, 1.0, parameters.dt);
-						res.Grad = BarrierEnergy::Grad(false, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1.0, parameters.dt);
-						res.Hess = BarrierEnergy::Hess(false, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1.0, parameters.dt);
-
+						res.Val = BarrierEnergy::Val(false, dis2, tetMesh, vtInd, parameters.IPC_dis, 1000000.0, parameters.dt);
+						res.Grad = BarrierEnergy::Grad(false, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1000000.0, parameters.dt);
+						res.Hess = BarrierEnergy::Hess(false, dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1000000.0, parameters.dt);
+						
 						pTeEBarrVec.push_back(res);
 					}
 
@@ -312,12 +336,13 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::vector<BarrierEnergyRes>& pTeEBarrVec, std::vector<Eigen::Vector3d>& direction)
 {
 	std::set<int> culledSet; // vertices who are in a contact
+
 	// Step 1: calculate the culled constraint
 	for (int i  = 0; i < pTeEBarrVec.size(); i++)
 	{
 		culledSet.insert(pTeEBarrVec[i].PP_Index.begin(), pTeEBarrVec[i].PP_Index.end());
 	}
-
+	std::cout << "culledSet.size() = " << culledSet.size() << std::endl;
 	// Step 2: calculate alpha_F
 	double alpha_F = 1.0; // Eq.3 in IPC paper's supplementary document
 	for (int i = 0; i < direction.size(); i++)
@@ -358,6 +383,7 @@ double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep, std
 		}
 	}
 
+	std::cout << "alpha_F = " << alpha_F << "; alpha_C_hat = " << alpha_C_hat << std::endl;
 	// Step 4: calculate full CCD if necessary
 	if (alpha_F >= 0.5 * alpha_C_hat)
 	{
@@ -365,7 +391,9 @@ double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep, std
 	}
 	else // use spatial hash to calculate the actual full CCD
 	{
-		return calMaxStep_spatialHash(tetMesh, direction, parameters.IPC_hashSize, parameters.IPC_dis, parameters.IPC_eta);
+		double CCD_step = calMaxStep_spatialHash(tetMesh, direction, parameters.IPC_hashSize, parameters.IPC_dis, parameters.IPC_eta);
+		std::cout << "CCD_step = " << CCD_step<<std::endl;
+		return CCD_step;
 	}
 
 }
