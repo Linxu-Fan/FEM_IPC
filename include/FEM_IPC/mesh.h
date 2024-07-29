@@ -74,6 +74,7 @@ struct Mesh
     std::vector<std::vector<int>> nodeSharedByElement; // indices of element that shares the node
 
 	std::vector<Eigen::Vector3d> pos_node_prev; // tetrahedral node's previous position
+	std::vector<Eigen::Vector3d> pos_node_Rest; // tetrahedral node's position at the rest configuration. Note it is different from pos_node_prev which is the position at timestep = n - 1
 
 	std::vector<int> materialInd; // index of the materials(materialMesh) used in this tetrahedral
 	std::vector<Material> materialMesh; // all materials used in the simulation

@@ -90,4 +90,39 @@ Vector12d edgeEdgeInsideDis2_grad(Eigen::Vector3d P1, Eigen::Vector3d P2, Eigen:
 // calculate the distance between two edges (only when two cloest points are inside) hessian
 Matrix12d edgeEdgeInsideDis2_hess(Eigen::Vector3d P1, Eigen::Vector3d P2, Eigen::Vector3d Q1, Eigen::Vector3d Q2);
 
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////
+// The following codes calculate the edge-edge mollifier
+/////////////////////////////////////////////////////////////////////////
+
+// calculate the value of eps_x
+double cal_EEM_eps_x(Eigen::Vector3d& P1_Rest, Eigen::Vector3d& P2_Rest, Eigen::Vector3d& Q1_Rest, Eigen::Vector3d& Q2_Rest);
+
+// calculate the mollifier c
+double cal_EEM_c(Eigen::Vector3d& P1, Eigen::Vector3d& P2, Eigen::Vector3d& Q1, Eigen::Vector3d& Q2);
+
+// calculate the mollifier value
+double cal_EEM_ek(double eps_x, double c);
+
+// calculate the mollifier value wrt c
+double cal_EEM_ek_wrt_c(double eps_x, double c);
+
+// calculate the second-order derivative of mollifier value wrt c
+double cal_EEM_2ek_wrt_c2(double eps_x, double c);
+
+// calculate the mollifier c wrt x
+Vector12d cal_EEM_c_wrt_x(Eigen::Vector3d& P1, Eigen::Vector3d& P2, Eigen::Vector3d& Q1, Eigen::Vector3d& Q2);
+
+// calculate the second-order derivative of mollifier c wrt x
+Matrix12d cal_EEM_2c_wrt_x2(Eigen::Vector3d& P1, Eigen::Vector3d& P2, Eigen::Vector3d& Q1, Eigen::Vector3d& Q2);
+
+
+
+
+
+
 #endif

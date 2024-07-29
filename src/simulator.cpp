@@ -246,16 +246,10 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 		{
 			if (it->second.find(tI) == it->second.end()) // this triangle is not incident with the point
 			{
-
-
 				Eigen::Vector3i tri = tetMesh.boundaryTriangles[tI];
 				Eigen::Vector3d A = tetMesh.pos_node[tri[0]];
 				Eigen::Vector3d B = tetMesh.pos_node[tri[1]];
 				Eigen::Vector3d C = tetMesh.pos_node[tri[2]];
-
-				//std::cout << "ptInd = " << ptInd << std::endl;
-				//std::cout << "tI = " << tI << std::endl;
-				//std::cout << "tri = (" << tri[0] << " , " << tri[1] << " , " << tri[2] << ")" << std::endl;
 
 				int type = pointTriangleDisType(P, A, B, C);
 				double dis2 = pointTriangleDis2(type, P, A, B, C);
@@ -266,15 +260,9 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 					res.pointTriangle = true;
 					res.PT_Index = { ptInd , tI};
 					res.PP_Index = { ptInd , tri[0] , tri[1] , tri[2] };
-
-					Eigen::Vector4i vtInd = res.PP_Index;
-					Eigen::Vector4i vtInd_BC = { tetMesh.boundaryCondition_node[ptInd].type, tetMesh.boundaryCondition_node[tri[0]].type , tetMesh.boundaryCondition_node[tri[1]].type , tetMesh.boundaryCondition_node[tri[2]].type };
-					res.Val = BarrierEnergy::Val(true, dis2, tetMesh, vtInd, parameters.IPC_dis, 1000000.0, parameters.dt);
-					std::pair<std::vector<std::pair<int, double>>, std::vector<Eigen::Triplet<double>>> GH = BarrierEnergy::gradAndHess_PT(
-						dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1000000.0, parameters.dt);
-					res.Grad = GH.first;
-					res.Hess = GH.second;
-
+					res.vtInd_BC = { tetMesh.boundaryCondition_node[ptInd].type, tetMesh.boundaryCondition_node[tri[0]].type , tetMesh.boundaryCondition_node[tri[1]].type , tetMesh.boundaryCondition_node[tri[2]].type };
+					
+					BarrierEnergy::valGradAndHess_PT(res, dis2, type, tetMesh, parameters.IPC_dis, 1000000.0, parameters.dt);
 					pTeEBarrVec.push_back(res);
 				}
 				
@@ -306,15 +294,9 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 						BarrierEnergyRes res;
 						res.pointTriangle = false;
 						res.PP_Index = { e1p1 , e1p2 , e2p1 , e2p2 };
-
-						Eigen::Vector4i vtInd = res.PP_Index;
-						Eigen::Vector4i vtInd_BC = { tetMesh.boundaryCondition_node[e1p1].type, tetMesh.boundaryCondition_node[e1p2].type , tetMesh.boundaryCondition_node[e2p1].type , tetMesh.boundaryCondition_node[e2p2].type };
-						res.Val = BarrierEnergy::Val(false, dis2, tetMesh, vtInd, parameters.IPC_dis, 1000000.0, parameters.dt);
-						std::pair<std::vector<std::pair<int, double>>, std::vector<Eigen::Triplet<double>>> GH = BarrierEnergy::gradAndHess_EE(
-							dis2, type, tetMesh, vtInd, vtInd_BC, parameters.IPC_dis, 1000000.0, parameters.dt);
-						res.Grad = GH.first;
-						res.Hess = GH.second;
-
+						res.vtInd_BC = { tetMesh.boundaryCondition_node[e1p1].type, tetMesh.boundaryCondition_node[e1p2].type , tetMesh.boundaryCondition_node[e2p1].type , tetMesh.boundaryCondition_node[e2p2].type };
+						
+						BarrierEnergy::valGradAndHess_EE(res, dis2, type, tetMesh, parameters.IPC_dis, 1000000.0, parameters.dt);
 						pTeEBarrVec.push_back(res);
 					}
 

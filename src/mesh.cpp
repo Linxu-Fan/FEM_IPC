@@ -196,18 +196,11 @@ void Mesh::initializeMesh() // initialize the mesh
 	}
 
 	cal_DS_or_DM(false);
-
-
 	update_F();
-
-
 	calculateNodeMass();
-
-
 	findBoundaryElements();
-
-
 	pos_node_prev = pos_node;
+	pos_node_Rest = pos_node;
 }
 
 // calculate the DM_inv or DS matrix
