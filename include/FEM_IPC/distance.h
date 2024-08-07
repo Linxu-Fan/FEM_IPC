@@ -4,22 +4,6 @@
 #include "utils.h"
 
 
-struct disGradHess
-{
-	double val = 0;
-	Eigen::VectorXd grad;
-	Eigen::MatrixXd hess;
-
-	Vector6d grad_6;
-	Vector9d grad_9;
-	Vector12d grad_12;
-	Matrix6d hess_6;
-	Matrix9d hess_9;
-	Matrix12d hess_12;
-
-};
-
-
 // calculate the type of point-triangle distance type
 // A(0), B(1), C(2), AB(3), BC(4), CA(5), inside(6)
 int pointTriangleDisType(Eigen::Vector3d P, Eigen::Vector3d A, Eigen::Vector3d B, Eigen::Vector3d C);

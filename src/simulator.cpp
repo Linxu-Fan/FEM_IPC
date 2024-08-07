@@ -260,39 +260,23 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 				Eigen::Vector3d B = tetMesh.pos_node[tri[1]];
 				Eigen::Vector3d C = tetMesh.pos_node[tri[2]];
 
-				int type = pointTriangleDisType(P, A, B, C);
-				double dis2 = pointTriangleDis2(type, P, A, B, C);
+
+				int type = DIS::dType_PT(P, A, B, C);
+				double dis2 =0;
+				DIS::computePointTriD(P, A, B, C, dis2);
 				
 				if (dis2 <= squaredDouble(parameters.IPC_dis * parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
 				{
-					//std::cout << "P = " << P << std::endl;
-					//std::cout << "A = " << A << std::endl;
-					//std::cout << "B = " << B << std::endl;
-					//std::cout << "C = " << C << std::endl;
-					//std::cout << "pointTriangleDis2(type, P, A, B, C) = " << pointTriangleDis2(type, P, A, B, C) << std::endl;
-					//std::cout << "parameters.IPC_dis = " << parameters.IPC_dis << std::endl;
-
-
-
 					BarrierEnergyRes res;
 					res.pointTriangle = true;
 					res.PT_Index = { ptInd , tI};
 					res.PP_Index = { ptInd , tri[0] , tri[1] , tri[2] };
 					res.vtInd_BC = { tetMesh.boundaryCondition_node[ptInd].type, tetMesh.boundaryCondition_node[tri[0]].type , tetMesh.boundaryCondition_node[tri[1]].type , tetMesh.boundaryCondition_node[tri[2]].type };
 					
-					//if (pTeEBarrVec.size() == 0)
-					//{
-					//	std::cout << "type = " << type << std::endl;
-					//	std::cout << "dis2 = " << dis2 << std::endl;
-					//}
 
 					BarrierEnergy::valGradAndHess_PT(res, type, dis2, tetMesh, parameters.IPC_dis, 100000000000000.0, parameters.dt);
 					pTeEBarrVec.push_back(res);
 
-					//if (pTeEBarrVec.size() == 1)
-					//{
-					//	std::cout << "2" << std::endl;
-					//}
 				}
 				
 			}
@@ -315,8 +299,10 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 					Eigen::Vector3d Q1 = tetMesh.pos_node[e2p1];
 					Eigen::Vector3d Q2 = tetMesh.pos_node[e2p2];
 
-					int type = edgeEdgeDisType(P1, P2, Q1, Q2);
-					double dis2 = edgeEdgeDis2(type, P1, P2, Q1, Q2);
+
+					int type = DIS::dType_EE(P1, P2, Q1, Q2);
+					double dis2 = 0;
+					DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
 
 					if (dis2 <= squaredDouble(parameters.IPC_dis * parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
 					{
