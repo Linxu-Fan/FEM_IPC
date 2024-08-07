@@ -13,6 +13,12 @@ void BarrierEnergy::valGradAndHess_PT(BarrierEnergyRes& BEres, int type, double 
     int pt = BEres.PP_Index[0], t1 = BEres.PP_Index[1], t2 = BEres.PP_Index[2], t3 = BEres.PP_Index[3];
     double contactArea = tetMesh.boundaryVertices_area[pt];
     double bEnergy = -squaredDouble(dis2 - d_hat * d_hat) * log(dis2 / (d_hat * d_hat));
+
+    //std::cout << "squaredDouble(dis2 - d_hat * d_hat) = " << squaredDouble(dis2 - d_hat * d_hat) << std::endl;
+    //std::cout << "dis2 / (d_hat * d_hat) = " << dis2 / (d_hat * d_hat) << std::endl;
+    //std::cout << "log(dis2 / (d_hat * d_hat)) = " << -log(dis2 / (d_hat * d_hat)) << std::endl;
+    //std::cout << "bEnergy = " << bEnergy << std::endl;
+
     BEres.Val = dt * dt * k_stiff * contactArea * bEnergy;
 
 

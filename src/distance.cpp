@@ -757,6 +757,7 @@ double pointTriangleInsideDis2_val(Eigen::Vector3d P, Eigen::Vector3d A, Eigen::
     Eigen::Vector3d norm = ((B - A).cross(C - A)).normalized();
     double dis = std::abs((P - A).dot(norm));
     double val = dis * dis;
+    //std::cout << "dsdhskd" << std::endl;
     return val;
 }
 

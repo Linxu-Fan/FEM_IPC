@@ -6,7 +6,7 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 {
 	for (int timestep = 0; timestep < parameters.num_timesteps; timestep++)
 	{
-		std::cout << "timestep = " << timestep << std::endl;
+		std::cout << std::endl << "timestep = " << timestep << std::endl;
 
 		if (timestep % parameters.outputFrequency == 0)
 		{
@@ -31,7 +31,7 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 
 			double step = calMaxStepSize(tetMesh, parameters, timestep, pTeEBarrVec, direction);
 
-			std::cout << "Maximum stepsize is " << step << std::endl;
+			std::cout<<"	Iteration = "<< iteration << "; Maximum stepsize is " << step << std::endl;
 
 			step_forward(tetMesh, currentPosition, direction, step);
 			double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep, pTeEBarrVec);
@@ -46,6 +46,11 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 
 			direction = solve_linear_system(tetMesh, parameters, timestep, pTeEBarrVec);
 			dist_to_converge = infiniteNorm(direction);
+
+			if (timestep == 57)
+			{
+				tetMesh.exportSurfaceMesh("surfMesh_57_Iteration_"+std::to_string(iteration)+"_", timestep);
+			}
 		
 		}
 
@@ -118,7 +123,11 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep, 
 	{
 		energyVal += pTeEBarrVec[i].Val;
 	}
-	std::cout << "Energy increment is " << energyVal - tmpEnergy << std::endl;
+	std::cout << "pTeEBarrVec.size() = " << pTeEBarrVec.size() << std::endl;
+	std::cout << "tmpEnergy is " << tmpEnergy << "; Energy increment is " << energyVal - tmpEnergy << std::endl;
+
+
+
 
 	return energyVal;
 }
@@ -254,16 +263,36 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 				int type = pointTriangleDisType(P, A, B, C);
 				double dis2 = pointTriangleDis2(type, P, A, B, C);
 				
-				if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+				if (dis2 <= squaredDouble(parameters.IPC_dis * parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
 				{
+					//std::cout << "P = " << P << std::endl;
+					//std::cout << "A = " << A << std::endl;
+					//std::cout << "B = " << B << std::endl;
+					//std::cout << "C = " << C << std::endl;
+					//std::cout << "pointTriangleDis2(type, P, A, B, C) = " << pointTriangleDis2(type, P, A, B, C) << std::endl;
+					//std::cout << "parameters.IPC_dis = " << parameters.IPC_dis << std::endl;
+
+
+
 					BarrierEnergyRes res;
 					res.pointTriangle = true;
 					res.PT_Index = { ptInd , tI};
 					res.PP_Index = { ptInd , tri[0] , tri[1] , tri[2] };
 					res.vtInd_BC = { tetMesh.boundaryCondition_node[ptInd].type, tetMesh.boundaryCondition_node[tri[0]].type , tetMesh.boundaryCondition_node[tri[1]].type , tetMesh.boundaryCondition_node[tri[2]].type };
 					
-					BarrierEnergy::valGradAndHess_PT(res, dis2, type, tetMesh, parameters.IPC_dis, 1000000.0, parameters.dt);
+					//if (pTeEBarrVec.size() == 0)
+					//{
+					//	std::cout << "type = " << type << std::endl;
+					//	std::cout << "dis2 = " << dis2 << std::endl;
+					//}
+
+					BarrierEnergy::valGradAndHess_PT(res, type, dis2, tetMesh, parameters.IPC_dis, 100000000000000.0, parameters.dt);
 					pTeEBarrVec.push_back(res);
+
+					//if (pTeEBarrVec.size() == 1)
+					//{
+					//	std::cout << "2" << std::endl;
+					//}
 				}
 				
 			}
@@ -289,14 +318,14 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 					int type = edgeEdgeDisType(P1, P2, Q1, Q2);
 					double dis2 = edgeEdgeDis2(type, P1, P2, Q1, Q2);
 
-					if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+					if (dis2 <= squaredDouble(parameters.IPC_dis * parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
 					{
 						BarrierEnergyRes res;
 						res.pointTriangle = false;
 						res.PP_Index = { e1p1 , e1p2 , e2p1 , e2p2 };
 						res.vtInd_BC = { tetMesh.boundaryCondition_node[e1p1].type, tetMesh.boundaryCondition_node[e1p2].type , tetMesh.boundaryCondition_node[e2p1].type , tetMesh.boundaryCondition_node[e2p2].type };
 						
-						BarrierEnergy::valGradAndHess_EE(res, dis2, type, tetMesh, parameters.IPC_dis, 1000000.0, parameters.dt);
+						BarrierEnergy::valGradAndHess_EE(res, type, dis2, tetMesh, parameters.IPC_dis, 100000000000000.0, parameters.dt);
 						pTeEBarrVec.push_back(res);
 					}
 
