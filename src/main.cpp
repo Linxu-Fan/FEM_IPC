@@ -48,12 +48,13 @@ int main()
 		meshConfiguration m1, m2;
 		m1.filePath = "./input/cube.msh";
 		m1.mesh_material = mat1;
-		m1.velocity = { 10, 0 , 0 };
+		m1.velocity = { 0, 0 , -5.0 };
+		m1.shift = { 0, 0, 0.1 };
 		config.push_back(m1);
 		m2 = m1;
 		m2.mesh_material = mat2;
-		m2.velocity = { -10, 0 , 0 };
-		m2.shift = { 2.157, 0.3458, -0.235 };
+		m2.velocity = { 0, 0 , -5.0 };
+		m2.shift = { 2.157, 0.3458, 0.1 };
 		config.push_back(m2);
 		Mesh tetMesh;
 		tetMesh.readMeshes(config);
@@ -67,10 +68,12 @@ int main()
 		parameters.gravity = { 0, 0, 0 };
 		parameters.num_timesteps = 1001;
 		parameters.outputFrequency = 1;
+		parameters.enableGround = true;
+		parameters.searchResidual = 0.001;
 		parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 		parameters.IPC_dis = 0.001;
 		parameters.IPC_eta = 0.1;
-		parameters.IPC_hashSize = tetMesh.calLargestEdgeLength() * 2.0;
+		parameters.IPC_hashSize = tetMesh.calLargestEdgeLength() * 40.0;
 
 
 

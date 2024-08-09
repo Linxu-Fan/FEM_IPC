@@ -57,6 +57,7 @@ struct FEMParamters
     std::string model = "neoHookean";
 	int numOfThreads = 5; // number of openMP threads
 
+    bool enableGround = true;
 	double searchResidual = 1.0e-4;
 
 	double IPC_dis = 0.01; // the distance of IPC gap, i.e., barrier energy emerges if the distance is smaller than this threshold

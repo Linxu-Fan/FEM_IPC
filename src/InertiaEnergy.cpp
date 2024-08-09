@@ -12,7 +12,7 @@ double InertiaEnergy::Val(double nodeMass, double dt, Eigen::Vector3d& xt, Eigen
 std::vector<std::pair<int, double>> InertiaEnergy::Grad(double nodeMass, double dt, Eigen::Vector3d& xt, Eigen::Vector3d& v, Eigen::Vector3d& x, Eigen::Vector3d& extForce, int vertIndex, FEMParamters& param, int BC)
 {
 	Eigen::Vector3d x_minus_xt = x - (xt + dt * v + dt * dt / nodeMass * (nodeMass * param.gravity + extForce));
-	Eigen::Vector3d gradVec = nodeMass * Eigen::Matrix3d::Identity() * x_minus_xt;
+	Eigen::Vector3d gradVec = nodeMass * x_minus_xt;
 
 	std::vector<std::pair<int, double>> res;
 	for (int dI = 0; dI < 3; dI++)

@@ -58,7 +58,12 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 		// update the velocity of the node
 		for (int i = 0; i < tetMesh.pos_node.size(); i++)
 		{
-			tetMesh.vel_node[i] = (tetMesh.pos_node[i] - tetMesh.pos_node_prev[i]) / parameters.dt;			
+			tetMesh.vel_node[i] = (tetMesh.pos_node[i] - tetMesh.pos_node_prev[i]) / parameters.dt;		
+
+			if (tetMesh.pos_node[i][2] < 0)
+			{
+				std::cout << "Weirrrrrrrrrrrrrrrrrrrrrrd!" << std::endl;
+			}
 		}
 
 
@@ -274,8 +279,8 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 					res.vtInd_BC = { tetMesh.boundaryCondition_node[ptInd].type, tetMesh.boundaryCondition_node[tri[0]].type , tetMesh.boundaryCondition_node[tri[1]].type , tetMesh.boundaryCondition_node[tri[2]].type };
 					
 
-					BarrierEnergy::valGradAndHess_PT(res, type, dis2, tetMesh, parameters.IPC_dis, 100000000000000.0, parameters.dt);
-					pTeEBarrVec.push_back(res);
+					BarrierEnergy::valGradAndHess_PT(res, type, dis2, tetMesh, parameters.IPC_dis, 1.0e11, parameters.dt);
+					//pTeEBarrVec.push_back(res);
 
 				}
 				
@@ -311,8 +316,8 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 						res.PP_Index = { e1p1 , e1p2 , e2p1 , e2p2 };
 						res.vtInd_BC = { tetMesh.boundaryCondition_node[e1p1].type, tetMesh.boundaryCondition_node[e1p2].type , tetMesh.boundaryCondition_node[e2p1].type , tetMesh.boundaryCondition_node[e2p2].type };
 						
-						BarrierEnergy::valGradAndHess_EE(res, type, dis2, tetMesh, parameters.IPC_dis, 100000000000000.0, parameters.dt);
-						pTeEBarrVec.push_back(res);
+						BarrierEnergy::valGradAndHess_EE(res, type, dis2, tetMesh, parameters.IPC_dis, 1.0e11, parameters.dt);
+						//pTeEBarrVec.push_back(res);
 					}
 
 
@@ -322,7 +327,22 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 	}
 
 
-
+	// ground barrier
+	if (parameters.enableGround == true)
+	{
+		for (std::map<int, std::set<int>>::iterator it = tetMesh.boundaryVertices.begin(); it != tetMesh.boundaryVertices.end(); it++)
+		{
+			int ptInd = it->first;
+			Eigen::Vector3d P = tetMesh.pos_node[ptInd];
+			if (P[2] <= parameters.IPC_dis)
+			{
+				BarrierEnergyRes res;
+				Ground::valGradAndHess(res, ptInd, P[2], parameters.IPC_dis, tetMesh.boundaryVertices_area[ptInd], 1.0e17, parameters.dt);
+				pTeEBarrVec.push_back(res);
+			}
+		}
+	}
+	
 }
 
 // calculate the maximum feasible step size
@@ -336,6 +356,7 @@ double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep, std
 		culledSet.insert(pTeEBarrVec[i].PP_Index.begin(), pTeEBarrVec[i].PP_Index.end());
 	}
 	std::cout << "culledSet.size() = " << culledSet.size() << std::endl;
+	
 	// Step 2: calculate alpha_F
 	double alpha_F = 1.0; // Eq.3 in IPC paper's supplementary document
 	for (int i = 0; i < direction.size(); i++)
@@ -376,16 +397,44 @@ double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep, std
 		}
 	}
 
-	std::cout << "alpha_F = " << alpha_F << "; alpha_C_hat = " << alpha_C_hat << std::endl;
 	// Step 4: calculate full CCD if necessary
 	if (alpha_F >= 0.5 * alpha_C_hat)
 	{
+		if (parameters.enableGround == true)
+		{
+			double stepGround = 1.0;
+			for (std::map<int, std::set<int>>::iterator it = tetMesh.boundaryVertices.begin(); it != tetMesh.boundaryVertices.end(); it++)
+			{
+				int ptInd = it->first;
+				if (direction[ptInd][2] < 0)
+				{
+					double coor_z = tetMesh.pos_node[ptInd][2];
+					stepGround = std::min(stepGround, coor_z * (1.0 - parameters.IPC_eta) / std::abs(direction[ptInd][2]));
+				}
+				
+			}
+			alpha_C_hat = std::min(stepGround, alpha_C_hat);
+		}
 		return std::min(alpha_F, alpha_C_hat);
 	}
 	else // use spatial hash to calculate the actual full CCD
 	{
 		double CCD_step = calMaxStep_spatialHash(tetMesh, direction, parameters.IPC_hashSize, parameters.IPC_dis, parameters.IPC_eta);
-		std::cout << "CCD_step = " << CCD_step<<std::endl;
+		if (parameters.enableGround == true)
+		{
+			double stepGround = 1.0;
+			for (std::map<int, std::set<int>>::iterator it = tetMesh.boundaryVertices.begin(); it != tetMesh.boundaryVertices.end(); it++)
+			{
+				int ptInd = it->first;
+				if (direction[ptInd][2] < 0)
+				{
+					double coor_z = tetMesh.pos_node[ptInd][2];
+					stepGround = std::min(stepGround, coor_z * (1.0 - parameters.IPC_eta) / std::abs(direction[ptInd][2]));
+				}
+
+			}
+			CCD_step = std::min(stepGround, CCD_step);
+		}
 		return CCD_step;
 	}
 
