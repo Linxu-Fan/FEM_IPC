@@ -37,18 +37,6 @@ struct TriangleFace
 };
 
 
-// boundary condition of each vertex in the mesh
-struct boundaryCondition
-{
-	// vertex's type: 0) default: without constraint; 1) fixed points: velocity = 0; 2) external force, f_ext = xxx
-	int type = 0; 
-	// 1st and 2nd element are the starting and ending timestep when a boundary condition is applied
-	Eigen::Vector2i appliedTime = {0, 100000};
-	// for type2 particles, the applied force magnitude
-	Eigen::Vector3d force = {0,0,0};
-};
- 
-
 // store key information of simulating mesh like velocity, material etc.
 struct meshConfiguration
 {

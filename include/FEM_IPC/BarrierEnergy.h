@@ -4,23 +4,22 @@
 #include "distance.h"
 #include "mesh.h"
 
-struct BarrierEnergyRes
-{
-	// store the culled constraint set
-	bool pointTriangle = true; // true: this is a point-triangle contact; false: edge-edge contact
-	Eigen::Vector2i PT_Index = {-99, -99}; // 1st int: point index; 2nd int: triangle index
-	Eigen::Vector4i PP_Index = {-99, -99, -99, -99 }; // if pointTriangle is true: 1st int: point index; 2nd 3rd & 4th int: triangle vertices indices; else: four points' indices in two edges
-	Eigen::Vector4i vtInd_BC = { -99, -99, -99, -99 }; // four points' boundary conditions
-
-	// the actual energy value
-	double Val = 0;
-	std::vector<std::pair<int, double>> Grad;
-	std::vector<Eigen::Triplet<double>> Hess;
-};
-
 
 namespace BarrierEnergy
 {
+	// compute the energy of point-triangle contact
+	double val_PT(double contactArea, double dis2, double d_hat, double k_stiff, double dt);
+
+	// compute the energy of edge-edge contact
+	double val_EE(double contactArea, double dis2, Mesh& tetMesh, Eigen::Vector4i& ptIndices, double d_hat, double k_stiff, double dt);
+
+
+	// compute the energy gradient and hessian of point-triangle contact
+	void gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndices, int type, double dis2, Mesh& tetMesh, double d_hat, double k_stiff, double dt);
+
+	// compute the energy gradient and hessian of edge-edge contact
+	void gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndices, int type, double dis2, Mesh& tetMesh, double d_hat, double k_stiff, double dt);
+
 
 	// compute the energy gradient and hessian of point-triangle contact
 	void valGradAndHess_PT(BarrierEnergyRes& BEres, int type, double dis2, Mesh& tetMesh, double d_hat, double k_stiff, double dt);
@@ -46,6 +45,12 @@ namespace BarrierEnergy
 
 namespace Ground
 {
+
+	double val(double coor_z, double d_hat, double distributedArea, double k_stiff, double dt);
+
+	void gradAndHess(BarrierEnergyRes& BEres, int index_i, double coor_z, double d_hat, double distributedArea, double k_stiff, double dt);
+
+
 	void valGradAndHess(BarrierEnergyRes& BEres, int index_i, double dis, double d_hat, double distributedArea, double k_stiff, double dt);
 
 }
