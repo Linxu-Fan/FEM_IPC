@@ -324,26 +324,46 @@ void BarrierEnergyRes::hessToTriplet(std::vector<boundaryCondition>& boundaryCon
 
 Matrix3d projToSPD(Matrix3d& top)
 {
-	// compute eigenvalue and eigenvector
-	Eigen::EigenSolver<Eigen::MatrixXd> es(top);
-	Eigen::Vector3d eigenValues = { es.eigenvalues()[0].real(), es.eigenvalues()[1].real(), es.eigenvalues()[2].real() };
-	Eigen::Matrix3d eigenVectors; 
-	eigenVectors << es.eigenvectors().real();
+	//// compute eigenvalue and eigenvector
+	//Eigen::EigenSolver<Eigen::MatrixXd> es(top);
+	//Eigen::Vector3d eigenValues = { es.eigenvalues()[0].real(), es.eigenvalues()[1].real(), es.eigenvalues()[2].real() };
+	//Eigen::Matrix3d eigenVectors; 
+	//eigenVectors << es.eigenvectors().real();
 
 
-	Eigen::Matrix3d sigma = Eigen::Matrix3d::Zero();
-	for (int i = 0; i < 3; i++) 
+	//Eigen::Matrix3d sigma = Eigen::Matrix3d::Zero();
+	//for (int i = 0; i < 3; i++) 
+	//{
+	//	if (eigenValues[i] >= 0.0)
+	//	{
+	//		sigma += eigenValues[i] * eigenVectors.col(i) * (eigenVectors.col(i).transpose());
+	//	}
+	//	else
+	//	{
+	//		std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
+	//	}
+	//};
+	//return sigma;
+
+
+	Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double, 3, 3>> eigenSolver(top);
+	if (eigenSolver.eigenvalues()[0] >= 0.0) 
 	{
-		if (eigenValues[i] >= 0.0)
-		{
-			sigma += eigenValues[i] * eigenVectors.col(i) * (eigenVectors.col(i).transpose());
+		return top;
+	}
+	Eigen::DiagonalMatrix<double, 3> D(eigenSolver.eigenvalues());
+	int rows = ((3 == Eigen::Dynamic) ? top.rows() : 3);
+	for (int i = 0; i < rows; i++) {
+		if (D.diagonal()[i] < 0.0) {
+			D.diagonal()[i] = 0.0;
 		}
-		else
-		{
-			std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
+		else {
+			break;
 		}
-	};
-	return sigma;
+	}
+	return eigenSolver.eigenvectors() * D * eigenSolver.eigenvectors().transpose();
+
+
 }
 
 

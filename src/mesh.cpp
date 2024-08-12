@@ -199,6 +199,8 @@ void Mesh::initializeMesh() // initialize the mesh
 	update_F();
 	calculateNodeMass();
 	findBoundaryElements();
+	updateBoundaryElementsInfo();
+
 	pos_node_prev = pos_node;
 	pos_node_Rest = pos_node;
 }
@@ -422,7 +424,7 @@ void Mesh::update_F()
 		tetra_F[i] = Ds * tetra_DM_inv[i];
 	}
 
-	updateBoundaryElementsInfo();
+	
 }
 
 // calculate the mass of each node

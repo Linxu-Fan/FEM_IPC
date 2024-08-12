@@ -25,6 +25,8 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 		std::vector<Eigen::Vector3d> direction = solve_linear_system(tetMesh, parameters, timestep, pTeEBarrVec);
 		double dist_to_converge = infiniteNorm(direction);
 
+		std::cout << "	Energy at the start = " << lastEnergyVal << std::endl;
+
 		int iteration = 0;
 		while (dist_to_converge / parameters.dt > parameters.searchResidual && iteration < 50)
 		{
@@ -32,15 +34,20 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 
 			double step = calMaxStepSize(tetMesh, parameters, timestep, pTeEBarrVec, direction);
 
-			std::cout<<"	Iteration = "<< iteration << "; Maximum stepsize is " << step << std::endl;
-
 			step_forward(tetMesh, currentPosition, direction, step);
 			double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
+
+			std::cout << "		Iteration = " << iteration << "; lastEnergyVal = " << lastEnergyVal << "; newEnergyVal = " << newEnergyVal << "; Maximum stepsize is " << step << std::endl;
+
 			while (newEnergyVal > lastEnergyVal)
 			{
+				double tm = newEnergyVal;
+				
 				step /= 2.0;
 				step_forward(tetMesh, currentPosition, direction, step);
 				newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
+				
+				std::cout << "			Inner Iteration energy tm = " << tm << "; newEnergyVal = " << newEnergyVal << "; step = " << step << std::endl;
 			}
 			currentPosition = tetMesh.pos_node;
 			lastEnergyVal = newEnergyVal;
@@ -49,9 +56,11 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 			direction = solve_linear_system(tetMesh, parameters, timestep, pTeEBarrVec);
 			dist_to_converge = infiniteNorm(direction);
 
+			std::cout << "		dist_to_converge = " << dist_to_converge << std::endl;
+
 			if (timestep == 57)
 			{
-				tetMesh.exportSurfaceMesh("surfMesh_57_Iteration_"+std::to_string(iteration)+"_", timestep);
+				//tetMesh.exportSurfaceMesh("surfMesh_57_Iteration_"+std::to_string(iteration)+"_", timestep);
 			}
 		
 		}
@@ -200,7 +209,7 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 	}
 
 
-	std::cout << "tmpEnergy is " << tmpEnergy << "; Energy increment is " << energyVal - tmpEnergy << std::endl;
+	//std::cout << "tmpEnergy is " << tmpEnergy << "; Energy increment is " << energyVal - tmpEnergy << std::endl;
 
 
 
@@ -414,7 +423,7 @@ double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep, Bar
 	{
 		culledSet.insert(pTeEBarrVec.EE_Indices[i].begin(), pTeEBarrVec.EE_Indices[i].end());
 	}
-	std::cout << "culledSet.size() = " << culledSet.size() << std::endl;
+	//std::cout << "culledSet.size() = " << culledSet.size() << std::endl;
 	
 	// Step 2: calculate alpha_F
 	double alpha_F = 1.0; // Eq.3 in IPC paper's supplementary document
