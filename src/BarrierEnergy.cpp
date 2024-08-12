@@ -31,8 +31,8 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
     GH.PT_Indices.push_back(ptIndices);
 
     // the partial derivative of barrier energy b wrt distance d
-    double partial_b_partial_dis = compute_g_b(dis2, d_hat); // 3
-    double partial_2b_partial_dis2 = compute_H_b(dis2, d_hat); // 1                                                        
+    double g_bd = compute_g_b(dis2, d_hat); // 3
+    double h_bd = compute_H_b(dis2, d_hat); // 1                                                        
 
     int pt = ptIndices[0], t1 = ptIndices[1], t2 = ptIndices[2], t3 = ptIndices[3];
     double contactArea = tetMesh.boundaryVertices_area[pt];
@@ -43,14 +43,14 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
     {
     case 0:
     {
-        Vector6d partial_dis_partial_x = Vector6d::Zero();
-        Matrix6d partial_2dis_partial_x2 = Matrix6d::Zero();
-        DIS::g_PP(P, A, partial_dis_partial_x); // 2
-        DIS::H_PP(partial_2dis_partial_x2); // 4
+        Vector6d g_dx = Vector6d::Zero();
+        Matrix6d h_dx = Matrix6d::Zero();
+        DIS::g_PP(P, A, g_dx); // 2
+        DIS::H_PP(h_dx); // 4
 
-        GH.V6.push_back(dt * dt * k_stiff * contactArea * partial_dis_partial_x * partial_b_partial_dis);
+        GH.V6.push_back(dt * dt * k_stiff * contactArea * g_dx * g_bd);
 
-        Matrix6d hessian = dt * dt * k_stiff * contactArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2);
+        Matrix6d hessian = dt * dt * k_stiff * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 6>(hessian);
         GH.H6x6.push_back(hessian);
         Eigen::Vector2i activePtsLocalInd = { pt , t1 };
@@ -60,13 +60,13 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
     break;
     case 1:
     {
-        Vector6d partial_dis_partial_x = Vector6d::Zero();
-        Matrix6d partial_2dis_partial_x2 = Matrix6d::Zero();
-        DIS::g_PP(P, B, partial_dis_partial_x); // 2
-        DIS::H_PP(partial_2dis_partial_x2); // 4
+        Vector6d g_dx = Vector6d::Zero();
+        Matrix6d h_dx = Matrix6d::Zero();
+        DIS::g_PP(P, B, g_dx); // 2
+        DIS::H_PP(h_dx); // 4
 
-        GH.V6.push_back(dt * dt * k_stiff * contactArea * partial_dis_partial_x * partial_b_partial_dis);
-        Matrix6d hessian = dt * dt * k_stiff * contactArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2);
+        GH.V6.push_back(dt * dt * k_stiff * contactArea * g_dx * g_bd);
+        Matrix6d hessian = dt * dt * k_stiff * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 6>(hessian);
         GH.H6x6.push_back(hessian);
         Eigen::Vector2i activePtsLocalInd = { pt , t2 };
@@ -76,13 +76,13 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
     case 2:
     {
-        Vector6d partial_dis_partial_x = Vector6d::Zero();
-        Matrix6d partial_2dis_partial_x2 = Matrix6d::Zero();
-        DIS::g_PP(P, C, partial_dis_partial_x); // 2
-        DIS::H_PP(partial_2dis_partial_x2); // 4
+        Vector6d g_dx = Vector6d::Zero();
+        Matrix6d h_dx = Matrix6d::Zero();
+        DIS::g_PP(P, C, g_dx); // 2
+        DIS::H_PP(h_dx); // 4
 
-        GH.V6.push_back(dt * dt * k_stiff * contactArea * partial_dis_partial_x * partial_b_partial_dis);
-        Matrix6d hessian = dt * dt * k_stiff * contactArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2);
+        GH.V6.push_back(dt * dt * k_stiff * contactArea * g_dx * g_bd);
+        Matrix6d hessian = dt * dt * k_stiff * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 6>(hessian);
         GH.H6x6.push_back(hessian);
         Eigen::Vector2i activePtsLocalInd = { pt , t3 };
@@ -92,13 +92,13 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
     case 3:
     {
-        Vector9d partial_dis_partial_x = Vector9d::Zero();
-        Matrix9d partial_2dis_partial_x2 = Matrix9d::Zero();
-        DIS::g_PE(P, A, B, partial_dis_partial_x); // 2
-        DIS::H_PE(P, A, B, partial_2dis_partial_x2); // 4
+        Vector9d g_dx = Vector9d::Zero();
+        Matrix9d h_dx = Matrix9d::Zero();
+        DIS::g_PE(P, A, B, g_dx); // 2
+        DIS::H_PE(P, A, B, h_dx); // 4
 
-        GH.V9.push_back(dt * dt * k_stiff * contactArea * partial_dis_partial_x * partial_b_partial_dis);
-        Matrix9d hessian = dt * dt * k_stiff * contactArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2);
+        GH.V9.push_back(dt * dt * k_stiff * contactArea * g_dx * g_bd);
+        Matrix9d hessian = dt * dt * k_stiff * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 9>(hessian);
         GH.H9x9.push_back(hessian);
         Eigen::Vector3i activePtsLocalInd = { pt , t1, t2 };
@@ -108,13 +108,13 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
     case 4:
     {
-        Vector9d partial_dis_partial_x = Vector9d::Zero();
-        Matrix9d partial_2dis_partial_x2 = Matrix9d::Zero();
-        DIS::g_PE(P, B, C, partial_dis_partial_x); // 2
-        DIS::H_PE(P, B, C, partial_2dis_partial_x2); // 4
+        Vector9d g_dx = Vector9d::Zero();
+        Matrix9d h_dx = Matrix9d::Zero();
+        DIS::g_PE(P, B, C, g_dx); // 2
+        DIS::H_PE(P, B, C, h_dx); // 4
 
-        GH.V9.push_back(dt * dt * k_stiff * contactArea * partial_dis_partial_x * partial_b_partial_dis);
-        Matrix9d hessian = dt * dt * k_stiff * contactArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2);
+        GH.V9.push_back(dt * dt * k_stiff * contactArea * g_dx * g_bd);
+        Matrix9d hessian = dt * dt * k_stiff * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 9>(hessian);
         GH.H9x9.push_back(hessian);
         Eigen::Vector3i activePtsLocalInd = { pt , t2 , t3 };
@@ -124,13 +124,13 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
     case 5:
     {
-        Vector9d partial_dis_partial_x = Vector9d::Zero();
-        Matrix9d partial_2dis_partial_x2 = Matrix9d::Zero();
-        DIS::g_PE(P, C, A, partial_dis_partial_x); // 2
-        DIS::H_PE(P, C, A, partial_2dis_partial_x2); // 4
+        Vector9d g_dx = Vector9d::Zero();
+        Matrix9d h_dx = Matrix9d::Zero();
+        DIS::g_PE(P, C, A, g_dx); // 2
+        DIS::H_PE(P, C, A, h_dx); // 4
 
-        GH.V9.push_back(dt * dt * k_stiff * contactArea * partial_dis_partial_x * partial_b_partial_dis);
-        Matrix9d hessian = dt * dt * k_stiff * contactArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2);
+        GH.V9.push_back(dt * dt * k_stiff * contactArea * g_dx * g_bd);
+        Matrix9d hessian = dt * dt * k_stiff * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 9>(hessian);
         GH.H9x9.push_back(hessian);
         Eigen::Vector3i activePtsLocalInd = { pt , t3 , t1 };
@@ -140,13 +140,13 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
     case 6:
     {
-        Vector12d partial_dis_partial_x = Vector12d::Zero();
-        Matrix12d partial_2dis_partial_x2 = Matrix12d::Zero();
-        DIS::g_PT(P, A, B, C, partial_dis_partial_x); // 2
-        DIS::H_PT(P, A, B, C, partial_2dis_partial_x2); // 4
+        Vector12d g_dx = Vector12d::Zero();
+        Matrix12d h_dx = Matrix12d::Zero();
+        DIS::g_PT(P, A, B, C, g_dx); // 2
+        DIS::H_PT(P, A, B, C, h_dx); // 4
 
-        GH.V12.push_back(dt * dt * k_stiff * contactArea * partial_dis_partial_x * partial_b_partial_dis);
-        Matrix12d hessian = dt * dt * k_stiff * contactArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2);
+        GH.V12.push_back(dt * dt * k_stiff * contactArea * g_dx * g_bd);
+        Matrix12d hessian = dt * dt * k_stiff * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 12>(hessian);
         GH.H12x12.push_back(hessian);
         Eigen::Vector4i activePtsLocalInd = { pt , t1 , t2 , t3 };
@@ -164,8 +164,8 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
     GH.EE_Indices.push_back(ptIndices);
 
     // the partial derivative of barrier energy b wrt distance d
-    double partial_b_partial_dis = compute_g_b(dis2, d_hat); // 3
-    double partial_2b_partial_dis2 = compute_H_b(dis2, d_hat); // 1     
+    double g_bd = compute_g_b(dis2, d_hat); // 3
+    double h_bd = compute_H_b(dis2, d_hat); // 1     
 
     int P1 = ptIndices[0], P2 = ptIndices[1], Q1 = ptIndices[2], Q2 = ptIndices[3];
     int emin = std::min(P1, P2), emax = std::max(P1, P2);
@@ -193,14 +193,14 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
     {
     case 0:
     {
-        Vector6d partial_dis_partial_x = Vector6d::Zero(), grad_ = Vector6d::Zero();
-        Matrix6d partial_2dis_partial_x2 = Matrix6d::Zero(), hess_ = Matrix6d::Zero();
-        DIS::g_PP(P1Coor, Q1Coor, partial_dis_partial_x); // 2
-        DIS::H_PP(partial_2dis_partial_x2); // 4
+        Vector6d g_dx = Vector6d::Zero(), grad_ = Vector6d::Zero();
+        Matrix6d h_dx = Matrix6d::Zero(), hess_ = Matrix6d::Zero();
+        DIS::g_PP(P1Coor, Q1Coor, g_dx); // 2
+        DIS::H_PP(h_dx); // 4
 
 
-        grad_ = contactArea * partial_dis_partial_x * partial_b_partial_dis;
-        hess_ = contactArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2);
+        grad_ = contactArea * g_dx * g_bd;
+        hess_ = contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         Eigen::Vector2i activePtsLocalInd = { 0, 2 };
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b); // since we add edge-edge mollifier, we have to project the hessian to full 12x12 matrix
 
@@ -215,14 +215,14 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
     case 1:
     {
-        Vector6d partial_dis_partial_x = Vector6d::Zero(), grad_ = Vector6d::Zero();
-        Matrix6d partial_2dis_partial_x2 = Matrix6d::Zero(), hess_ = Matrix6d::Zero();
-        DIS::g_PP(P1Coor, Q2Coor, partial_dis_partial_x); // 2
-        DIS::H_PP(partial_2dis_partial_x2); // 4
+        Vector6d g_dx = Vector6d::Zero(), grad_ = Vector6d::Zero();
+        Matrix6d h_dx = Matrix6d::Zero(), hess_ = Matrix6d::Zero();
+        DIS::g_PP(P1Coor, Q2Coor, g_dx); // 2
+        DIS::H_PP(h_dx); // 4
 
 
-        grad_ = contactArea * partial_dis_partial_x * partial_b_partial_dis;
-        hess_ = contactArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2);
+        grad_ = contactArea * g_dx * g_bd;
+        hess_ = contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         Eigen::Vector2i activePtsLocalInd = { 0, 3 };
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b);
 
@@ -238,13 +238,13 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
     case 2:
     {
-        Vector9d partial_dis_partial_x = Vector9d::Zero(), grad_ = Vector9d::Zero();
-        Matrix9d partial_2dis_partial_x2 = Matrix9d::Zero(), hess_ = Matrix9d::Zero();
-        DIS::g_PE(P1Coor, Q1Coor, Q2Coor, partial_dis_partial_x); // 2
-        DIS::H_PE(P1Coor, Q1Coor, Q2Coor, partial_2dis_partial_x2); // 4
+        Vector9d g_dx = Vector9d::Zero(), grad_ = Vector9d::Zero();
+        Matrix9d h_dx = Matrix9d::Zero(), hess_ = Matrix9d::Zero();
+        DIS::g_PE(P1Coor, Q1Coor, Q2Coor, g_dx); // 2
+        DIS::H_PE(P1Coor, Q1Coor, Q2Coor, h_dx); // 4
 
-        grad_ = contactArea * partial_dis_partial_x * partial_b_partial_dis;
-        hess_ = contactArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2);
+        grad_ = contactArea * g_dx * g_bd;
+        hess_ = contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         Eigen::Vector3i activePtsLocalInd = { 0, 2, 3 };
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b);
 
@@ -259,15 +259,15 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
     case 3:
     {
-        Vector6d partial_dis_partial_x = Vector6d::Zero(), grad_ = Vector6d::Zero();
-        Matrix6d partial_2dis_partial_x2 = Matrix6d::Zero(), hess_ = Matrix6d::Zero();
-        DIS::g_PP(P2Coor, Q1Coor, partial_dis_partial_x); // 2
-        DIS::H_PP(partial_2dis_partial_x2); // 4
+        Vector6d g_dx = Vector6d::Zero(), grad_ = Vector6d::Zero();
+        Matrix6d h_dx = Matrix6d::Zero(), hess_ = Matrix6d::Zero();
+        DIS::g_PP(P2Coor, Q1Coor, g_dx); // 2
+        DIS::H_PP(h_dx); // 4
 
 
 
-        grad_ = contactArea * partial_dis_partial_x * partial_b_partial_dis;
-        hess_ = contactArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2);
+        grad_ = contactArea * g_dx * g_bd;
+        hess_ = contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         Eigen::Vector2i activePtsLocalInd = { 1, 2 };
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b);
 
@@ -283,14 +283,14 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
     case 4:
     {
-        Vector6d partial_dis_partial_x = Vector6d::Zero(), grad_ = Vector6d::Zero();
-        Matrix6d partial_2dis_partial_x2 = Matrix6d::Zero(), hess_ = Matrix6d::Zero();
-        DIS::g_PP(P2Coor, Q2Coor, partial_dis_partial_x); // 2
-        DIS::H_PP(partial_2dis_partial_x2); // 4
+        Vector6d g_dx = Vector6d::Zero(), grad_ = Vector6d::Zero();
+        Matrix6d h_dx = Matrix6d::Zero(), hess_ = Matrix6d::Zero();
+        DIS::g_PP(P2Coor, Q2Coor, g_dx); // 2
+        DIS::H_PP(h_dx); // 4
 
 
-        grad_ = contactArea * partial_dis_partial_x * partial_b_partial_dis;
-        hess_ = contactArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2);
+        grad_ = contactArea * g_dx * g_bd;
+        hess_ = contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         Eigen::Vector2i activePtsLocalInd = { 1, 3 };
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b);
 
@@ -306,14 +306,14 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
     case 5:
     {
-        Vector9d partial_dis_partial_x = Vector9d::Zero(), grad_ = Vector9d::Zero();
-        Matrix9d partial_2dis_partial_x2 = Matrix9d::Zero(), hess_ = Matrix9d::Zero();
-        DIS::g_PE(P2Coor, Q1Coor, Q2Coor, partial_dis_partial_x); // 2
-        DIS::H_PE(P2Coor, Q1Coor, Q2Coor, partial_2dis_partial_x2); // 4
+        Vector9d g_dx = Vector9d::Zero(), grad_ = Vector9d::Zero();
+        Matrix9d h_dx = Matrix9d::Zero(), hess_ = Matrix9d::Zero();
+        DIS::g_PE(P2Coor, Q1Coor, Q2Coor, g_dx); // 2
+        DIS::H_PE(P2Coor, Q1Coor, Q2Coor, h_dx); // 4
 
 
-        grad_ = contactArea * partial_dis_partial_x * partial_b_partial_dis;
-        hess_ = contactArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2);
+        grad_ = contactArea * g_dx * g_bd;
+        hess_ = contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         Eigen::Vector3i activePtsLocalInd = { 1, 2, 3 };
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b);
 
@@ -329,15 +329,15 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
     case 6:
     {
-        Vector9d partial_dis_partial_x = Vector9d::Zero(), grad_ = Vector9d::Zero();
-        Matrix9d partial_2dis_partial_x2 = Matrix9d::Zero(), hess_ = Matrix9d::Zero();
-        DIS::g_PE(Q1Coor, P1Coor, P2Coor, partial_dis_partial_x); // 2
-        DIS::H_PE(Q1Coor, P1Coor, P2Coor, partial_2dis_partial_x2); // 4
+        Vector9d g_dx = Vector9d::Zero(), grad_ = Vector9d::Zero();
+        Matrix9d h_dx = Matrix9d::Zero(), hess_ = Matrix9d::Zero();
+        DIS::g_PE(Q1Coor, P1Coor, P2Coor, g_dx); // 2
+        DIS::H_PE(Q1Coor, P1Coor, P2Coor, h_dx); // 4
 
 
 
-        grad_ = contactArea * partial_dis_partial_x * partial_b_partial_dis;
-        hess_ = contactArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2);
+        grad_ = contactArea * g_dx * g_bd;
+        hess_ = contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         Eigen::Vector3i activePtsLocalInd = { 2, 0, 1 };
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b);
 
@@ -353,14 +353,14 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
     case 7:
     {
-        Vector9d partial_dis_partial_x = Vector9d::Zero(), grad_ = Vector9d::Zero();
-        Matrix9d partial_2dis_partial_x2 = Matrix9d::Zero(), hess_ = Matrix9d::Zero();
-        DIS::g_PE(Q2Coor, P1Coor, P2Coor, partial_dis_partial_x); // 2
-        DIS::H_PE(Q2Coor, P1Coor, P2Coor, partial_2dis_partial_x2); // 4
+        Vector9d g_dx = Vector9d::Zero(), grad_ = Vector9d::Zero();
+        Matrix9d h_dx = Matrix9d::Zero(), hess_ = Matrix9d::Zero();
+        DIS::g_PE(Q2Coor, P1Coor, P2Coor, g_dx); // 2
+        DIS::H_PE(Q2Coor, P1Coor, P2Coor, h_dx); // 4
 
 
-        grad_ = contactArea * partial_dis_partial_x * partial_b_partial_dis;
-        hess_ = contactArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2);
+        grad_ = contactArea * g_dx * g_bd;
+        hess_ = contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         Eigen::Vector3i activePtsLocalInd = { 3, 0, 1 };
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b);
 
@@ -376,14 +376,14 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
     case 8:
     {
-        Vector12d partial_dis_partial_x = Vector12d::Zero(), grad_b = Vector12d::Zero();
-        Matrix12d partial_2dis_partial_x2 = Matrix12d::Zero(), hess_b = Matrix12d::Zero();
-        DIS::g_EE(P1Coor, P2Coor, Q1Coor, Q2Coor, partial_dis_partial_x); // 2
-        DIS::H_EE(P1Coor, P2Coor, Q1Coor, Q2Coor, partial_2dis_partial_x2); // 4
+        Vector12d g_dx = Vector12d::Zero(), grad_b = Vector12d::Zero();
+        Matrix12d h_dx = Matrix12d::Zero(), hess_b = Matrix12d::Zero();
+        DIS::g_EE(P1Coor, P2Coor, Q1Coor, Q2Coor, g_dx); // 2
+        DIS::H_EE(P1Coor, P2Coor, Q1Coor, Q2Coor, h_dx); // 4
 
 
-        grad_b = contactArea * partial_dis_partial_x * partial_b_partial_dis;
-        hess_b = contactArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2);
+        grad_b = contactArea * g_dx * g_bd;
+        hess_b = contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
 
 
         // now calcualte the final val, grad and hess considering the mollifier
@@ -470,30 +470,26 @@ double BarrierEnergy::compute_H_b(double d, double dHat)
 
 
 
-double Ground::val(double coor_z, double d_hat, double distributedArea, double k_stiff, double dt)
+double Ground::val(double coor_z2, double d_hat, double distributedArea, double k_stiff, double dt)
 {
-    double dis2 = coor_z * coor_z;
-    double d_hat2 = squaredDouble(d_hat);
-    double bEnergy = -squaredDouble(dis2 - d_hat * d_hat) * log(dis2 / (d_hat * d_hat));
-    return dt * dt * k_stiff * distributedArea * bEnergy;
+    return dt * dt * k_stiff * distributedArea * BarrierEnergy::compute_b(coor_z2, d_hat);
 }
 
 
-void Ground::gradAndHess(BarrierEnergyRes& BEres, int index_i,  double coor_z, double d_hat, double distributedArea, double k_stiff, double dt)
+void Ground::gradAndHess(BarrierEnergyRes& BEres, int index_i,  double coor_z2, double d_hat, double distributedArea, double k_stiff, double dt)
 {
-    double dis2 = coor_z * coor_z;
-    double d_hat2 = squaredDouble(d_hat);
-
-    Eigen::Vector3d grad_b = Eigen::Vector3d::Zero();
-    Eigen::Matrix3d hess_b = Eigen::Matrix3d::Zero();
-
-    double partial_b_partial_dis = (-2.0 * (dis2 - d_hat2) * log(dis2 / d_hat2) - 1.0 / dis2 * squaredDouble(dis2 - d_hat2)) * 2.0 * std::sqrt(dis2); // 3
-    double partial_2b_partial_dis2 = -4.0 * (3.0 * dis2 - d_hat2) * log(dis2 / d_hat2) - (4.0 / std::sqrt(dis2) + 8.0) * (dis2 - d_hat2) + 2.0 / dis2 * squaredDouble(dis2 - d_hat2); // 1                                                        
+    double g_bd = BarrierEnergy::compute_g_b(coor_z2, d_hat); // 3
+    double h_bd = BarrierEnergy::compute_H_b(coor_z2, d_hat); // 1                                                        
     
-    Eigen::Vector3d partial_dis_partial_x = {0, 0, 1.0 };
-    Eigen::Matrix3d partial_2dis_partial_x2 = Eigen::Matrix3d::Zero();
+    Eigen::Vector3d g_dx = {0, 0, 2.0 * std::sqrt(coor_z2) };
+    Eigen::Matrix3d h_dx = Eigen::Matrix3d::Zero();
+    h_dx(2, 2) = 2.0;
 
-    BEres.V3.push_back(dt * dt * k_stiff * distributedArea * partial_dis_partial_x * partial_b_partial_dis);
-    BEres.H3x3.push_back(dt * dt * k_stiff * distributedArea * (partial_2b_partial_dis2 * partial_dis_partial_x * partial_dis_partial_x.transpose() + partial_b_partial_dis * partial_2dis_partial_x2));
+    BEres.V3.push_back(dt * dt * k_stiff * distributedArea * g_dx * g_bd);
+
+    Matrix3d hessian = dt * dt * k_stiff * distributedArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
+    makePD<double, 3>(hessian);
+    BEres.H3x3.push_back(hessian);
     BEres.D1Index.push_back(index_i);
+
 }

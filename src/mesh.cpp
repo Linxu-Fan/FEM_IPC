@@ -478,6 +478,10 @@ double Mesh::calLargestEdgeLength()
 }
 
 
-
+double Mesh::calBBXDiagSize()
+{
+	std::pair<Eigen::Vector3d, Eigen::Vector3d> BBX = calculateBoundingBox();
+	return (BBX.first - BBX.second).norm();
+}
 
 

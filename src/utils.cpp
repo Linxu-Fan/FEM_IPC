@@ -228,13 +228,20 @@ void BarrierEnergyRes::gradToTriplet(std::vector<boundaryCondition>& boundaryCon
 
 void BarrierEnergyRes::hessToTriplet(std::vector<boundaryCondition>& boundaryCondition_node, std::vector<Eigen::Triplet<double>>& hessian_triplet)
 {
-	std::unordered_map<int, std::unordered_map<int, Matrix3d>> hessMatrix3d;
 
 	// point
 	for (int m = 0; m < D1Index.size(); m++)
 	{
 		int index_m = D1Index[m];
-		hessMatrix3d[index_m][index_m] += H3x3[m];
+		for (int xd = 0; xd < 3; xd++)
+		{
+			for (int yd = 0; yd < 3; yd++)
+			{
+				double value = H3x3[m](xd, yd);
+				hessian_triplet.emplace_back(index_m * 3 + xd, index_m * 3 + yd, value);
+			}
+		}
+
 	}
 
 	// point-point
@@ -250,7 +257,17 @@ void BarrierEnergyRes::hessToTriplet(std::vector<boundaryCondition>& boundaryCon
 					int pt2 = D2Index[i][q];
 					if (boundaryCondition_node[pt2].type != 1)
 					{
-						hessMatrix3d[pt1][pt2] += H6x6[i].block(p * 3, q * 3, 3, 3);
+
+						Matrix3d smb = H6x6[i].block(p * 3, q * 3, 3, 3);
+						for (int xd = 0; xd < 3; xd++)
+						{
+							for (int yd = 0; yd < 3; yd++)
+							{
+								double value = smb(xd, yd);
+								hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, value);
+							}
+						}
+
 					}
 				}
 			}
@@ -270,7 +287,15 @@ void BarrierEnergyRes::hessToTriplet(std::vector<boundaryCondition>& boundaryCon
 					int pt2 = D3Index[i][q];
 					if (boundaryCondition_node[pt2].type != 1)
 					{
-						hessMatrix3d[pt1][pt2] += H9x9[i].block(p * 3, q * 3, 3, 3);
+						Matrix3d smb = H6x6[i].block(p * 3, q * 3, 3, 3);
+						for (int xd = 0; xd < 3; xd++)
+						{
+							for (int yd = 0; yd < 3; yd++)
+							{
+								double value = smb(xd, yd);
+								hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, value);
+							}
+						}
 					}
 				}
 			}
@@ -290,33 +315,20 @@ void BarrierEnergyRes::hessToTriplet(std::vector<boundaryCondition>& boundaryCon
 					int pt2 = D4Index[i][q];
 					if (boundaryCondition_node[pt2].type != 1)
 					{
-						hessMatrix3d[pt1][pt2] += H12x12[i].block(p * 3, q * 3, 3, 3);
+						Matrix3d smb = H6x6[i].block(p * 3, q * 3, 3, 3);
+						for (int xd = 0; xd < 3; xd++)
+						{
+							for (int yd = 0; yd < 3; yd++)
+							{
+								double value = smb(xd, yd);
+								hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, value);
+							}
+						}
 					}
 				}
 			}
 		}
 	}
-
-	// project each small hessian matrix into SPD
-	for (std::unordered_map<int, std::unordered_map<int, Matrix3d>>::iterator itx = hessMatrix3d.begin(); itx != hessMatrix3d.end(); itx++)
-	{
-		int p1 = itx->first;
-		for (std::unordered_map<int, Matrix3d>::iterator ity = itx->second.begin(); ity != itx->second.end(); ity++)
-		{
-			int p2 = ity->first;
-			Matrix3d proj = projToSPD(hessMatrix3d[p1][p2]);
-
-			for (int xd = 0; xd < 3; xd++)
-			{
-				for (int yd = 0; yd < 3; yd++)
-				{
-					double value = proj(xd, yd);
-					hessian_triplet.emplace_back(p1 * 3 + xd, p2 * 3 + yd, value);
-				}
-			}
-		}
-	}
-
 
 
 }
@@ -324,28 +336,6 @@ void BarrierEnergyRes::hessToTriplet(std::vector<boundaryCondition>& boundaryCon
 
 Matrix3d projToSPD(Matrix3d& top)
 {
-	//// compute eigenvalue and eigenvector
-	//Eigen::EigenSolver<Eigen::MatrixXd> es(top);
-	//Eigen::Vector3d eigenValues = { es.eigenvalues()[0].real(), es.eigenvalues()[1].real(), es.eigenvalues()[2].real() };
-	//Eigen::Matrix3d eigenVectors; 
-	//eigenVectors << es.eigenvectors().real();
-
-
-	//Eigen::Matrix3d sigma = Eigen::Matrix3d::Zero();
-	//for (int i = 0; i < 3; i++) 
-	//{
-	//	if (eigenValues[i] >= 0.0)
-	//	{
-	//		sigma += eigenValues[i] * eigenVectors.col(i) * (eigenVectors.col(i).transpose());
-	//	}
-	//	else
-	//	{
-	//		std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
-	//	}
-	//};
-	//return sigma;
-
-
 	Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double, 3, 3>> eigenSolver(top);
 	if (eigenSolver.eigenvalues()[0] >= 0.0) 
 	{

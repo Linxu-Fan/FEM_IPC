@@ -111,6 +111,8 @@ struct Mesh
 	void updateBoundaryElementsInfo();
 	// check the largest edge length
 	double calLargestEdgeLength();
+	// calculate the boundingbox's diagonal size
+	double calBBXDiagSize();
 	
 
 };

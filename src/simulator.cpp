@@ -4,6 +4,79 @@
 // implicit integration
 void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 {
+
+	//for (int timestep = 0; timestep < parameters.num_timesteps; timestep++)
+	//{
+	//	std::cout << std::endl << "timestep = " << timestep << std::endl;
+
+	//	if (timestep % parameters.outputFrequency == 0)
+	//	{
+	//		tetMesh.exportSurfaceMesh("surfMesh", timestep);
+	//	}
+
+
+	//	tetMesh.pos_node_prev = tetMesh.pos_node;
+	//	std::vector<Eigen::Vector3d> currentPosition = tetMesh.pos_node;
+	//	BarrierEnergyRes pTeEBarrVec;
+
+
+
+	//	double lastEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
+	//	calContactInfo(tetMesh, parameters, timestep, pTeEBarrVec);
+	//	std::vector<Eigen::Vector3d> direction = solve_linear_system(tetMesh, parameters, timestep, pTeEBarrVec);
+	//	double dist_to_converge = infiniteNorm(direction);
+
+	//	std::cout << "	Energy at the start = " << lastEnergyVal << std::endl;
+
+	//	int iteration = 0;
+	//	while (dist_to_converge / parameters.dt > parameters.searchResidual && iteration < 50)
+	//	{
+	//		iteration += 1;
+
+	//		double step = calMaxStepSize(tetMesh, parameters, timestep, pTeEBarrVec, direction);
+
+	//		step_forward(tetMesh, currentPosition, direction, step);
+	//		double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
+
+	//		std::cout << "		Iteration = " << iteration << "; lastEnergyVal = " << lastEnergyVal << "; newEnergyVal = " << newEnergyVal << "; Maximum stepsize is " << step << std::endl;
+
+	//		while (newEnergyVal > lastEnergyVal)
+	//		{
+	//			double tm = newEnergyVal;
+
+	//			step /= 2.0;
+	//			step_forward(tetMesh, currentPosition, direction, step);
+	//			newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
+
+	//			std::cout << "			Inner Iteration energy tm = " << tm << "; newEnergyVal = " << newEnergyVal << "; step = " << step << std::endl;
+	//		}
+	//		currentPosition = tetMesh.pos_node;
+	//		lastEnergyVal = newEnergyVal;
+
+	//		calContactInfo(tetMesh, parameters, timestep, pTeEBarrVec);
+	//		direction = solve_linear_system(tetMesh, parameters, timestep, pTeEBarrVec);
+	//		dist_to_converge = infiniteNorm(direction);
+
+	//		std::cout << "		dist_to_converge = " << dist_to_converge << std::endl;
+
+	//		if (timestep == 57)
+	//		{
+	//			//tetMesh.exportSurfaceMesh("surfMesh_57_Iteration_"+std::to_string(iteration)+"_", timestep);
+	//		}
+
+	//	}
+
+
+	//	// update the velocity of the node
+	//	for (int i = 0; i < tetMesh.pos_node.size(); i++)
+	//	{
+	//		tetMesh.vel_node[i] = (tetMesh.pos_node[i] - tetMesh.pos_node_prev[i]) / parameters.dt;
+	//	}
+
+
+	//}
+
+
 	for (int timestep = 0; timestep < parameters.num_timesteps; timestep++)
 	{
 		std::cout << std::endl << "timestep = " << timestep << std::endl;
@@ -13,67 +86,56 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 			tetMesh.exportSurfaceMesh("surfMesh", timestep);
 		}
 
-
 		tetMesh.pos_node_prev = tetMesh.pos_node;
 		std::vector<Eigen::Vector3d> currentPosition = tetMesh.pos_node;
-		BarrierEnergyRes pTeEBarrVec;
-
-
-
 		double lastEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
-		calContactInfo(tetMesh, parameters, timestep, pTeEBarrVec);
-		std::vector<Eigen::Vector3d> direction = solve_linear_system(tetMesh, parameters, timestep, pTeEBarrVec);
-		double dist_to_converge = infiniteNorm(direction);
-
-		std::cout << "	Energy at the start = " << lastEnergyVal << std::endl;
-
-		int iteration = 0;
-		while (dist_to_converge / parameters.dt > parameters.searchResidual && iteration < 50)
+		std::cout << "	lastEnergyVal = " << lastEnergyVal << std::endl;
+		for(int ite = 0; ite < 10000; ite++)
 		{
-			iteration += 1;
-
+			
+			BarrierEnergyRes pTeEBarrVec;
+			
+			calContactInfo(tetMesh, parameters, timestep, pTeEBarrVec);
+			std::vector<Eigen::Vector3d> direction = solve_linear_system(tetMesh, parameters, timestep, pTeEBarrVec);
+			double dist_to_converge = infiniteNorm(direction);
+			std::cout << "		ite = " << ite << "; dist_to_converge = " << dist_to_converge << std::endl;
+			if (ite && (dist_to_converge < sqrt(1e-6 * tetMesh.calBBXDiagSize() * parameters.dt * parameters.dt))) 
+			{
+				break;
+			}
+			std::cout << "		D1Index.size() = " << pTeEBarrVec.D1Index.size() << "; H3x3 = " << pTeEBarrVec.H3x3.size() << std::endl;
 			double step = calMaxStepSize(tetMesh, parameters, timestep, pTeEBarrVec, direction);
-
 			step_forward(tetMesh, currentPosition, direction, step);
 			double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
-
-			std::cout << "		Iteration = " << iteration << "; lastEnergyVal = " << lastEnergyVal << "; newEnergyVal = " << newEnergyVal << "; Maximum stepsize is " << step << std::endl;
-
-			while (newEnergyVal > lastEnergyVal)
+			std::cout << "		step = " << step<<"; newEnergyVal = "<< newEnergyVal << std::endl;
+			while (newEnergyVal >= lastEnergyVal)
 			{
-				double tm = newEnergyVal;
-				
 				step /= 2.0;
+				std::cout << "			step = " << step << std::endl;
 				step_forward(tetMesh, currentPosition, direction, step);
 				newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
-				
-				std::cout << "			Inner Iteration energy tm = " << tm << "; newEnergyVal = " << newEnergyVal << "; step = " << step << std::endl;
 			}
 			currentPosition = tetMesh.pos_node;
 			lastEnergyVal = newEnergyVal;
 
-			calContactInfo(tetMesh, parameters, timestep, pTeEBarrVec);
-			direction = solve_linear_system(tetMesh, parameters, timestep, pTeEBarrVec);
-			dist_to_converge = infiniteNorm(direction);
+			std::cout << "		lastEnergyVal = " << lastEnergyVal << std::endl << std::endl;
 
-			std::cout << "		dist_to_converge = " << dist_to_converge << std::endl;
-
-			if (timestep == 57)
+			//if (timestep == 95)
 			{
-				//tetMesh.exportSurfaceMesh("surfMesh_57_Iteration_"+std::to_string(iteration)+"_", timestep);
+				//tetMesh.exportSurfaceMesh("surfMesh_ite_" + std::to_string(ite), timestep);
 			}
-		
+
 		}
 
 
 		// update the velocity of the node
 		for (int i = 0; i < tetMesh.pos_node.size(); i++)
 		{
-			tetMesh.vel_node[i] = (tetMesh.pos_node[i] - tetMesh.pos_node_prev[i]) / parameters.dt;		
+			tetMesh.vel_node[i] = (tetMesh.pos_node[i] - tetMesh.pos_node_prev[i]) / parameters.dt;
 		}
 
-
 	}
+
 }
 
 // compute external force excluding gravity
@@ -151,9 +213,9 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 					double dis2 = 0;
 					DIS::computePointTriD(P, A, B, C, dis2);
 
-					if (dis2 <= squaredDouble(parameters.IPC_dis * parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+					if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
 					{
-						energyVal += BarrierEnergy::val_PT(tetMesh.boundaryVertices_area[ptInd], dis2, parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
+						energyVal += BarrierEnergy::val_PT(tetMesh.boundaryVertices_area[ptInd], dis2, parameters.IPC_dis * parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
 					}
 
 				}
@@ -180,11 +242,11 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 						double dis2 = 0;
 						DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
 
-						if (dis2 <= squaredDouble(parameters.IPC_dis * parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+						if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
 						{
 							int emin = std::min(e1p1, e1p2), emax = std::max(e1p1, e1p2);
 							Eigen::Vector4i ptIndices = { e1p1 , e1p2 , e2p1 , e2p2 };
-							energyVal += BarrierEnergy::val_EE(tetMesh.boundaryEdges_area[emin][emax], dis2, tetMesh, ptIndices, parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
+							energyVal += BarrierEnergy::val_EE(tetMesh.boundaryEdges_area[emin][emax], dis2, tetMesh, ptIndices, parameters.IPC_dis * parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
 						}
 					}
 				}
@@ -201,7 +263,7 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 				Eigen::Vector3d P = tetMesh.pos_node[ptInd];
 				if (P[2] <= parameters.IPC_dis)
 				{
-					energyVal += Ground::val(P[2], parameters.IPC_dis, tetMesh.boundaryVertices_area[ptInd], parameters.IPC_kStiffness, parameters.dt);
+					energyVal += Ground::val(P[2] * P[2], parameters.IPC_dis * parameters.IPC_dis, tetMesh.boundaryVertices_area[ptInd], parameters.IPC_kStiffness, parameters.dt);
 				}
 			}
 		}
@@ -349,10 +411,10 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, Barri
 				double dis2 =0;
 				DIS::computePointTriD(P, A, B, C, dis2);
 				
-				if (dis2 <= squaredDouble(parameters.IPC_dis * parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+				if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
 				{
 					Eigen::Vector4i ptIndices = { ptInd , tri[0] , tri[1] , tri[2] };
-					BarrierEnergy::gradAndHess_PT(pTeEBarrVec, ptIndices, type, dis2, tetMesh, parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
+					BarrierEnergy::gradAndHess_PT(pTeEBarrVec, ptIndices, type, dis2, tetMesh, parameters.IPC_dis * parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
 				}
 				
 			}
@@ -380,10 +442,10 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, Barri
 					double dis2 = 0;
 					DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
 
-					if (dis2 <= squaredDouble(parameters.IPC_dis * parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+					if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
 					{
 						Eigen::Vector4i ptIndices = { e1p1 , e1p2 , e2p1 , e2p2 };
-						BarrierEnergy::gradAndHess_EE(pTeEBarrVec, ptIndices, type, dis2, tetMesh, parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
+						BarrierEnergy::gradAndHess_EE(pTeEBarrVec, ptIndices, type, dis2, tetMesh, parameters.IPC_dis * parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
 					}
 
 
@@ -402,7 +464,7 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, Barri
 			Eigen::Vector3d P = tetMesh.pos_node[ptInd];
 			if (P[2] <= parameters.IPC_dis)
 			{
-				Ground::gradAndHess(pTeEBarrVec, ptInd, P[2], parameters.IPC_dis, tetMesh.boundaryVertices_area[ptInd], parameters.IPC_kStiffness, parameters.dt);
+				Ground::gradAndHess(pTeEBarrVec, ptInd, P[2] * P[2], parameters.IPC_dis * parameters.IPC_dis, tetMesh.boundaryVertices_area[ptInd], parameters.IPC_kStiffness, parameters.dt);
 			}
 		}
 	}
