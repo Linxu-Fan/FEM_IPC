@@ -136,6 +136,9 @@ std::pair<Eigen::Vector3d, Eigen::Vector3d> findBoundingBox_vec(std::vector<Eige
 // clear existing information
 void BarrierEnergyRes::clear()
 {
+	PT_Indices.clear();
+	EE_Indices.clear();
+
 	D1Index.clear();
 	D2Index.clear();
 	D3Index.clear();
@@ -182,7 +185,7 @@ void BarrierEnergyRes::gradToTriplet(std::vector<boundaryCondition>& boundaryCon
 			{
 				for (int xd = 0; xd < 3; xd++)
 				{
-					double value = V6[i][i * 3 + xd];
+					double value = V6[i][j * 3 + xd];
 					grad_triplet.emplace_back(pt * 3 + xd, value);
 				}
 			}
@@ -199,7 +202,7 @@ void BarrierEnergyRes::gradToTriplet(std::vector<boundaryCondition>& boundaryCon
 			{
 				for (int xd = 0; xd < 3; xd++)
 				{
-					double value = V9[i][i * 3 + xd];
+					double value = V9[i][j * 3 + xd];
 					grad_triplet.emplace_back(pt * 3 + xd, value);
 				}
 			}
@@ -216,7 +219,7 @@ void BarrierEnergyRes::gradToTriplet(std::vector<boundaryCondition>& boundaryCon
 			{
 				for (int xd = 0; xd < 3; xd++)
 				{
-					double value = V12[i][i * 3 + xd];
+					double value = V12[i][j * 3 + xd];
 					grad_triplet.emplace_back(pt * 3 + xd, value);
 				}
 			}
@@ -258,7 +261,7 @@ void BarrierEnergyRes::hessToTriplet(std::vector<boundaryCondition>& boundaryCon
 					if (boundaryCondition_node[pt2].type != 1)
 					{
 
-						Matrix3d smb = H6x6[i].block(p * 3, q * 3, 3, 3);
+						Matrix6d smb = H6x6[i].block(p * 3, q * 3, 3, 3);
 						for (int xd = 0; xd < 3; xd++)
 						{
 							for (int yd = 0; yd < 3; yd++)
@@ -287,7 +290,7 @@ void BarrierEnergyRes::hessToTriplet(std::vector<boundaryCondition>& boundaryCon
 					int pt2 = D3Index[i][q];
 					if (boundaryCondition_node[pt2].type != 1)
 					{
-						Matrix3d smb = H6x6[i].block(p * 3, q * 3, 3, 3);
+						Matrix9d smb = H9x9[i].block(p * 3, q * 3, 3, 3);
 						for (int xd = 0; xd < 3; xd++)
 						{
 							for (int yd = 0; yd < 3; yd++)
@@ -315,7 +318,7 @@ void BarrierEnergyRes::hessToTriplet(std::vector<boundaryCondition>& boundaryCon
 					int pt2 = D4Index[i][q];
 					if (boundaryCondition_node[pt2].type != 1)
 					{
-						Matrix3d smb = H6x6[i].block(p * 3, q * 3, 3, 3);
+						Matrix12d smb = H12x12[i].block(p * 3, q * 3, 3, 3);
 						for (int xd = 0; xd < 3; xd++)
 						{
 							for (int yd = 0; yd < 3; yd++)

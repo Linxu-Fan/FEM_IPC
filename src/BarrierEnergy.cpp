@@ -1,16 +1,20 @@
-#include "BarrierEnergy.h"
+﻿#include "BarrierEnergy.h"
 
 // compute the energy gradient and hessian 
-double BarrierEnergy::val_PT(double contactArea, double dis2, double d_hat, double k_stiff, double dt)
+double BarrierEnergy::val_PT(double contactArea, double dis2, double d_hat2, double k_stiff, double dt)
 {
-    return dt * dt * k_stiff * contactArea * compute_b(dis2, d_hat);
+    contactArea = 1.0;
+
+    return dt * dt * k_stiff * contactArea * compute_b(dis2, d_hat2);
 }
 
 // compute the energy gradient and hessian 
-double BarrierEnergy::val_EE(double contactArea, double dis2, Mesh& tetMesh, Eigen::Vector4i& ptIndices,  double d_hat, double k_stiff, double dt)
+double BarrierEnergy::val_EE(double contactArea, double dis2, Mesh& tetMesh, Eigen::Vector4i& ptIndices,  double d_hat2, double k_stiff, double dt)
 {
+    contactArea = 1.0;
+
     // the partial derivative of barrier energy b wrt distance d
-    double val_b = compute_b(dis2, d_hat);
+    double val_b = compute_b(dis2, d_hat2);
 
     int P1 = ptIndices[0], P2 = ptIndices[1], Q1 = ptIndices[2], Q2 = ptIndices[3];
     int emin = std::min(P1, P2), emax = std::max(P1, P2);
@@ -26,17 +30,17 @@ double BarrierEnergy::val_EE(double contactArea, double dis2, Mesh& tetMesh, Eig
 
 
 // compute the energy gradient and hessian 
-void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndices, int type, double dis2, Mesh& tetMesh, double d_hat, double k_stiff, double dt)
+void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndices, int type, double dis2, Mesh& tetMesh, double d_hat2, double k_stiff, double dt)
 {
     GH.PT_Indices.push_back(ptIndices);
 
     // the partial derivative of barrier energy b wrt distance d
-    double g_bd = compute_g_b(dis2, d_hat); // 3
-    double h_bd = compute_H_b(dis2, d_hat); // 1                                                        
+    double g_bd = compute_g_b(dis2, d_hat2); // 3
+    double h_bd = compute_H_b(dis2, d_hat2); // 1  
 
     int pt = ptIndices[0], t1 = ptIndices[1], t2 = ptIndices[2], t3 = ptIndices[3];
     double contactArea = tetMesh.boundaryVertices_area[pt];
-
+    contactArea = 1.0;
     Eigen::Vector3d P = tetMesh.pos_node[pt], A = tetMesh.pos_node[t1], B = tetMesh.pos_node[t2], C = tetMesh.pos_node[t3];
 
     switch (type)
@@ -58,6 +62,7 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
     }
     break;
+
     case 1:
     {
         Vector6d g_dx = Vector6d::Zero();
@@ -145,12 +150,21 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
         DIS::g_PT(P, A, B, C, g_dx); // 2
         DIS::H_PT(P, A, B, C, h_dx); // 4
 
+
+        //std::cout << std::scientific << std::setprecision(4) << "################## dis2 = " << dis2 << "; d_hat2 = " << d_hat2 << "; g_bd = " << g_bd << "; h_bd = " << h_bd << std::endl;
+
+
         GH.V12.push_back(dt * dt * k_stiff * contactArea * g_dx * g_bd);
         Matrix12d hessian = dt * dt * k_stiff * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 12>(hessian);
         GH.H12x12.push_back(hessian);
         Eigen::Vector4i activePtsLocalInd = { pt , t1 , t2 , t3 };
         GH.D4Index.push_back(activePtsLocalInd);
+
+
+        //std::cout << dt * dt * k_stiff * contactArea * g_dx * g_bd << std::endl;
+
+
     }
     break;
 
@@ -159,13 +173,13 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 }
 
 // compute the energy gradient and hessian 
-void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndices, int type, double dis2, Mesh& tetMesh, double d_hat, double k_stiff, double dt)
+void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndices, int type, double dis2, Mesh& tetMesh, double d_hat2, double k_stiff, double dt)
 {
     GH.EE_Indices.push_back(ptIndices);
 
     // the partial derivative of barrier energy b wrt distance d
-    double g_bd = compute_g_b(dis2, d_hat); // 3
-    double h_bd = compute_H_b(dis2, d_hat); // 1     
+    double g_bd = compute_g_b(dis2, d_hat2); // 3
+    double h_bd = compute_H_b(dis2, d_hat2); // 1     
 
     int P1 = ptIndices[0], P2 = ptIndices[1], Q1 = ptIndices[2], Q2 = ptIndices[3];
     int emin = std::min(P1, P2), emax = std::max(P1, P2);
@@ -173,7 +187,8 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
     Eigen::Vector3d P1Coor_Rest = tetMesh.pos_node_Rest[P1], P2Coor_Rest = tetMesh.pos_node_Rest[P2], Q1Coor_Rest = tetMesh.pos_node_Rest[Q1], Q2Coor_Rest = tetMesh.pos_node_Rest[Q2];
 
     double contactArea = tetMesh.boundaryEdges_area[emin][emax];
-    double val_b = compute_b(dis2, d_hat);
+    contactArea = 1.0;
+    double val_b = compute_b(dis2, d_hat2);
     Vector12d grad_b = Vector12d::Zero();
     Matrix12d hess_b = Matrix12d::Zero();
 
@@ -451,21 +466,21 @@ void BarrierEnergy::project_grad_to_full(Eigen::Vector3i& activePtsLocalInd, Vec
 
 
 
-double BarrierEnergy::compute_b(double d, double dHat)
+double BarrierEnergy::compute_b(double d2, double dHat2)
 {
-    return -(d - dHat) * (d - dHat) * log(d / dHat);
+    return -(d2 - dHat2) * (d2 - dHat2) * log(d2 / dHat2);
 }
 
-double BarrierEnergy::compute_g_b(double d, double dHat)
+double BarrierEnergy::compute_g_b(double d2, double dHat2)
 {
-    double t = d - dHat;
-    return t * std::log(d / dHat) * -2.0 - (t * t) / d;
+    double t = d2 - dHat2;
+    return t * std::log(d2 / dHat2) * -2.0 - (t * t) / d2;
 }
 
-double BarrierEnergy::compute_H_b(double d, double dHat)
+double BarrierEnergy::compute_H_b(double d2, double dHat2)
 {
-    double t = d - dHat;
-    return (std::log(d / dHat) * -2.0 - t * 4.0 / d) + 1.0 / (d * d) * (t * t);
+    double t = d2 - dHat2;
+    return (std::log(d2 / dHat2) * -2.0 - t * 4.0 / d2) + 1.0 / (d2 * d2) * (t * t);
 }
 
 

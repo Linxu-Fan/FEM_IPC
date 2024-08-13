@@ -79,7 +79,7 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 
 	for (int timestep = 0; timestep < parameters.num_timesteps; timestep++)
 	{
-		std::cout << std::endl << "timestep = " << timestep << std::endl;
+		std::cout << "timestep = " << timestep << std::endl;
 
 		if (timestep % parameters.outputFrequency == 0)
 		{
@@ -96,19 +96,97 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 			BarrierEnergyRes pTeEBarrVec;
 			
 			calContactInfo(tetMesh, parameters, timestep, pTeEBarrVec);
+			//if (pTeEBarrVec.PT_Indices.size() != 0 )
+			//{
+			//	{
+			//		std::ofstream outfile9("./output/collision_faces.obj", std::ios::trunc);
+			//		for (int k = 0; k < pTeEBarrVec.PT_Indices.size(); k++)
+			//		{
+			//			int pt = pTeEBarrVec.PT_Indices[k][0];
+			//			int v0 = pTeEBarrVec.PT_Indices[k][1];
+			//			int v1 = pTeEBarrVec.PT_Indices[k][2];
+			//			int v2 = pTeEBarrVec.PT_Indices[k][3];
+			//			Eigen::Vector3d scale = tetMesh.pos_node[pt];
+			//			Eigen::Vector3d scale0 = tetMesh.pos_node[v0];
+			//			Eigen::Vector3d scale1 = tetMesh.pos_node[v1];
+			//			Eigen::Vector3d scale2 = tetMesh.pos_node[v2];
+			//			//outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
+			//			outfile9 << std::scientific << std::setprecision(8) << "v " << scale0[0] << " " << scale0[1] << " " << scale0[2] << std::endl;
+			//			outfile9 << std::scientific << std::setprecision(8) << "v " << scale1[0] << " " << scale1[1] << " " << scale1[2] << std::endl;
+			//			outfile9 << std::scientific << std::setprecision(8) << "v " << scale2[0] << " " << scale2[1] << " " << scale2[2] << std::endl;
+			//		}
+			//		for (int k = 0; k < pTeEBarrVec.PT_Indices.size(); k++)
+			//		{
+			//			outfile9 << "f " << k * 3 + 1 << " " << k * 3 + 2 << " " << k * 3 + 3 << std::endl;
+			//		}
+			//		outfile9.close();
+			//	}
+
+			//	{
+			//		std::ofstream outfile9("./output/collision_points.obj", std::ios::trunc);
+			//		for (int k = 0; k < pTeEBarrVec.PT_Indices.size(); k++)
+			//		{
+			//			int pt = pTeEBarrVec.PT_Indices[k][0];
+			//			int v0 = pTeEBarrVec.PT_Indices[k][1];
+			//			int v1 = pTeEBarrVec.PT_Indices[k][2];
+			//			int v2 = pTeEBarrVec.PT_Indices[k][3];
+			//			Eigen::Vector3d scale = tetMesh.pos_node[pt];
+			//			Eigen::Vector3d scale0 = tetMesh.pos_node[v0];
+			//			Eigen::Vector3d scale1 = tetMesh.pos_node[v1];
+			//			Eigen::Vector3d scale2 = tetMesh.pos_node[v2];
+			//			outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
+			//			//outfile9 << std::scientific << std::setprecision(8) << "v " << scale0[0] << " " << scale0[1] << " " << scale0[2] << std::endl;
+			//			//outfile9 << std::scientific << std::setprecision(8) << "v " << scale1[0] << " " << scale1[1] << " " << scale1[2] << std::endl;
+			//			//outfile9 << std::scientific << std::setprecision(8) << "v " << scale2[0] << " " << scale2[1] << " " << scale2[2] << std::endl;
+			//		}
+			//		outfile9.close();
+			//	}
+
+			//	{
+			//		std::ofstream outfile9("./output/collision_edges.obj", std::ios::trunc);
+			//		for (int k = 0; k < pTeEBarrVec.EE_Indices.size(); k++)
+			//		{
+			//			int P1 = pTeEBarrVec.EE_Indices[k][0];
+			//			int P2 = pTeEBarrVec.EE_Indices[k][1];
+			//			int Q1 = pTeEBarrVec.EE_Indices[k][2];
+			//			int Q2 = pTeEBarrVec.EE_Indices[k][3];
+			//			Eigen::Vector3d scale = tetMesh.pos_node[P1];
+			//			Eigen::Vector3d scale0 = tetMesh.pos_node[P2];
+			//			Eigen::Vector3d scale1 = tetMesh.pos_node[Q1];
+			//			Eigen::Vector3d scale2 = tetMesh.pos_node[Q2];
+			//			outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
+			//			outfile9 << std::scientific << std::setprecision(8) << "v " << scale0[0] << " " << scale0[1] << " " << scale0[2] << std::endl;
+			//			outfile9 << std::scientific << std::setprecision(8) << "v " << scale1[0] << " " << scale1[1] << " " << scale1[2] << std::endl;
+			//			outfile9 << std::scientific << std::setprecision(8) << "v " << scale2[0] << " " << scale2[1] << " " << scale2[2] << std::endl;
+			//		}
+			//		for (int k = 0; k < pTeEBarrVec.EE_Indices.size(); k++)
+			//		{
+			//			outfile9 << "l " << k * 4 + 1 << " " << k * 4 + 2 << std::endl;
+			//			outfile9 << "l " << k * 4 + 3 << " " << k * 4 + 4 << std::endl;
+			//		}
+			//		outfile9.close();
+			//	}
+
+			//	//std::cout << "		PT_Indices.size() = " << pTeEBarrVec.PT_Indices.size() << "; EE_Indices = " << pTeEBarrVec.EE_Indices.size() << std::endl;
+
+			//}
+
+
+			std::cout << "		ite = " << ite << std::endl;
+			
 			std::vector<Eigen::Vector3d> direction = solve_linear_system(tetMesh, parameters, timestep, pTeEBarrVec);
+				
 			double dist_to_converge = infiniteNorm(direction);
-			std::cout << "		ite = " << ite << "; dist_to_converge = " << dist_to_converge << std::endl;
-			if (ite && (dist_to_converge < sqrt(1e-6 * tetMesh.calBBXDiagSize() * parameters.dt * parameters.dt))) 
+			if (ite && (dist_to_converge < sqrt(parameters.searchResidual * tetMesh.calBBXDiagSize() * parameters.dt * parameters.dt)))
 			{
 				break;
 			}
-			std::cout << "		D1Index.size() = " << pTeEBarrVec.D1Index.size() << "; H3x3 = " << pTeEBarrVec.H3x3.size() << std::endl;
+			
 			double step = calMaxStepSize(tetMesh, parameters, timestep, pTeEBarrVec, direction);
 			step_forward(tetMesh, currentPosition, direction, step);
 			double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
-			std::cout << "		step = " << step<<"; newEnergyVal = "<< newEnergyVal << std::endl;
-			while (newEnergyVal >= lastEnergyVal)
+			std::cout << std::scientific << std::setprecision(4) << "		step = " << step<<"; newEnergyVal = "<< newEnergyVal << "; dist_to_converge = " << dist_to_converge << "; threshold = " << sqrt(parameters.searchResidual * tetMesh.calBBXDiagSize() * parameters.dt * parameters.dt) << std::endl;
+			while (newEnergyVal >= lastEnergyVal && step >= 1.0e-7)
 			{
 				step /= 2.0;
 				std::cout << "			step = " << step << std::endl;
@@ -118,12 +196,9 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 			currentPosition = tetMesh.pos_node;
 			lastEnergyVal = newEnergyVal;
 
-			std::cout << "		lastEnergyVal = " << lastEnergyVal << std::endl << std::endl;
+			std::cout << "		lastEnergyVal = " << lastEnergyVal << std::endl;
 
-			//if (timestep == 95)
-			{
-				//tetMesh.exportSurfaceMesh("surfMesh_ite_" + std::to_string(ite), timestep);
-			}
+
 
 		}
 
@@ -331,12 +406,36 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 		hessian_triplet.insert(hessian_triplet.end(), elasEngHess.begin(), elasEngHess.end());
 	}
 
+
+	/*{
+		Eigen::VectorXd rightHandSide = Eigen::VectorXd(tetMesh.pos_node.size() * 3);
+		rightHandSide.setZero();
+		for (int i = 0; i < grad_triplet.size(); i++)
+		{
+			std::pair<int, double> ele = grad_triplet[i];
+			rightHandSide[ele.first] += ele.second;
+		}
+		std::cout << "*********************Before*******************" << std::endl;
+		std::cout << rightHandSide << std::endl;
+	}*/
+
 	// energy contribution from barrier
 	{
 		pTeEBarrVec.gradToTriplet(tetMesh.boundaryCondition_node, grad_triplet);
 		pTeEBarrVec.hessToTriplet(tetMesh.boundaryCondition_node, hessian_triplet);
 	}
 
+	/*{
+		Eigen::VectorXd rightHandSide = Eigen::VectorXd(tetMesh.pos_node.size() * 3);
+		rightHandSide.setZero();
+		for (int i = 0; i < grad_triplet.size(); i++)
+		{
+			std::pair<int, double> ele = grad_triplet[i];
+			rightHandSide[ele.first] += ele.second;
+		}
+		std::cout << "*********************After*******************" << std::endl;
+		std::cout << rightHandSide << std::endl;
+	}*/
 
 	// assemable the left-hand side 
 	Eigen::SparseMatrix<double> leftHandSide(3 * tetMesh.pos_node.size(), 3 * tetMesh.pos_node.size());
@@ -413,6 +512,22 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, Barri
 				
 				if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
 				{
+
+					/*if (ptInd == 22 && tI == 192)
+					{
+						std::ofstream outfile9("./output/AAA-PT_SAMPLE.obj", std::ios::trunc);
+						outfile9 << std::scientific << std::setprecision(8) << "v " << P[0] << " " << P[1] << " " << P[2] << std::endl;
+						outfile9 << std::scientific << std::setprecision(8) << "v " << A[0] << " " << A[1] << " " << A[2] << std::endl;
+						outfile9 << std::scientific << std::setprecision(8) << "v " << B[0] << " " << B[1] << " " << B[2] << std::endl;
+						outfile9 << std::scientific << std::setprecision(8) << "v " << C[0] << " " << C[1] << " " << C[2] << std::endl;
+						outfile9.close();
+					}*/
+
+					//std::cout << std::scientific << std::setprecision(8) << "	type = " << type << "; ptInd = " << ptInd << "; tI = " << tI << "; dis2 = " << dis2 << "; dis = " << std::sqrt(dis2) << std::endl;
+					//std::cout << std::scientific << std::setprecision(8) << "	P = (" << P[0] << "," << P[1] << "," << P[2] << ")" << std::endl;
+					//std::cout << std::scientific << std::setprecision(8) << "	A = (" << A[0] << "," << A[1] << "," << A[2] << ")" << std::endl;
+					//std::cout << std::scientific << std::setprecision(8) << "	B = (" << B[0] << "," << B[1] << "," << B[2] << ")" << std::endl;
+					//std::cout << std::scientific << std::setprecision(8) << "	C = (" << C[0] << "," << C[1] << "," << C[2] << ")" << std::endl;
 					Eigen::Vector4i ptIndices = { ptInd , tri[0] , tri[1] , tri[2] };
 					BarrierEnergy::gradAndHess_PT(pTeEBarrVec, ptIndices, type, dis2, tetMesh, parameters.IPC_dis * parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
 				}
@@ -474,6 +589,7 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, Barri
 // calculate the maximum feasible step size
 double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep, BarrierEnergyRes& pTeEBarrVec, std::vector<Eigen::Vector3d>& direction)
 {
+	//std::cout << "Calculating maximum step!" << std::endl;
 	std::set<int> culledSet; // vertices who are in a contact
 
 	// Step 1: calculate the culled constraint
@@ -496,6 +612,7 @@ double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep, Bar
 			alpha_F = std::min(alpha_F, parameters.IPC_dis / 2.0 / direction[i].norm());
 		}
 	}
+	//std::cout << "alpha_F = " << alpha_F <<"; pTeEBarrVec.PT_Indices.size() = "<< pTeEBarrVec.PT_Indices.size() << std::endl;
 
 	// Step 3: calculate alpha_C_hat
 	double alpha_C_hat = 1.0;
@@ -503,13 +620,23 @@ double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep, Bar
 	{
 		Eigen::Vector4i PP_Index = pTeEBarrVec.PT_Indices[i];
 		int p0 = PP_Index[0], p1 = PP_Index[1], p2 = PP_Index[2], p3 = PP_Index[3];
-		
+		//std::cout << "	PT " << i << " ";
 		bool intersect = pointTriangleCCDBroadphase(tetMesh.pos_node[p0], direction[p0], tetMesh.pos_node[p1], 
 			direction[p1], tetMesh.pos_node[p2], direction[p2], tetMesh.pos_node[p3], direction[p3], parameters.IPC_dis);
+		//std::cout << "	intersect = " << intersect << std::endl;
 		if (intersect)
 		{
+			//std::cout << "		tetMesh.pos_node[p0] = "<< tetMesh.pos_node[p0] << std::endl;
+			//std::cout << "		tetMesh.pos_node[p1] = "<< tetMesh.pos_node[p1] << std::endl;
+			//std::cout << "		tetMesh.pos_node[p2] = "<< tetMesh.pos_node[p2] << std::endl;
+			//std::cout << "		tetMesh.pos_node[p3] = "<< tetMesh.pos_node[p3] << std::endl;
+			//std::cout << "		direction[p0] = "<< direction[p0] << std::endl;
+			//std::cout << "		direction[p1] = "<< direction[p1] << std::endl;
+			//std::cout << "		direction[p2] = "<< direction[p2] << std::endl;
+			//std::cout << "		direction[p3] = "<< direction[p3] << std::endl;
 			double alpha_tmp = pointTriangleCCDNarrowphase(tetMesh.pos_node[p0], direction[p0], tetMesh.pos_node[p1],
 				direction[p1], tetMesh.pos_node[p2], direction[p2], tetMesh.pos_node[p3], direction[p3], parameters.IPC_eta);
+			//std::cout << "		xxx2" << std::endl;
 			alpha_C_hat = std::min(alpha_C_hat, alpha_tmp);
 		}
 		
@@ -518,7 +645,7 @@ double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep, Bar
 	{
 		Eigen::Vector4i PP_Index = pTeEBarrVec.EE_Indices[i];
 		int p0 = PP_Index[0], p1 = PP_Index[1], p2 = PP_Index[2], p3 = PP_Index[3];
-
+		//std::cout << "	EE " << i << " ";
 		bool intersect = edgeEdgeCCDBroadphase(tetMesh.pos_node[p0], direction[p0], tetMesh.pos_node[p1],
 			direction[p1], tetMesh.pos_node[p2], direction[p2], tetMesh.pos_node[p3], direction[p3], parameters.IPC_dis);
 		if (intersect)
@@ -529,10 +656,12 @@ double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep, Bar
 		}
 		
 	}
+	//std::cout << "alpha_C_hat = " << alpha_C_hat << std::endl;
 
 	// Step 4: calculate full CCD if necessary
 	if (alpha_F >= 0.5 * alpha_C_hat)
 	{
+		//std::cout << "Partial calculation!" << std::endl;
 		if (parameters.enableGround == true)
 		{
 			double stepGround = 1.0;
@@ -552,6 +681,7 @@ double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep, Bar
 	}
 	else // use spatial hash to calculate the actual full CCD
 	{
+		//std::cout << "Full calculation!"<< std::endl;
 		double CCD_step = calMaxStep_spatialHash(tetMesh, direction, parameters.IPC_hashSize, parameters.IPC_dis, parameters.IPC_eta);
 		if (parameters.enableGround == true)
 		{
