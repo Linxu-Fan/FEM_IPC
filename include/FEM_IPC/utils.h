@@ -1,7 +1,7 @@
 ﻿#ifndef UTILS_H
 #define UTILS_H
 
-
+#include <cassert> 
 #include "omp.h"
 #include <iostream>
 #include <vector>

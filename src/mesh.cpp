@@ -443,6 +443,13 @@ void Mesh::update_F()
 		Eigen::Matrix<double, 3, 3> Ds;
 		Ds << x1 - x0, x2 - x0, x3 - x0;
 		tetra_F[i] = Ds * tetra_DM_inv[i];
+
+		assert(tetra_F[i].determinant() > 0);
+		if (tetra_F[i].determinant() < 0)
+		{
+			std::cout << "Tetrahedral reverse!" << std::endl;
+		}
+
 	}
 
 	
