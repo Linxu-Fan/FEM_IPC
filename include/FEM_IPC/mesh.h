@@ -43,7 +43,9 @@ struct meshConfiguration
 	std::string filePath = "";
 	Material mesh_material;
 	Eigen::Vector3d velocity = {0, 0, 0};
-	Eigen::Vector3d shift = {0, 0, 0};
+	Eigen::Vector3d translation = {0, 0, 0};
+	Eigen::Vector3d rotation_angle = {0, 0, 0};
+	Eigen::Vector3d rotation_point = {0, 0, 0};
 };
 
 

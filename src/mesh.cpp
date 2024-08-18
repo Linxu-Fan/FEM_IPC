@@ -45,63 +45,65 @@ void objMesh::outputFile(std::string fileName, int timestep)
 // read .msh mesh file
 void Mesh::readMesh(meshConfiguration& config)
 {
-	std::ifstream in;
-	in.open(config.filePath);
-	std::string line;
-	int nodeStart = 100000000000; // the line index where a node starts
-	int numNodes = 100000000000; // number of nodes
-	int elementStart = 100000000000; // the element index where an element starts
-	int numElements = 100000000000; // number of elements
-	int lineIndex = -1; // current line index
+	// !!!!!!!!!!!!!!!!! This function if not fully implemented. DONOT USE IT.
 
-	while (getline(in, line))
-	{
-		if (line.size() > 0)
-		{
-			lineIndex += 1;
-			
-			std::vector<std::string> vecCoor = split(line, " ");
-			if (vecCoor[0] == "$Nodes")
-			{
-				nodeStart = lineIndex + 2;
-			}
-			if (lineIndex == nodeStart - 1)
-			{
-				numNodes = std::stoi(vecCoor[0]);
-			}
+	//std::ifstream in;
+	//in.open(config.filePath);
+	//std::string line;
+	//int nodeStart = 100000000000; // the line index where a node starts
+	//int numNodes = 100000000000; // number of nodes
+	//int elementStart = 100000000000; // the element index where an element starts
+	//int numElements = 100000000000; // number of elements
+	//int lineIndex = -1; // current line index
 
-			if (vecCoor[0] == "$Elements")
-			{
-				elementStart = lineIndex + 2;
-			}
-			if (lineIndex == elementStart - 1)
-			{
-				numElements = std::stoi(vecCoor[0]);				
-			}
+	//while (getline(in, line))
+	//{
+	//	if (line.size() > 0)
+	//	{
+	//		lineIndex += 1;
+	//		
+	//		std::vector<std::string> vecCoor = split(line, " ");
+	//		if (vecCoor[0] == "$Nodes")
+	//		{
+	//			nodeStart = lineIndex + 2;
+	//		}
+	//		if (lineIndex == nodeStart - 1)
+	//		{
+	//			numNodes = std::stoi(vecCoor[0]);
+	//		}
+
+	//		if (vecCoor[0] == "$Elements")
+	//		{
+	//			elementStart = lineIndex + 2;
+	//		}
+	//		if (lineIndex == elementStart - 1)
+	//		{
+	//			numElements = std::stoi(vecCoor[0]);				
+	//		}
 
 
-			if (lineIndex >= nodeStart && lineIndex <= nodeStart + numNodes - 1)
-			{
-				Eigen::Vector3d nd_pos = { std::stod(vecCoor[1]) , std::stod(vecCoor[2]) , std::stod(vecCoor[3])};
-				pos_node.push_back(nd_pos);
-				vel_node.push_back(config.velocity);
-			}
+	//		if (lineIndex >= nodeStart && lineIndex <= nodeStart + numNodes - 1)
+	//		{
+	//			Eigen::Vector3d nd_pos = { std::stod(vecCoor[1]) , std::stod(vecCoor[2]) , std::stod(vecCoor[3])};
+	//			pos_node.push_back(nd_pos);
+	//			vel_node.push_back(config.velocity);
+	//		}
 
-			if (lineIndex >= elementStart && lineIndex <= elementStart + numElements - 1)
-			{
-				int numItemsLine = vecCoor.size(); // the number of items in a line
-				if (vecCoor[1] == "4")
-				{
-					Eigen::Vector4i ele = { std::stoi(vecCoor[numItemsLine - 4]) - 1 ,std::stoi(vecCoor[numItemsLine - 3]) - 1 ,std::stoi(vecCoor[numItemsLine - 2]) - 1,std::stoi(vecCoor[numItemsLine - 1]) - 1 };
-					tetrahedrals.push_back(ele);
-					materialInd.push_back(0);
-				}
-			}
-		}
-	}
-	in.close();
+	//		if (lineIndex >= elementStart && lineIndex <= elementStart + numElements - 1)
+	//		{
+	//			int numItemsLine = vecCoor.size(); // the number of items in a line
+	//			if (vecCoor[1] == "4")
+	//			{
+	//				Eigen::Vector4i ele = { std::stoi(vecCoor[numItemsLine - 4]) - 1 ,std::stoi(vecCoor[numItemsLine - 3]) - 1 ,std::stoi(vecCoor[numItemsLine - 2]) - 1,std::stoi(vecCoor[numItemsLine - 1]) - 1 };
+	//				tetrahedrals.push_back(ele);
+	//				materialInd.push_back(0);
+	//			}
+	//		}
+	//	}
+	//}
+	//in.close();
 
-	materialMesh.push_back(config.mesh_material);
+	//materialMesh.push_back(config.mesh_material);
 
 }
 
@@ -114,7 +116,16 @@ void Mesh::readMeshes(std::vector<meshConfiguration>& config)
 	{
 		std::string filePath = config[ii].filePath;
 		Material mat = config[ii].mesh_material;
-		Eigen::Vector3d shift = config[ii].shift;
+		Eigen::Vector3d translation = config[ii].translation;
+		// Create a transformation matrix
+		Eigen::Affine3d rotation = Eigen::Affine3d::Identity();
+		rotation.translate(-config[ii].rotation_point)
+			.rotate(Eigen::AngleAxisd(config[ii].rotation_angle[0], Eigen::Vector3d::UnitX()))
+			.rotate(Eigen::AngleAxisd(config[ii].rotation_angle[1], Eigen::Vector3d::UnitY()))
+			.rotate(Eigen::AngleAxisd(config[ii].rotation_angle[2], Eigen::Vector3d::UnitZ()))
+			.translate(config[ii].rotation_point);
+
+
 
 		materialMesh.push_back(mat);
 		{
@@ -156,7 +167,7 @@ void Mesh::readMeshes(std::vector<meshConfiguration>& config)
 					if (lineIndex >= nodeStart && lineIndex <= nodeStart + numNodes - 1)
 					{
 						Eigen::Vector3d nd_pos = { std::stod(vecCoor[1]) , std::stod(vecCoor[2]) , std::stod(vecCoor[3]) };
-						pos_node.push_back(nd_pos + shift);
+						pos_node.push_back(rotation * nd_pos + translation);
 						vel_node.push_back(config[ii].velocity);
 						currNodesNum += 1;
 					}

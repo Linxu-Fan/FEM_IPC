@@ -3,7 +3,7 @@
 // compute the energy gradient and hessian 
 double BarrierEnergy::val_PT(double contactArea, double dis2, double d_hat2, double k_stiff, double dt)
 {
-    contactArea = 1.0;
+    //contactArea = 1.0;
 
     return dt * dt * k_stiff * contactArea * compute_b(dis2, d_hat2);
 }
@@ -11,7 +11,7 @@ double BarrierEnergy::val_PT(double contactArea, double dis2, double d_hat2, dou
 // compute the energy gradient and hessian 
 double BarrierEnergy::val_EE(double contactArea, double dis2, Mesh& tetMesh, Eigen::Vector4i& ptIndices,  double d_hat2, double k_stiff, double dt)
 {
-    contactArea = 1.0;
+    //contactArea = 1.0;
 
     // the partial derivative of barrier energy b wrt distance d
     double val_b = compute_b(dis2, d_hat2);
@@ -40,7 +40,7 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
     int pt = ptIndices[0], t1 = ptIndices[1], t2 = ptIndices[2], t3 = ptIndices[3];
     double contactArea = tetMesh.boundaryVertices_area[pt];
-    contactArea = 1.0;
+    //contactArea = 1.0;
     Eigen::Vector3d P = tetMesh.pos_node[pt], A = tetMesh.pos_node[t1], B = tetMesh.pos_node[t2], C = tetMesh.pos_node[t3];
 
     switch (type)
@@ -187,7 +187,7 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
     Eigen::Vector3d P1Coor_Rest = tetMesh.pos_node_Rest[P1], P2Coor_Rest = tetMesh.pos_node_Rest[P2], Q1Coor_Rest = tetMesh.pos_node_Rest[Q1], Q2Coor_Rest = tetMesh.pos_node_Rest[Q2];
 
     double contactArea = tetMesh.boundaryEdges_area[emin][emax];
-    contactArea = 1.0;
+    //contactArea = 1.0;
     double val_b = compute_b(dis2, d_hat2);
     Vector12d grad_b = Vector12d::Zero();
     Matrix12d hess_b = Matrix12d::Zero();

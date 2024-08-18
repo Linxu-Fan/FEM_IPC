@@ -24,13 +24,13 @@ int main()
 		m1.filePath = "./input/tet_neg.msh";
 		m1.mesh_material = mat1;
 		m1.velocity = { 1, 0 , 0 };
-		m1.shift = { 0, 0, 0.1 };
+		m1.translation = { 0, 0, 0.1 };
 		config.push_back(m1);
 
 		m2 = m1;
 		m2.mesh_material = mat2;
 		m2.velocity = { -1, 0 , 0 };
-		m2.shift = { 1.1, 0, 0.1 };
+		m2.translation = { 1.1, 0, 0.1 };
 		config.push_back(m2);
 		Mesh tetMesh;
 		tetMesh.readMeshes(config);
@@ -84,12 +84,14 @@ int main()
 		m1.filePath = "./input/cube.msh";
 		m1.mesh_material = mat1;
 		m1.velocity = { 5.1245678, 0 , 0 };
-		m1.shift = { 0, 0, 0.1 };
+		m1.translation = { 0, 0, 1.0 };
 		config.push_back(m1);
 		m2 = m1;
 		m2.mesh_material = mat2;
 		m2.velocity = { -5.1245678, 0 , 0 };
-		m2.shift = { 1.2, 0.3458, 0.1 };
+		m2.rotation_point = { 0.5, 0.5, 0.5 };
+		m2.rotation_angle = { PI / 4.0, PI / 4.0, PI / 4.0 };
+		m2.translation = { 1.66, 0.5, 0.6 };
 		config.push_back(m2);
 		Mesh tetMesh;
 		tetMesh.readMeshes(config);
@@ -108,7 +110,7 @@ int main()
 		parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 		parameters.IPC_dis = 0.001;
 		parameters.IPC_eta = 0.1;
-		parameters.IPC_kStiffness = 1.0e14;
+		parameters.IPC_kStiffness = 1.0e12;
 		parameters.IPC_hashSize = tetMesh.calLargestEdgeLength() * 40.0;
 
 

@@ -233,15 +233,14 @@ void BarrierEnergyRes::hessToTriplet(std::vector<boundaryCondition>& boundaryCon
 {
 
 	// point
-	for (int m = 0; m < D1Index.size(); m++)
+	for (int p = 0; p < D1Index.size(); p++)
 	{
-		int index_m = D1Index[m];
+		int index_m = D1Index[p];
 		for (int xd = 0; xd < 3; xd++)
 		{
 			for (int yd = 0; yd < 3; yd++)
 			{
-				double value = H3x3[m](xd, yd);
-				hessian_triplet.emplace_back(index_m * 3 + xd, index_m * 3 + yd, value);
+				hessian_triplet.emplace_back(index_m * 3 + xd, index_m * 3 + yd, H3x3[p](xd, yd));
 			}
 		}
 
@@ -260,14 +259,11 @@ void BarrierEnergyRes::hessToTriplet(std::vector<boundaryCondition>& boundaryCon
 					int pt2 = D2Index[i][q];
 					if (boundaryCondition_node[pt2].type != 1)
 					{
-
-						Matrix6d smb = H6x6[i].block(p * 3, q * 3, 3, 3);
 						for (int xd = 0; xd < 3; xd++)
 						{
 							for (int yd = 0; yd < 3; yd++)
 							{
-								double value = smb(xd, yd);
-								hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, value);
+								hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, H6x6[i](p * 3 + xd, q * 3 + yd));
 							}
 						}
 
@@ -290,13 +286,11 @@ void BarrierEnergyRes::hessToTriplet(std::vector<boundaryCondition>& boundaryCon
 					int pt2 = D3Index[i][q];
 					if (boundaryCondition_node[pt2].type != 1)
 					{
-						Matrix9d smb = H9x9[i].block(p * 3, q * 3, 3, 3);
 						for (int xd = 0; xd < 3; xd++)
 						{
 							for (int yd = 0; yd < 3; yd++)
 							{
-								double value = smb(xd, yd);
-								hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, value);
+								hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, H9x9[i](p * 3 + xd, q * 3 + yd));
 							}
 						}
 					}
@@ -315,16 +309,14 @@ void BarrierEnergyRes::hessToTriplet(std::vector<boundaryCondition>& boundaryCon
 			{
 				for (int q = 0; q < 4; q++)
 				{
-					int pt2 = D4Index[i][q];
+					int pt2 = D4Index[i][q];				
 					if (boundaryCondition_node[pt2].type != 1)
 					{
-						Matrix12d smb = H12x12[i].block(p * 3, q * 3, 3, 3);
 						for (int xd = 0; xd < 3; xd++)
 						{
 							for (int yd = 0; yd < 3; yd++)
 							{
-								double value = smb(xd, yd);
-								hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, value);
+								hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, H12x12[i](p * 3 + xd, q * 3 + yd));
 							}
 						}
 					}
