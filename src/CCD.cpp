@@ -51,7 +51,8 @@ double edgeEdgeCCDNarrowphase(const Eigen::Vector3d& P1, const Eigen::Vector3d& 
     {
         return 1.0;
     }
-    double dist2_cur = edgeEdgeDis2(P1_, P2_, Q1_, Q2_);
+    double dist2_cur = 0;
+    DIS::computeEdgeEdgeD(P1_, P2_, Q1_, Q2_, dist2_cur);
     double dFunc = dist2_cur;
     if (dFunc <= 0) {
         std::vector<double> dists{ (P1_ - Q1_).squaredNorm(), (P1_ - Q2_).squaredNorm(), (P2_ - Q1_).squaredNorm(), (P2_ - Q2_).squaredNorm() };
@@ -68,7 +69,9 @@ double edgeEdgeCCDNarrowphase(const Eigen::Vector3d& P1, const Eigen::Vector3d& 
         P2_ += toc_lower_bound * dP2_;
         Q1_ += toc_lower_bound * dQ1_;
         Q2_ += toc_lower_bound * dQ2_;
-        dist2_cur = edgeEdgeDis2(P1_, P2_, Q1_, Q2_);
+        
+        DIS::computeEdgeEdgeD(P1_, P2_, Q1_, Q2_, dist2_cur);
+
         dFunc = dist2_cur;
         if (dFunc <= 0) {
             std::vector<double> dists{ (P1_ - Q1_).squaredNorm(), (P1_ - Q2_).squaredNorm(), (P2_ - Q1_).squaredNorm(), (P2_ - Q2_).squaredNorm() };
@@ -101,8 +104,9 @@ double pointTriangleCCDNarrowphase(const Eigen::Vector3d& P, const Eigen::Vector
     {
         return 1.0;
     }
-        
-    double dist_cur = std::sqrt(pointTriangleDis2(P_, A_, B_, C_));
+    double dist_cur2 = 0;
+    DIS::computePointTriD(P_, A_, B_, C_, dist_cur2);
+    double dist_cur = std::sqrt(dist_cur2);
     double gap = eta * dist_cur;
     double toc = 0.0;
     while (true) 
@@ -112,7 +116,8 @@ double pointTriangleCCDNarrowphase(const Eigen::Vector3d& P, const Eigen::Vector
         A_ += toc_lower_bound * dA_;
         B_ += toc_lower_bound * dB_;
         C_ += toc_lower_bound * dC_;
-        dist_cur = std::sqrt(pointTriangleDis2(P_, A_, B_, C_));
+        DIS::computePointTriD(P_, A_, B_, C_, dist_cur2);
+        dist_cur = std::sqrt(dist_cur2);
         if (toc && (dist_cur < gap))
         {
             break;

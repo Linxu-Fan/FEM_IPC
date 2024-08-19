@@ -1,8 +1,7 @@
 #include "simulator.h" 
 
 // TODO
-// 1. Compute the barrier distance, energy and their derivative
-// 2. Accelerate and parallel openMP
+// 1. Accelerate and parallel openMP
 
 
 
@@ -88,6 +87,7 @@ int main()
 		m2.mesh_material = mat1;
 		m2.velocity = { -5.1245678, 0 , 0 };
 		m2.rotation_point = { 0.5, 0.5, 0.5 };
+		//m2.translation = { 1.03, 0, 1.0 };
 		m2.rotation_angle = { PI / 4.0, PI / 4.0, PI / 4.0 };
 		m2.translation = { 1.66, 0.5, 0.6 };
 		config.push_back(m2);
@@ -99,17 +99,17 @@ int main()
 
 
 		FEMParamters parameters;
-		parameters.dt = 1.0E-4;
+		parameters.dt = 2.0E-4;
 		parameters.gravity = { 0, 0, 0 };
 		parameters.num_timesteps = 10001;
-		parameters.outputFrequency = 1;
+		parameters.outputFrequency = 10;
 		parameters.enableGround = true;
-		parameters.searchResidual = 0.005;
-		parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+		parameters.searchResidual = 0.001;
+		parameters.model = "ARAP_linear"; // neoHookean ARAP ARAP_linear ACAP
 		parameters.IPC_dis = 0.001;
-		parameters.IPC_eta = 0.1;
+		parameters.IPC_eta = 0.05;
 		parameters.IPC_kStiffness = 1.0e15;
-		parameters.IPC_hashSize = tetMesh.calLargestEdgeLength() * 40.0;
+		parameters.IPC_hashSize = tetMesh.calLargestEdgeLength() * 2.0;
 
 
 

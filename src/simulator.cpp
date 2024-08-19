@@ -5,77 +5,6 @@
 void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 {
 
-	//for (int timestep = 0; timestep < parameters.num_timesteps; timestep++)
-	//{
-	//	std::cout << std::endl << "timestep = " << timestep << std::endl;
-
-	//	if (timestep % parameters.outputFrequency == 0)
-	//	{
-	//		tetMesh.exportSurfaceMesh("surfMesh", timestep);
-	//	}
-
-
-	//	tetMesh.pos_node_prev = tetMesh.pos_node;
-	//	std::vector<Eigen::Vector3d> currentPosition = tetMesh.pos_node;
-	//	BarrierEnergyRes pTeEBarrVec;
-
-
-
-	//	double lastEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
-	//	calContactInfo(tetMesh, parameters, timestep, pTeEBarrVec);
-	//	std::vector<Eigen::Vector3d> direction = solve_linear_system(tetMesh, parameters, timestep, pTeEBarrVec);
-	//	double dist_to_converge = infiniteNorm(direction);
-
-	//	std::cout << "	Energy at the start = " << lastEnergyVal << std::endl;
-
-	//	int iteration = 0;
-	//	while (dist_to_converge / parameters.dt > parameters.searchResidual && iteration < 50)
-	//	{
-	//		iteration += 1;
-
-	//		double step = calMaxStepSize(tetMesh, parameters, timestep, pTeEBarrVec, direction);
-
-	//		step_forward(tetMesh, currentPosition, direction, step);
-	//		double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
-
-	//		std::cout << "		Iteration = " << iteration << "; lastEnergyVal = " << lastEnergyVal << "; newEnergyVal = " << newEnergyVal << "; Maximum stepsize is " << step << std::endl;
-
-	//		while (newEnergyVal > lastEnergyVal)
-	//		{
-	//			double tm = newEnergyVal;
-
-	//			step /= 2.0;
-	//			step_forward(tetMesh, currentPosition, direction, step);
-	//			newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
-
-	//			std::cout << "			Inner Iteration energy tm = " << tm << "; newEnergyVal = " << newEnergyVal << "; step = " << step << std::endl;
-	//		}
-	//		currentPosition = tetMesh.pos_node;
-	//		lastEnergyVal = newEnergyVal;
-
-	//		calContactInfo(tetMesh, parameters, timestep, pTeEBarrVec);
-	//		direction = solve_linear_system(tetMesh, parameters, timestep, pTeEBarrVec);
-	//		dist_to_converge = infiniteNorm(direction);
-
-	//		std::cout << "		dist_to_converge = " << dist_to_converge << std::endl;
-
-	//		if (timestep == 57)
-	//		{
-	//			//tetMesh.exportSurfaceMesh("surfMesh_57_Iteration_"+std::to_string(iteration)+"_", timestep);
-	//		}
-
-	//	}
-
-
-	//	// update the velocity of the node
-	//	for (int i = 0; i < tetMesh.pos_node.size(); i++)
-	//	{
-	//		tetMesh.vel_node[i] = (tetMesh.pos_node[i] - tetMesh.pos_node_prev[i]) / parameters.dt;
-	//	}
-
-
-	//}
-
 
 	for (int timestep = 0; timestep < parameters.num_timesteps; timestep++)
 	{
@@ -90,88 +19,13 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 		std::vector<Eigen::Vector3d> currentPosition = tetMesh.pos_node;
 		double lastEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
 		std::cout << "	lastEnergyVal = " << lastEnergyVal << std::endl;
-		for(int ite = 0; ite < 10000; ite++)
+		for(int ite = 0; ite < 50; ite++)
 		{
 			
 			BarrierEnergyRes pTeEBarrVec;
 			
 			calContactInfo(tetMesh, parameters, timestep, pTeEBarrVec);
-			//if (pTeEBarrVec.PT_Indices.size() != 0 )
-			//{
-			//	{
-			//		std::ofstream outfile9("./output/collision_faces.obj", std::ios::trunc);
-			//		for (int k = 0; k < pTeEBarrVec.PT_Indices.size(); k++)
-			//		{
-			//			int pt = pTeEBarrVec.PT_Indices[k][0];
-			//			int v0 = pTeEBarrVec.PT_Indices[k][1];
-			//			int v1 = pTeEBarrVec.PT_Indices[k][2];
-			//			int v2 = pTeEBarrVec.PT_Indices[k][3];
-			//			Eigen::Vector3d scale = tetMesh.pos_node[pt];
-			//			Eigen::Vector3d scale0 = tetMesh.pos_node[v0];
-			//			Eigen::Vector3d scale1 = tetMesh.pos_node[v1];
-			//			Eigen::Vector3d scale2 = tetMesh.pos_node[v2];
-			//			//outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
-			//			outfile9 << std::scientific << std::setprecision(8) << "v " << scale0[0] << " " << scale0[1] << " " << scale0[2] << std::endl;
-			//			outfile9 << std::scientific << std::setprecision(8) << "v " << scale1[0] << " " << scale1[1] << " " << scale1[2] << std::endl;
-			//			outfile9 << std::scientific << std::setprecision(8) << "v " << scale2[0] << " " << scale2[1] << " " << scale2[2] << std::endl;
-			//		}
-			//		for (int k = 0; k < pTeEBarrVec.PT_Indices.size(); k++)
-			//		{
-			//			outfile9 << "f " << k * 3 + 1 << " " << k * 3 + 2 << " " << k * 3 + 3 << std::endl;
-			//		}
-			//		outfile9.close();
-			//	}
-
-			//	{
-			//		std::ofstream outfile9("./output/collision_points.obj", std::ios::trunc);
-			//		for (int k = 0; k < pTeEBarrVec.PT_Indices.size(); k++)
-			//		{
-			//			int pt = pTeEBarrVec.PT_Indices[k][0];
-			//			int v0 = pTeEBarrVec.PT_Indices[k][1];
-			//			int v1 = pTeEBarrVec.PT_Indices[k][2];
-			//			int v2 = pTeEBarrVec.PT_Indices[k][3];
-			//			Eigen::Vector3d scale = tetMesh.pos_node[pt];
-			//			Eigen::Vector3d scale0 = tetMesh.pos_node[v0];
-			//			Eigen::Vector3d scale1 = tetMesh.pos_node[v1];
-			//			Eigen::Vector3d scale2 = tetMesh.pos_node[v2];
-			//			outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
-			//			//outfile9 << std::scientific << std::setprecision(8) << "v " << scale0[0] << " " << scale0[1] << " " << scale0[2] << std::endl;
-			//			//outfile9 << std::scientific << std::setprecision(8) << "v " << scale1[0] << " " << scale1[1] << " " << scale1[2] << std::endl;
-			//			//outfile9 << std::scientific << std::setprecision(8) << "v " << scale2[0] << " " << scale2[1] << " " << scale2[2] << std::endl;
-			//		}
-			//		outfile9.close();
-			//	}
-
-			//	{
-			//		std::ofstream outfile9("./output/collision_edges.obj", std::ios::trunc);
-			//		for (int k = 0; k < pTeEBarrVec.EE_Indices.size(); k++)
-			//		{
-			//			int P1 = pTeEBarrVec.EE_Indices[k][0];
-			//			int P2 = pTeEBarrVec.EE_Indices[k][1];
-			//			int Q1 = pTeEBarrVec.EE_Indices[k][2];
-			//			int Q2 = pTeEBarrVec.EE_Indices[k][3];
-			//			Eigen::Vector3d scale = tetMesh.pos_node[P1];
-			//			Eigen::Vector3d scale0 = tetMesh.pos_node[P2];
-			//			Eigen::Vector3d scale1 = tetMesh.pos_node[Q1];
-			//			Eigen::Vector3d scale2 = tetMesh.pos_node[Q2];
-			//			outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
-			//			outfile9 << std::scientific << std::setprecision(8) << "v " << scale0[0] << " " << scale0[1] << " " << scale0[2] << std::endl;
-			//			outfile9 << std::scientific << std::setprecision(8) << "v " << scale1[0] << " " << scale1[1] << " " << scale1[2] << std::endl;
-			//			outfile9 << std::scientific << std::setprecision(8) << "v " << scale2[0] << " " << scale2[1] << " " << scale2[2] << std::endl;
-			//		}
-			//		for (int k = 0; k < pTeEBarrVec.EE_Indices.size(); k++)
-			//		{
-			//			outfile9 << "l " << k * 4 + 1 << " " << k * 4 + 2 << std::endl;
-			//			outfile9 << "l " << k * 4 + 3 << " " << k * 4 + 4 << std::endl;
-			//		}
-			//		outfile9.close();
-			//	}
-
-			//	//std::cout << "		PT_Indices.size() = " << pTeEBarrVec.PT_Indices.size() << "; EE_Indices = " << pTeEBarrVec.EE_Indices.size() << std::endl;
-
-			//}
-
-
+			
 			std::cout << "		ite = " << ite << std::endl;
 			
 			std::vector<Eigen::Vector3d> direction = solve_linear_system(tetMesh, parameters, timestep, pTeEBarrVec);
@@ -348,9 +202,6 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 	}
 
 
-	//std::cout << "tmpEnergy is " << tmpEnergy << "; Energy increment is " << energyVal - tmpEnergy << std::endl;
-
-
 
 
 	return energyVal;
@@ -409,17 +260,6 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	}
 
 
-	/*{
-		Eigen::VectorXd rightHandSide = Eigen::VectorXd(tetMesh.pos_node.size() * 3);
-		rightHandSide.setZero();
-		for (int i = 0; i < grad_triplet.size(); i++)
-		{
-			std::pair<int, double> ele = grad_triplet[i];
-			rightHandSide[ele.first] += ele.second;
-		}
-		std::cout << "*********************Before*******************" << std::endl;
-		std::cout << rightHandSide << std::endl;
-	}*/
 
 	// energy contribution from barrier
 	{
@@ -427,17 +267,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 		pTeEBarrVec.hessToTriplet(tetMesh.boundaryCondition_node, hessian_triplet);
 	}
 
-	/*{
-		Eigen::VectorXd rightHandSide = Eigen::VectorXd(tetMesh.pos_node.size() * 3);
-		rightHandSide.setZero();
-		for (int i = 0; i < grad_triplet.size(); i++)
-		{
-			std::pair<int, double> ele = grad_triplet[i];
-			rightHandSide[ele.first] += ele.second;
-		}
-		std::cout << "*********************After*******************" << std::endl;
-		std::cout << rightHandSide << std::endl;
-	}*/
+
 
 	// assemable the left-hand side 
 	Eigen::SparseMatrix<double> leftHandSide(3 * tetMesh.pos_node.size(), 3 * tetMesh.pos_node.size());
@@ -668,7 +498,6 @@ double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep, Bar
 	//}
 	//else // use spatial hash to calculate the actual full CCD
 	{
-		//std::cout << "Full calculation!"<< std::endl;
 		double CCD_step = calMaxStep_spatialHash(tetMesh, direction, parameters.IPC_hashSize, parameters.IPC_dis, parameters.IPC_eta);
 		if (parameters.enableGround == true)
 		{

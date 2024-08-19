@@ -22,7 +22,7 @@ double BarrierEnergy::val_EE(double contactArea, double dis2, Mesh& tetMesh, Eig
     Eigen::Vector3d P1Coor_Rest = tetMesh.pos_node_Rest[P1], P2Coor_Rest = tetMesh.pos_node_Rest[P2], Q1Coor_Rest = tetMesh.pos_node_Rest[Q1], Q2Coor_Rest = tetMesh.pos_node_Rest[Q2];
 
     // the following codes calculate the mollifier-related value
-    double eps_x = cal_EEM_eps_x(P1Coor_Rest, P2Coor_Rest, Q1Coor_Rest, Q2Coor_Rest);
+    double eps_x = DIS::cal_EEM_eps_x(P1Coor_Rest, P2Coor_Rest, Q1Coor_Rest, Q2Coor_Rest);
     double val_ek = 0;
     DIS::compute_e(P1Coor, P2Coor, Q1Coor, Q2Coor, eps_x, val_ek);
     return dt * dt * k_stiff * contactArea * val_ek * val_b;
@@ -193,7 +193,7 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
     Matrix12d hess_b = Matrix12d::Zero();
 
     // the following codes calculate the mollifier-related value
-    double eps_x = cal_EEM_eps_x(P1Coor_Rest, P2Coor_Rest, Q1Coor_Rest, Q2Coor_Rest);
+    double eps_x = DIS::cal_EEM_eps_x(P1Coor_Rest, P2Coor_Rest, Q1Coor_Rest, Q2Coor_Rest);
     double val_ek = 0;
     Vector12d grad_ek = Vector12d::Zero();
     Matrix12d hess_ek = Matrix12d::Zero();
