@@ -167,6 +167,7 @@ void Mesh::readMeshes(std::vector<meshConfiguration>& config)
 					if (lineIndex >= nodeStart && lineIndex <= nodeStart + numNodes - 1)
 					{
 						Eigen::Vector3d nd_pos = { std::stod(vecCoor[1]) , std::stod(vecCoor[2]) , std::stod(vecCoor[3]) };
+						note_node.push_back(config[ii].note);
 						pos_node.push_back(rotation * nd_pos + translation);
 						vel_node.push_back(config[ii].velocity);
 						currNodesNum += 1;

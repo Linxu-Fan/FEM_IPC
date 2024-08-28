@@ -46,11 +46,14 @@ struct meshConfiguration
 	Eigen::Vector3d translation = {0, 0, 0};
 	Eigen::Vector3d rotation_angle = {0, 0, 0};
 	Eigen::Vector3d rotation_point = {0, 0, 0};
+
+	std::string note = "";
 };
 
 
 struct Mesh 
 {
+    std::vector<std::string> note_node; // note of each node
     std::vector<Eigen::Vector3d> pos_node; // position of each node
 	std::vector<Eigen::Vector3d> vel_node; // velocity of each node
 	std::vector<Eigen::Vector3d> elastForce_node; // elastic force of each node

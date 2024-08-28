@@ -77,20 +77,33 @@ int main()
 
 
 		std::vector<meshConfiguration> config;
-		meshConfiguration m1, m2;
-		m1.filePath = "./input/cube.msh";
+		meshConfiguration m1, m2, m3, m4, m5;
+		m1.filePath = "./input/beam.msh";
 		m1.mesh_material = mat1;
-		m1.velocity = { 5.1245678, 0 , 0 };
-		m1.translation = { 0, 0, 1.0 };
+		m1.note = "beam";
 		config.push_back(m1);
+
 		m2 = m1;
-		m2.mesh_material = mat1;
-		m2.velocity = { -5.1245678, 0 , 0 };
-		m2.rotation_point = { 0.5, 0.5, 0.5 };
-		//m2.translation = { 1.03, 0, 1.0 };
-		m2.rotation_angle = { PI / 4.0, PI / 4.0, PI / 4.0 };
-		m2.translation = { 1.66, 0.5, 0.6 };
+		m2.filePath = "./input/Left_bottom_fix.msh";
+		m2.note = "Left_bottom_fix";
 		config.push_back(m2);
+
+		m3 = m1;
+		m3.filePath = "./input/Left_top_fix.msh";
+		m3.note = "Left_top_fix";
+		config.push_back(m3);
+
+		m4 = m1;
+		m4.filePath = "./input/Middle_support.msh";
+		m4.note = "Middle_support";
+		config.push_back(m4);
+
+		m5 = m1;
+		m5.filePath = "./input/Right_top_move.msh";
+		m5.note = "Right_top_move";
+		config.push_back(m5);
+
+
 		Mesh tetMesh;
 		tetMesh.readMeshes(config);
 		tetMesh.initializeMesh();
