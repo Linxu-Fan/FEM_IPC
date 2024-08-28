@@ -161,41 +161,49 @@ struct boundaryCondition
 
 
 
+struct BE_Grad_Hess
+{
+    std::vector<Eigen::Triplet<double>> hessian_triplet;
+    std::vector<std::pair<int, double>> grad_triplet;
+};
+
+void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, std::vector<boundaryCondition>& boundaryCondition_node, int& D1Index, Vector3d& V3, Matrix3d& H3x3);
+void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector2i& D2Index, Vector6d& V6, Matrix6d& H6x6);
+void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector3i& D3Index, Vector9d& V9, Matrix9d& H9x9);
+void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector4i& D4Index, Vector12d& V12, Matrix12d& H12x12);
+
+struct BarrierEnergyElement
+{
+    int PT_EE_or_Ground = 0; // PT: 0; EE: 1; Ground: 2
+    int size = 1;
+
+    Eigen::Vector4i Indices;
+
+    int D1Index; 
+    Eigen::Vector2i D2Index;
+    Eigen::Vector3i D3Index;
+    Eigen::Vector4i D4Index;
+
+    Vector3d V3;
+    Vector6d V6;
+    Vector9d V9;
+    Vector12d V12;
+
+    Matrix3d H3x3; 
+    Matrix6d H6x6; 
+    Matrix9d H9x9; 
+    Matrix12d H12x12; 
+
+};
+
+
 class BarrierEnergyRes
 {
 public:
+    std::vector<std::vector<Eigen::Triplet<double>>> hessian_triplet_vec;
+    std::vector<std::vector<std::pair<int, double>>> grad_triplet_vec;
 
-
-    std::vector<Eigen::Vector4i> PT_Indices;
-    std::vector<Eigen::Vector4i> EE_Indices;
-
-
-    ////////////////////////////////////////////////////////////////
-    std::vector<int> D1Index;//pIndex, DpeIndex, DptIndex;  
-    std::vector<Eigen::Vector2i> D2Index;
-    std::vector<Eigen::Vector3i> D3Index;
-    std::vector<Eigen::Vector4i> D4Index;
-
-    std::vector<Vector3d> V3;
-    std::vector<Vector6d> V6;
-    std::vector<Vector9d> V9;
-    std::vector<Vector12d> V12;
-    
-    std::vector<Matrix3d> H3x3; // point (ground, inertia or elastic energy)
-    std::vector<Matrix6d> H6x6; // point-point
-    std::vector<Matrix9d> H9x9; // point-edge 
-    std::vector<Matrix12d> H12x12; // point-triangle or edge-edge 
-
-
-    // clear existing information
     void clear();
-
-    // change the gradient vector to triplet
-    void gradToTriplet(std::vector<boundaryCondition>& boundaryCondition_node, std::vector<std::pair<int, double>>& grad_triplet);
-
-    // change the hessian vector to triplet
-    void hessToTriplet(std::vector<boundaryCondition>& boundaryCondition_node, std::vector<Eigen::Triplet<double>>& hessian_triplet);
-
 };
 
 

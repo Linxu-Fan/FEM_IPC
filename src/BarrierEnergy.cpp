@@ -30,10 +30,8 @@ double BarrierEnergy::val_EE(double contactArea, double dis2, Mesh& tetMesh, Eig
 
 
 // compute the energy gradient and hessian 
-void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndices, int type, double dis2, Mesh& tetMesh, double d_hat2, double k_stiff, double dt)
+void BarrierEnergy::gradAndHess_PT(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector4i& ptIndices, int type, double dis2, Mesh& tetMesh, double d_hat2, double k_stiff, double dt)
 {
-    GH.PT_Indices.push_back(ptIndices);
-
     // the partial derivative of barrier energy b wrt distance d
     double g_bd = compute_g_b(dis2, d_hat2); // 3
     double h_bd = compute_H_b(dis2, d_hat2); // 1  
@@ -52,13 +50,11 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
         DIS::g_PP(P, A, g_dx); // 2
         DIS::H_PP(h_dx); // 4
 
-        GH.V6.push_back(dt * dt * k_stiff * contactArea * g_dx * g_bd);
-
+        Vector6d grad = dt * dt * k_stiff * contactArea * g_dx * g_bd;
         Matrix6d hessian = dt * dt * k_stiff * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 6>(hessian);
-        GH.H6x6.push_back(hessian);
         Eigen::Vector2i activePtsLocalInd = { pt , t1 };
-        GH.D2Index.push_back(activePtsLocalInd);
+        BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, activePtsLocalInd, grad, hessian);
 
     }
     break;
@@ -70,12 +66,11 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
         DIS::g_PP(P, B, g_dx); // 2
         DIS::H_PP(h_dx); // 4
 
-        GH.V6.push_back(dt * dt * k_stiff * contactArea * g_dx * g_bd);
+        Vector6d grad = dt * dt * k_stiff * contactArea * g_dx * g_bd;
         Matrix6d hessian = dt * dt * k_stiff * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 6>(hessian);
-        GH.H6x6.push_back(hessian);
         Eigen::Vector2i activePtsLocalInd = { pt , t2 };
-        GH.D2Index.push_back(activePtsLocalInd);
+        BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, activePtsLocalInd, grad, hessian);
     }
     break;
 
@@ -86,12 +81,12 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
         DIS::g_PP(P, C, g_dx); // 2
         DIS::H_PP(h_dx); // 4
 
-        GH.V6.push_back(dt * dt * k_stiff * contactArea * g_dx * g_bd);
+        Vector6d grad = dt * dt * k_stiff * contactArea * g_dx * g_bd;
         Matrix6d hessian = dt * dt * k_stiff * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 6>(hessian);
-        GH.H6x6.push_back(hessian);
         Eigen::Vector2i activePtsLocalInd = { pt , t3 };
-        GH.D2Index.push_back(activePtsLocalInd);
+        BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, activePtsLocalInd, grad, hessian);
+
     }
     break;
 
@@ -102,12 +97,12 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
         DIS::g_PE(P, A, B, g_dx); // 2
         DIS::H_PE(P, A, B, h_dx); // 4
 
-        GH.V9.push_back(dt * dt * k_stiff * contactArea * g_dx * g_bd);
+        Vector9d grad = dt * dt * k_stiff * contactArea * g_dx * g_bd;
         Matrix9d hessian = dt * dt * k_stiff * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 9>(hessian);
-        GH.H9x9.push_back(hessian);
         Eigen::Vector3i activePtsLocalInd = { pt , t1, t2 };
-        GH.D3Index.push_back(activePtsLocalInd);
+        BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, activePtsLocalInd, grad, hessian);
+
     }
     break;
 
@@ -118,12 +113,12 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
         DIS::g_PE(P, B, C, g_dx); // 2
         DIS::H_PE(P, B, C, h_dx); // 4
 
-        GH.V9.push_back(dt * dt * k_stiff * contactArea * g_dx * g_bd);
+        Vector9d grad = dt * dt * k_stiff * contactArea * g_dx * g_bd;
         Matrix9d hessian = dt * dt * k_stiff * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 9>(hessian);
-        GH.H9x9.push_back(hessian);
         Eigen::Vector3i activePtsLocalInd = { pt , t2 , t3 };
-        GH.D3Index.push_back(activePtsLocalInd);
+        BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, activePtsLocalInd, grad, hessian);
+
     }
     break;
 
@@ -134,12 +129,12 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
         DIS::g_PE(P, C, A, g_dx); // 2
         DIS::H_PE(P, C, A, h_dx); // 4
 
-        GH.V9.push_back(dt * dt * k_stiff * contactArea * g_dx * g_bd);
+        Vector9d grad = dt * dt * k_stiff * contactArea * g_dx * g_bd;
         Matrix9d hessian = dt * dt * k_stiff * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 9>(hessian);
-        GH.H9x9.push_back(hessian);
         Eigen::Vector3i activePtsLocalInd = { pt , t3 , t1 };
-        GH.D3Index.push_back(activePtsLocalInd);
+        BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, activePtsLocalInd, grad, hessian);
+
     }
     break;
 
@@ -150,19 +145,12 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
         DIS::g_PT(P, A, B, C, g_dx); // 2
         DIS::H_PT(P, A, B, C, h_dx); // 4
 
-
-        //std::cout << std::scientific << std::setprecision(4) << "################## dis2 = " << dis2 << "; d_hat2 = " << d_hat2 << "; g_bd = " << g_bd << "; h_bd = " << h_bd << std::endl;
-
-
-        GH.V12.push_back(dt * dt * k_stiff * contactArea * g_dx * g_bd);
+        Vector12d grad = dt * dt * k_stiff * contactArea * g_dx * g_bd;
         Matrix12d hessian = dt * dt * k_stiff * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 12>(hessian);
-        GH.H12x12.push_back(hessian);
         Eigen::Vector4i activePtsLocalInd = { pt , t1 , t2 , t3 };
-        GH.D4Index.push_back(activePtsLocalInd);
+        BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, activePtsLocalInd, grad, hessian);
 
-
-        //std::cout << dt * dt * k_stiff * contactArea * g_dx * g_bd << std::endl;
 
 
     }
@@ -170,13 +158,12 @@ void BarrierEnergy::gradAndHess_PT(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
     }
 
+
 }
 
 // compute the energy gradient and hessian 
-void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndices, int type, double dis2, Mesh& tetMesh, double d_hat2, double k_stiff, double dt)
+void BarrierEnergy::gradAndHess_EE(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector4i& ptIndices, int type, double dis2, Mesh& tetMesh, double d_hat2, double k_stiff, double dt)
 {
-    GH.EE_Indices.push_back(ptIndices);
-
     // the partial derivative of barrier energy b wrt distance d
     double g_bd = compute_g_b(dis2, d_hat2); // 3
     double h_bd = compute_H_b(dis2, d_hat2); // 1     
@@ -220,11 +207,10 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b); // since we add edge-edge mollifier, we have to project the hessian to full 12x12 matrix
 
         // now calcualte the final val, grad and hess considering the mollifier   
-        GH.V12.push_back(dt * dt * k_stiff * contactArea * (grad_ek * val_b + val_ek * grad_b));
+        Vector12d grad = dt * dt * k_stiff * contactArea * (grad_ek * val_b + val_ek * grad_b);
         Matrix12d hessian = dt * dt * k_stiff * contactArea * (hess_ek * val_b + grad_ek * grad_b.transpose() + grad_b * grad_ek.transpose() + val_ek * hess_b);
         makePD<double, 12>(hessian);
-        GH.H12x12.push_back(hessian);
-        GH.D4Index.push_back(ptIndices);
+        BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, ptIndices, grad, hessian);
     }
     break;
 
@@ -242,11 +228,10 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b);
 
         // now calcualte the final val, grad and hess considering the mollifier
-        GH.V12.push_back(dt * dt * k_stiff * contactArea * (grad_ek * val_b + val_ek * grad_b));
+        Vector12d grad = dt * dt * k_stiff * contactArea * (grad_ek * val_b + val_ek * grad_b);
         Matrix12d hessian = dt * dt * k_stiff * contactArea * (hess_ek * val_b + grad_ek * grad_b.transpose() + grad_b * grad_ek.transpose() + val_ek * hess_b);
         makePD<double, 12>(hessian);
-        GH.H12x12.push_back(hessian);
-        GH.D4Index.push_back(ptIndices);
+        BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, ptIndices, grad, hessian);
     }
     break;
 
@@ -264,11 +249,10 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b);
 
         // now calcualte the final val, grad and hess considering the mollifier
-        GH.V12.push_back(dt * dt * k_stiff * contactArea * (grad_ek * val_b + val_ek * grad_b));
+        Vector12d grad = dt * dt * k_stiff * contactArea * (grad_ek * val_b + val_ek * grad_b);
         Matrix12d hessian = dt * dt * k_stiff * contactArea * (hess_ek * val_b + grad_ek * grad_b.transpose() + grad_b * grad_ek.transpose() + val_ek * hess_b);
         makePD<double, 12>(hessian);
-        GH.H12x12.push_back(hessian);
-        GH.D4Index.push_back(ptIndices);
+        BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, ptIndices, grad, hessian);
     }
     break;
 
@@ -287,11 +271,10 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b);
 
         // now calcualte the final val, grad and hess considering the mollifier
-        GH.V12.push_back(dt * dt * k_stiff * contactArea * (grad_ek * val_b + val_ek * grad_b));
+        Vector12d grad = dt * dt * k_stiff * contactArea * (grad_ek * val_b + val_ek * grad_b);
         Matrix12d hessian = dt * dt * k_stiff * contactArea * (hess_ek * val_b + grad_ek * grad_b.transpose() + grad_b * grad_ek.transpose() + val_ek * hess_b);
         makePD<double, 12>(hessian);
-        GH.H12x12.push_back(hessian);
-        GH.D4Index.push_back(ptIndices);
+        BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, ptIndices, grad, hessian);
     }
     break;
 
@@ -310,11 +293,10 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b);
 
         // now calcualte the final val, grad and hess considering the mollifier
-        GH.V12.push_back(dt* dt* k_stiff* contactArea* (grad_ek* val_b + val_ek * grad_b));
+        Vector12d grad = dt* dt* k_stiff* contactArea* (grad_ek* val_b + val_ek * grad_b);
         Matrix12d hessian = dt * dt * k_stiff * contactArea * (hess_ek * val_b + grad_ek * grad_b.transpose() + grad_b * grad_ek.transpose() + val_ek * hess_b);
         makePD<double, 12>(hessian);
-        GH.H12x12.push_back(hessian);
-        GH.D4Index.push_back(ptIndices);
+        BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, ptIndices, grad, hessian);
     }
     break;
 
@@ -333,11 +315,10 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b);
 
         // now calcualte the final val, grad and hess considering the mollifier
-        GH.V12.push_back(dt* dt* k_stiff* contactArea* (grad_ek* val_b + val_ek * grad_b));
+        Vector12d grad = dt* dt* k_stiff* contactArea* (grad_ek* val_b + val_ek * grad_b);
         Matrix12d hessian = dt * dt * k_stiff * contactArea * (hess_ek * val_b + grad_ek * grad_b.transpose() + grad_b * grad_ek.transpose() + val_ek * hess_b);
         makePD<double, 12>(hessian);
-        GH.H12x12.push_back(hessian);
-        GH.D4Index.push_back(ptIndices);
+        BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, ptIndices, grad, hessian);
     }
     break;
 
@@ -357,11 +338,10 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b);
 
         // now calcualte the final val, grad and hess considering the mollifier
-        GH.V12.push_back(dt* dt* k_stiff* contactArea* (grad_ek* val_b + val_ek * grad_b));
+        Vector12d grad = dt* dt* k_stiff* contactArea* (grad_ek* val_b + val_ek * grad_b);
         Matrix12d hessian = dt * dt * k_stiff * contactArea * (hess_ek * val_b + grad_ek * grad_b.transpose() + grad_b * grad_ek.transpose() + val_ek * hess_b);
         makePD<double, 12>(hessian);
-        GH.H12x12.push_back(hessian);
-        GH.D4Index.push_back(ptIndices);
+        BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, ptIndices, grad, hessian);
     }
     break;
 
@@ -380,11 +360,10 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b);
 
         // now calcualte the final val, grad and hess considering the mollifier
-        GH.V12.push_back(dt* dt* k_stiff* contactArea* (grad_ek* val_b + val_ek * grad_b));
+        Vector12d grad = dt* dt* k_stiff* contactArea* (grad_ek* val_b + val_ek * grad_b);
         Matrix12d hessian = dt * dt * k_stiff * contactArea * (hess_ek * val_b + grad_ek * grad_b.transpose() + grad_b * grad_ek.transpose() + val_ek * hess_b);
         makePD<double, 12>(hessian);
-        GH.H12x12.push_back(hessian);
-        GH.D4Index.push_back(ptIndices);
+        BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, ptIndices, grad, hessian);
     }
     break;
 
@@ -402,16 +381,16 @@ void BarrierEnergy::gradAndHess_EE(BarrierEnergyRes& GH, Eigen::Vector4i& ptIndi
 
 
         // now calcualte the final val, grad and hess considering the mollifier
-        GH.V12.push_back(dt* dt* k_stiff* contactArea* (grad_ek* val_b + val_ek * grad_b));
+        Vector12d grad = dt* dt* k_stiff* contactArea* (grad_ek* val_b + val_ek * grad_b);
         Matrix12d hessian = dt * dt * k_stiff * contactArea * (hess_ek * val_b + grad_ek * grad_b.transpose() + grad_b * grad_ek.transpose() + val_ek * hess_b);
         makePD<double, 12>(hessian);
-        GH.H12x12.push_back(hessian);
-        GH.D4Index.push_back(ptIndices);
+        BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, ptIndices, grad, hessian);
     }
     break;
 
 
     }
+
 
 }
 
@@ -490,8 +469,7 @@ double Ground::val(double coor_z2, double d_hat, double distributedArea, double 
     return dt * dt * k_stiff * distributedArea * BarrierEnergy::compute_b(coor_z2, d_hat);
 }
 
-
-void Ground::gradAndHess(BarrierEnergyRes& BEres, int index_i,  double coor_z2, double d_hat, double distributedArea, double k_stiff, double dt)
+void Ground::gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, std::vector<boundaryCondition>& boundaryCondition_node, int index_i,  double coor_z2, double d_hat, double distributedArea, double k_stiff, double dt)
 {
     double g_bd = BarrierEnergy::compute_g_b(coor_z2, d_hat); // 3
     double h_bd = BarrierEnergy::compute_H_b(coor_z2, d_hat); // 1                                                        
@@ -500,11 +478,10 @@ void Ground::gradAndHess(BarrierEnergyRes& BEres, int index_i,  double coor_z2, 
     Eigen::Matrix3d h_dx = Eigen::Matrix3d::Zero();
     h_dx(2, 2) = 2.0;
 
-    BEres.V3.push_back(dt * dt * k_stiff * distributedArea * g_dx * g_bd);
+    Vector3d grad = dt * dt * k_stiff * distributedArea * g_dx * g_bd;
 
     Matrix3d hessian = dt * dt * k_stiff * distributedArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
     makePD<double, 3>(hessian);
-    BEres.H3x3.push_back(hessian);
-    BEres.D1Index.push_back(index_i);
+    BE_to_triplet(hessian_triplet, grad_triplet, boundaryCondition_node, index_i, grad, hessian);
 
 }

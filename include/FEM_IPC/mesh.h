@@ -78,11 +78,13 @@ struct Mesh
 
 	//  data structure of boundary elements
 	std::map<int, std::set<int>> boundaryVertices; // int: vertex's index in the original mesh; set<int>: neighbour triangles of this vertex	
+	std::vector<int> boundaryVertices_vec; // int: vertex's index in the original mesh
 	std::map<int, double> boundaryVertices_area; // boundary vertex's area (distributed area of this vertex)	
 	std::map<int, std::map<int, Eigen::Vector2i>> boundaryEdges; // 1st (smaller one) & 2nd (larger one) int: edge index containing two vertices in the ORIGINAL mesh; Eigen::Vector2i: triangle indices
 	std::map<int, std::map<int, double>> boundaryEdges_area; // boundary edge's area (distributed area of this edge)
 	std::map<int, std::map<int, int>> boundaryEdge_index; // 1st (smaller one) & 2nd (larger one) int: edge index containing two vertices in the ORIGINAL mesh; 3rd int: index of this edge
 	std::map<int, Eigen::Vector2i> index_boundaryEdge; // 1st int: index of this edge; Eigen::Vector2i two vertices in the ORIGINAL mesh
+	std::vector<int> index_boundaryEdge_vec; // 1st int: index of this edge
 	std::vector<Eigen::Vector3i> boundaryTriangles;
 	std::vector<double> boundaryTriangles_area; // boundary triangle's area
 	
@@ -105,7 +107,7 @@ struct Mesh
 	// export surface mesh
 	void exportSurfaceMesh(std::string fileName, int timestep = -99);
 	// update each tetrahedral's deformation gradient
-	void update_F();
+	void update_F(int numOfThreads);
 	// calculate the mass of each node
 	void calculateNodeMass();
 	// calculate the bounding box of the mesh

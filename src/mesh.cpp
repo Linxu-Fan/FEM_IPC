@@ -218,7 +218,7 @@ void Mesh::initializeMesh() // initialize the mesh
 	}
 
 	cal_DS_or_DM(false);
-	update_F();
+	update_F(1);
 	calculateNodeMass();
 	findBoundaryElements();
 	updateBoundaryElementsInfo();
@@ -373,7 +373,14 @@ void Mesh::findBoundaryElements()
 			Eigen::Vector2i ed = {it1->first, it2->first};
 			int index = it2->second;
 			index_boundaryEdge[index] = ed;
+			index_boundaryEdge_vec.push_back(index);
 		}
+	}
+
+
+	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin(); it != boundaryVertices.end(); it++)
+	{
+		boundaryVertices_vec.push_back(it->first);
 	}
 
 }
@@ -432,9 +439,9 @@ void Mesh::exportSurfaceMesh(std::string fileName, int timestep)
 }
 
 // update each tetrahedral's deformation gradient
-void Mesh::update_F()
+void Mesh::update_F(int numOfThreads)
 {
-	tetra_F.resize(tetrahedrals.size());
+#pragma omp parallel for num_threads(numOfThreads)
 	for (int i = 0; i < tetrahedrals.size(); i++) 
 	{
 		Eigen::Vector3d x0 = pos_node[tetrahedrals[i][0]];

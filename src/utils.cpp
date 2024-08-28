@@ -133,201 +133,135 @@ std::pair<Eigen::Vector3d, Eigen::Vector3d> findBoundingBox_vec(std::vector<Eige
 
 
 
-// clear existing information
-void BarrierEnergyRes::clear()
+void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, std::vector<boundaryCondition>& boundaryCondition_node, int& D1Index, Vector3d& V3, Matrix3d& H3x3)
 {
-	PT_Indices.clear();
-	EE_Indices.clear();
+	if (boundaryCondition_node[D1Index].type != 1)
+	{
+		for (int xd = 0; xd < 3; xd++)
+		{
+			grad_triplet.emplace_back(D1Index * 3 + xd, V3[xd]);
+			for (int yd = 0; yd < 3; yd++)
+			{
+				hessian_triplet.emplace_back(D1Index * 3 + xd, D1Index * 3 + yd, H3x3(xd, yd));
+			}
+		}
+	}
 
-	D1Index.clear();
-	D2Index.clear();
-	D3Index.clear();
-	D4Index.clear();
-
-	V3.clear();
-	V6.clear();
-	V9.clear();
-	V12.clear();
-
-	H3x3.clear();
-	H6x6.clear();
-	H9x9.clear();
-	H12x12.clear();
 }
 
 
-// change the gradient vector to triplet
-void BarrierEnergyRes::gradToTriplet(std::vector<boundaryCondition>& boundaryCondition_node, std::vector<std::pair<int, double>>& grad_triplet)
+void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector2i& D2Index, Vector6d& V6, Matrix6d& H6x6)
 {
-	// point
-	for (int i = 0; i < D1Index.size(); i++)
-	{
-		int pt = D1Index[i];
 
-		if (boundaryCondition_node[pt].type != 1)
+	for (int j = 0; j < 2; j++)
+	{
+		int pt1 = D2Index[j];
+		if (boundaryCondition_node[pt1].type != 1)
 		{
 			for (int xd = 0; xd < 3; xd++)
 			{
-				double value = V3[i][xd];
-				grad_triplet.emplace_back(pt * 3 + xd, value);
+				double value = V6[j * 3 + xd];
+				grad_triplet.emplace_back(pt1 * 3 + xd, value);
 			}
-		}
 
-	}
-
-	// point-point
-	for (int i = 0; i < D2Index.size(); i++)
-	{
-		for (int j = 0; j < 2; j++)
-		{
-			int pt = D2Index[i][j];
-			if (boundaryCondition_node[pt].type != 1)
+			for (int q = 0; q < 2; q++)
 			{
-				for (int xd = 0; xd < 3; xd++)
+				int pt2 = D2Index[q];
+				if (boundaryCondition_node[pt2].type != 1)
 				{
-					double value = V6[i][j * 3 + xd];
-					grad_triplet.emplace_back(pt * 3 + xd, value);
+					for (int xd = 0; xd < 3; xd++)
+					{
+						for (int yd = 0; yd < 3; yd++)
+						{
+							hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, H6x6(j * 3 + xd, q * 3 + yd));
+						}
+					}
+
 				}
 			}
+
 		}
 	}
 
-	// point-edge
-	for (int i = 0; i < D3Index.size(); i++)
-	{
-		for (int j = 0; j < 3; j++)
-		{
-			int pt = D3Index[i][j];
-			if (boundaryCondition_node[pt].type != 1)
-			{
-				for (int xd = 0; xd < 3; xd++)
-				{
-					double value = V9[i][j * 3 + xd];
-					grad_triplet.emplace_back(pt * 3 + xd, value);
-				}
-			}
-		}
-	}
-
-	// point-triangle or edge-edge
-	for (int i = 0; i < D4Index.size(); i++)
-	{
-		for (int j = 0; j < 4; j++)
-		{
-			int pt = D4Index[i][j];
-			if (boundaryCondition_node[pt].type != 1)
-			{
-				for (int xd = 0; xd < 3; xd++)
-				{
-					double value = V12[i][j * 3 + xd];
-					grad_triplet.emplace_back(pt * 3 + xd, value);
-				}
-			}
-		}
-	}
 
 }
 
 
-void BarrierEnergyRes::hessToTriplet(std::vector<boundaryCondition>& boundaryCondition_node, std::vector<Eigen::Triplet<double>>& hessian_triplet)
+void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector3i& D3Index, Vector9d& V9, Matrix9d& H9x9)
 {
-
-	// point
-	for (int p = 0; p < D1Index.size(); p++)
+	for (int j = 0; j < 3; j++)
 	{
-		int index_m = D1Index[p];
-		for (int xd = 0; xd < 3; xd++)
+		int pt1 = D3Index[j];
+		if (boundaryCondition_node[pt1].type != 1)
 		{
-			for (int yd = 0; yd < 3; yd++)
+			for (int xd = 0; xd < 3; xd++)
 			{
-				hessian_triplet.emplace_back(index_m * 3 + xd, index_m * 3 + yd, H3x3[p](xd, yd));
+				double value = V9[j * 3 + xd];
+				grad_triplet.emplace_back(pt1 * 3 + xd, value);
 			}
-		}
 
-	}
-
-	// point-point
-	for (int i = 0; i < D2Index.size(); i++)
-	{
-		for (int p = 0; p < 2; p++)
-		{
-			int pt1 = D2Index[i][p];
-			if (boundaryCondition_node[pt1].type != 1)
+			for (int q = 0; q < 3; q++)
 			{
-				for (int q = 0; q < 2; q++)
+				int pt2 = D3Index[q];
+				if (boundaryCondition_node[pt2].type != 1)
 				{
-					int pt2 = D2Index[i][q];
-					if (boundaryCondition_node[pt2].type != 1)
+					for (int xd = 0; xd < 3; xd++)
 					{
-						for (int xd = 0; xd < 3; xd++)
+						for (int yd = 0; yd < 3; yd++)
 						{
-							for (int yd = 0; yd < 3; yd++)
-							{
-								hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, H6x6[i](p * 3 + xd, q * 3 + yd));
-							}
-						}
-
-					}
-				}
-			}
-		}
-	}
-
-	// point-edge
-	for (int i = 0; i < D3Index.size(); i++)
-	{
-		for (int p = 0; p < 3; p++)
-		{
-			int pt1 = D3Index[i][p];
-			if (boundaryCondition_node[pt1].type != 1)
-			{
-				for (int q = 0; q < 3; q++)
-				{
-					int pt2 = D3Index[i][q];
-					if (boundaryCondition_node[pt2].type != 1)
-					{
-						for (int xd = 0; xd < 3; xd++)
-						{
-							for (int yd = 0; yd < 3; yd++)
-							{
-								hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, H9x9[i](p * 3 + xd, q * 3 + yd));
-							}
+							hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, H9x9(j * 3 + xd, q * 3 + yd));
 						}
 					}
+
 				}
 			}
+
 		}
 	}
-
-	// point-triangle or edge-edge
-	for (int i = 0; i < D4Index.size(); i++)
-	{
-		for (int p = 0; p < 4; p++)
-		{
-			int pt1 = D4Index[i][p];
-			if (boundaryCondition_node[pt1].type != 1)
-			{
-				for (int q = 0; q < 4; q++)
-				{
-					int pt2 = D4Index[i][q];				
-					if (boundaryCondition_node[pt2].type != 1)
-					{
-						for (int xd = 0; xd < 3; xd++)
-						{
-							for (int yd = 0; yd < 3; yd++)
-							{
-								hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, H12x12[i](p * 3 + xd, q * 3 + yd));
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
 
 }
 
+
+void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector4i& D4Index, Vector12d& V12, Matrix12d& H12x12)
+{
+	for (int j = 0; j < 4; j++)
+	{
+		int pt1 = D4Index[j];
+		if (boundaryCondition_node[pt1].type != 1)
+		{
+			for (int xd = 0; xd < 3; xd++)
+			{
+				double value = V12[j * 3 + xd];
+				grad_triplet.emplace_back(pt1 * 3 + xd, value);
+			}
+
+			for (int q = 0; q < 4; q++)
+			{
+				int pt2 = D4Index[q];
+				if (boundaryCondition_node[pt2].type != 1)
+				{
+					for (int xd = 0; xd < 3; xd++)
+					{
+						for (int yd = 0; yd < 3; yd++)
+						{
+							hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, H12x12(j * 3 + xd, q * 3 + yd));
+						}
+					}
+
+				}
+			}
+
+		}
+	}
+
+}
+
+
+void BarrierEnergyRes::clear()
+{
+	hessian_triplet_vec.clear();
+	grad_triplet_vec.clear();
+}
 
 Matrix3d projToSPD(Matrix3d& top)
 {
