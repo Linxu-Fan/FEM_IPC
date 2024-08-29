@@ -116,6 +116,7 @@ void Mesh::readMeshes(std::vector<meshConfiguration>& config)
 	{
 		std::string filePath = config[ii].filePath;
 		Material mat = config[ii].mesh_material;
+		Eigen::Vector3d scale = config[ii].scale;
 		Eigen::Vector3d translation = config[ii].translation;
 		// Create a transformation matrix
 		Eigen::Affine3d rotation = Eigen::Affine3d::Identity();
@@ -166,7 +167,7 @@ void Mesh::readMeshes(std::vector<meshConfiguration>& config)
 
 					if (lineIndex >= nodeStart && lineIndex <= nodeStart + numNodes - 1)
 					{
-						Eigen::Vector3d nd_pos = { std::stod(vecCoor[1]) , std::stod(vecCoor[2]) , std::stod(vecCoor[3]) };
+						Eigen::Vector3d nd_pos = { std::stod(vecCoor[1]) * scale[0] , std::stod(vecCoor[2]) * scale[1] , std::stod(vecCoor[3]) * scale[2] };
 						note_node.push_back(config[ii].note);
 						pos_node.push_back(rotation * nd_pos + translation);
 						vel_node.push_back(config[ii].velocity);
@@ -509,7 +510,10 @@ double Mesh::calLargestEdgeLength()
 		int v1_index = it->second[0], v2_index = it->second[1];
 		Eigen::Vector3d v1 = pos_node[v1_index], v2 = pos_node[v2_index];
 		double length = (v1 - v2).norm();
-		largestLength = std::max(largestLength, length);
+		if (largestLength < length)
+		{
+			largestLength = length;
+		}
 	}
 	return largestLength;
 }

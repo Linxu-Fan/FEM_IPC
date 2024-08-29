@@ -141,9 +141,9 @@ inline double squaredDouble(double a)
 // find the bounding box of a vector of Eigen::Vector3d
 std::pair<Eigen::Vector3d, Eigen::Vector3d> findBoundingBox_vec(std::vector<Eigen::Vector3d>& pos_node);
 
-static int calculateID(Eigen::Vector3i numCell, Eigen::Vector3i index) 
+static std::string calculateID(Eigen::Vector3i index) 
 {
-	int ID = numCell[2] * (index(0) * index(1)) + numCell[1] * index(0) + numCell[0];
+    std::string ID = std::to_string(index[0]) + "#" + std::to_string(index[1]) + "#" + std::to_string(index[2]);
 	return ID;
 };
 

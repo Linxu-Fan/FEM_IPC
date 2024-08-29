@@ -5,7 +5,6 @@
 void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 {
 
-
 	for (int timestep = 0; timestep < parameters.num_timesteps; timestep++)
 	{
 		std::cout << "timestep = " << timestep << std::endl;
@@ -20,10 +19,7 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 		double lastEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
 		std::cout << "	lastEnergyVal = " << lastEnergyVal << std::endl;
 		for(int ite = 0; ite < 50; ite++)
-		{
-			
-			
-			
+		{	
 					
 			std::cout << "		ite = " << ite << std::endl;
 			
@@ -105,7 +101,7 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 		eng += InertiaEnergy::Val(nodeMass, parameters.dt, xt, v, x, extForce, parameters);
 		node_ext_ine_energy_vec[vI] = eng;
 	}
-	energyVal = std::accumulate(node_ext_ine_energy_vec.begin(), node_ext_ine_energy_vec.end(), energyVal);
+	energyVal += std::accumulate(node_ext_ine_energy_vec.begin(), node_ext_ine_energy_vec.end(), 0);
 
 
 	// energy contribution per element
@@ -117,85 +113,13 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 		int matInd = tetMesh.materialInd[eI];
 		tex_est_energy_vec[eI] = ElasticEnergy::Val(tetMesh.materialMesh[matInd], parameters.model, tetMesh.tetra_F[eI], parameters.dt, tetMesh.tetra_vol[eI]);
 	}	
-	energyVal = std::accumulate(tex_est_energy_vec.begin(), tex_est_energy_vec.end(), energyVal);
+	energyVal += std::accumulate(tex_est_energy_vec.begin(), tex_est_energy_vec.end(), 0);
 
 
 	// energy contribution from barrier
-	// point-triangle barrier
-	std::vector<double> bov_bar_energy_vec(tetMesh.boundaryVertices_vec.size());
-#pragma omp parallel for num_threads(parameters.numOfThreads)
-	for (int ft = 0; ft < tetMesh.boundaryVertices_vec.size(); ft++)
-	{
-		int ptInd = tetMesh.boundaryVertices_vec[ft];
-		Eigen::Vector3d P = tetMesh.pos_node[ptInd];
-		double eng = 0;
-		for (int tI = 0; tI < tetMesh.boundaryTriangles.size(); tI++)
-		{
-			if (tetMesh.boundaryVertices[ptInd].find(tI) == tetMesh.boundaryVertices[ptInd].end()) // this triangle is not incident with the point
-			{
-				Eigen::Vector3i tri = tetMesh.boundaryTriangles[tI];
-				Eigen::Vector3d A = tetMesh.pos_node[tri[0]];
-				Eigen::Vector3d B = tetMesh.pos_node[tri[1]];
-				Eigen::Vector3d C = tetMesh.pos_node[tri[2]];
+	energyVal += compute_Barrier_energy(tetMesh, parameters, timestep);
 
 
-				int type = DIS::dType_PT(P, A, B, C);
-				double dis2 = 0;
-				DIS::computePointTriD(P, A, B, C, dis2);
-
-				if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
-				{
-					eng += BarrierEnergy::val_PT(tetMesh.boundaryVertices_area[ptInd], dis2, parameters.IPC_dis * parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
-				}
-
-			}
-		}
-		bov_bar_energy_vec[ft] = eng;
-
-	}
-	energyVal = std::accumulate(bov_bar_energy_vec.begin(), bov_bar_energy_vec.end(), energyVal);
-		
-
-	// edge-edge barrier
-	std::vector<double> edg_bar_energy_vec(tetMesh.index_boundaryEdge_vec.size());
-#pragma omp parallel for num_threads(parameters.numOfThreads)
-	for (int ft = 0; ft < tetMesh.index_boundaryEdge_vec.size(); ft++)
-	{
-		int edge1 = tetMesh.index_boundaryEdge_vec[ft];
-		double eng = 0;
-		for (int gt = 0; gt < tetMesh.index_boundaryEdge_vec.size(); gt++)
-		{
-			int edge2 = tetMesh.index_boundaryEdge_vec[gt];
-			if (ft != gt)
-			{
-				int e1p1 = tetMesh.index_boundaryEdge[edge1][0], e1p2 = tetMesh.index_boundaryEdge[edge1][1], e2p1 = tetMesh.index_boundaryEdge[edge2][0], e2p2 = tetMesh.index_boundaryEdge[edge2][1];
-				if (e1p1 != e2p1 && e1p1 != e2p2 && e1p2 != e2p1 && e1p2 != e2p2) // not duplicated and incident edges
-				{
-					Eigen::Vector3d P1 = tetMesh.pos_node[e1p1];
-					Eigen::Vector3d P2 = tetMesh.pos_node[e1p2];
-					Eigen::Vector3d Q1 = tetMesh.pos_node[e2p1];
-					Eigen::Vector3d Q2 = tetMesh.pos_node[e2p2];
-
-
-					int type = DIS::dType_EE(P1, P2, Q1, Q2);
-					double dis2 = 0;
-					DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
-
-					if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
-					{
-						int emin = std::min(e1p1, e1p2), emax = std::max(e1p1, e1p2);
-						Eigen::Vector4i ptIndices = { e1p1 , e1p2 , e2p1 , e2p2 };
-						eng += BarrierEnergy::val_EE(tetMesh.boundaryEdges_area[emin][emax], dis2, tetMesh, ptIndices, parameters.IPC_dis * parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
-					}
-
-
-				}
-			}
-		}
-		edg_bar_energy_vec[ft] = eng;
-	}
-	energyVal = std::accumulate(edg_bar_energy_vec.begin(), edg_bar_energy_vec.end(), energyVal);
-	
 
 //	// ground barrier
 //// !!!!!!!!!!!!!!!!!Cannot use the following code directly because the vector didn't consider the size of ground contact
@@ -225,6 +149,86 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 	return energyVal;
 }
 
+
+double compute_Barrier_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
+{
+	std::vector<spatialHashCellData> spatialHash_vec;
+	initSpatialHash(parameters, tetMesh, parameters.IPC_hashSize, spatialHash_vec);
+
+	std::vector<double> energyValue_perHash(spatialHash_vec.size());
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+	for (int y = 0; y < spatialHash_vec.size(); y++)
+	{
+		double energy = 0.0;
+		// calcualte the PT pair
+		for (std::set<int>::iterator itP = spatialHash_vec[y].vertIndices.begin(); itP != spatialHash_vec[y].vertIndices.end(); itP++)
+		{
+			for (std::set<int>::iterator itT = spatialHash_vec[y].triaIndices.begin(); itT != spatialHash_vec[y].triaIndices.end(); itT++)
+			{
+				int vert = *itP, tri = *itT;
+				if (tetMesh.boundaryVertices[vert].find(tri) == tetMesh.boundaryVertices[vert].end()) // this triangle is not incident with the point
+				{
+					Eigen::Vector3i triVerts = tetMesh.boundaryTriangles[tri];
+					Eigen::Vector3d P = tetMesh.pos_node[vert];
+					Eigen::Vector3d A = tetMesh.pos_node[triVerts[0]];
+					Eigen::Vector3d B = tetMesh.pos_node[triVerts[1]];
+					Eigen::Vector3d C = tetMesh.pos_node[triVerts[2]];
+
+					if (pointTriangleCCDBroadphase(P, A, B, C, parameters.IPC_dis))
+					{
+						int type = DIS::dType_PT(P, A, B, C);
+						double dis2 = 0;
+						DIS::computePointTriD(P, A, B, C, dis2);
+
+						if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+						{
+							energy += BarrierEnergy::val_PT(tetMesh.boundaryVertices_area[vert], dis2, squaredDouble(parameters.IPC_dis), parameters.IPC_kStiffness, parameters.dt);
+						}
+					}
+				}
+			}
+		}
+
+		// calcualte the EE pair
+		for (std::set<int>::iterator itE1 = spatialHash_vec[y].edgeIndices.begin(); itE1 != spatialHash_vec[y].edgeIndices.end(); itE1++)
+		{
+			for (std::set<int>::iterator itE2 = spatialHash_vec[y].edgeIndices.begin(); itE2 != spatialHash_vec[y].edgeIndices.end(); itE2++)
+			{
+				if (*itE1 != *itE2)
+				{
+					Eigen::Vector2i E1 = tetMesh.index_boundaryEdge[*itE1], E2 = tetMesh.index_boundaryEdge[*itE2];
+					int P1I = E1[0], P2I = E1[1], Q1I = E2[0], Q2I = E2[1];
+					if (P1I != Q1I && P1I != Q2I && P2I != Q1I && P2I != Q2I) // not duplicated and incident edges
+					{
+						Eigen::Vector3d P1 = tetMesh.pos_node[P1I];
+						Eigen::Vector3d P2 = tetMesh.pos_node[P2I];
+						Eigen::Vector3d Q1 = tetMesh.pos_node[Q1I];
+						Eigen::Vector3d Q2 = tetMesh.pos_node[Q2I];
+
+						if (edgeEdgeCCDBroadphase(P1, P2, Q1, Q2, parameters.IPC_dis))
+						{
+							int type = DIS::dType_EE(P1, P2, Q1, Q2);
+							double dis2 = 0;
+							DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
+
+							if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+							{
+								Eigen::Vector4i ptIndices = { P1I , P2I , Q1I , Q2I };
+								energy += BarrierEnergy::val_EE(tetMesh.boundaryEdges_area[P1I][P2I], dis2, tetMesh, ptIndices, squaredDouble(parameters.IPC_dis), parameters.IPC_kStiffness, parameters.dt);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		energyValue_perHash[y] = energy;
+	}
+
+	return std::accumulate(energyValue_perHash.begin(), energyValue_perHash.end(), 0);
+}
+
+
 // compute energy gradient and hessian of the linear system and solve the syetem
 std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 {
@@ -236,13 +240,11 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	std::cout << "	Calculate contact!" << std::endl;
 
 	BarrierEnergyRes pTeEBarrVec;
-	pTeEBarrVec.grad_triplet_vec.resize(tetMesh.boundaryVertices_vec.size() + tetMesh.index_boundaryEdge_vec.size() + tetMesh.pos_node.size() + tetMesh.tetrahedrals.size());
-	pTeEBarrVec.hessian_triplet_vec.resize(tetMesh.boundaryVertices_vec.size() + tetMesh.index_boundaryEdge_vec.size() + tetMesh.pos_node.size() + tetMesh.tetrahedrals.size());
-	calContactInfo(tetMesh, parameters, timestep, pTeEBarrVec);
+	pTeEBarrVec.grad_triplet_vec.resize(tetMesh.pos_node.size() + tetMesh.tetrahedrals.size());
+	pTeEBarrVec.hessian_triplet_vec.resize(tetMesh.pos_node.size() + tetMesh.tetrahedrals.size());
 
 	std::cout << "	Calculate ine_ext!" << std::endl;
 
-	int startIndex = tetMesh.boundaryVertices_vec.size() + tetMesh.index_boundaryEdge_vec.size();
 	// energy contribution per vertex
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 	for (int vI = 0; vI < tetMesh.pos_node.size(); vI++)
@@ -262,15 +264,15 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 		std::vector<std::pair<int, double>> extEngGrad = ExternalEnergy::Grad(nodeMass, parameters.dt, x, parameters, extForce, vI, tetMesh.boundaryCondition_node[vI].type);
 		extEngGrad.insert(extEngGrad.end(), inerEngGrad.begin(), inerEngGrad.end());
 
-		pTeEBarrVec.grad_triplet_vec[startIndex + vI] = extEngGrad;
-		pTeEBarrVec.hessian_triplet_vec[startIndex + vI] = inerEngHess;
+		pTeEBarrVec.grad_triplet_vec[vI] = extEngGrad;
+		pTeEBarrVec.hessian_triplet_vec[vI] = inerEngHess;
 
 	}
 
 
 	std::cout << "	Calculate elas!" << std::endl;
 
-	startIndex = tetMesh.boundaryVertices_vec.size() + tetMesh.index_boundaryEdge_vec.size() + tetMesh.pos_node.size();
+	int startIndex = tetMesh.pos_node.size();
 	// energy contribution per element
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 	for (int eI = 0; eI < tetMesh.tetrahedrals.size(); eI++)
@@ -291,6 +293,10 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 		pTeEBarrVec.grad_triplet_vec[startIndex + eI] = elasEngGrad;
 		pTeEBarrVec.hessian_triplet_vec[startIndex + eI] = elasEngHess;
 	}
+
+
+	calContactInfo(tetMesh, parameters, timestep, pTeEBarrVec);
+
 
 	std::cout << "	Vectorize!" << std::endl;
 
@@ -360,6 +366,109 @@ void step_forward(FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Ve
 
 void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, BarrierEnergyRes& pTeEBarrVec)
 {
+	std::vector<spatialHashCellData> spatialHash_vec;
+	initSpatialHash(parameters, tetMesh, parameters.IPC_hashSize, spatialHash_vec);
+
+	std::vector<double> energyValue_perHash(spatialHash_vec.size());
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+	for (int y = 0; y < spatialHash_vec.size(); y++)
+	{
+		std::vector<Eigen::Triplet<double>> hessian_triplet;
+		std::vector<std::pair<int, double>> grad_triplet;
+
+		// calcualte the PT pair
+		for (std::set<int>::iterator itP = spatialHash_vec[y].vertIndices.begin(); itP != spatialHash_vec[y].vertIndices.end(); itP++)
+		{
+			for (std::set<int>::iterator itT = spatialHash_vec[y].triaIndices.begin(); itT != spatialHash_vec[y].triaIndices.end(); itT++)
+			{
+				int vert = *itP, tri = *itT;
+				if (tetMesh.boundaryVertices[vert].find(tri) == tetMesh.boundaryVertices[vert].end()) // this triangle is not incident with the point
+				{
+					Eigen::Vector3i triVerts = tetMesh.boundaryTriangles[tri];
+					Eigen::Vector3d P = tetMesh.pos_node[vert];
+					Eigen::Vector3d A = tetMesh.pos_node[triVerts[0]];
+					Eigen::Vector3d B = tetMesh.pos_node[triVerts[1]];
+					Eigen::Vector3d C = tetMesh.pos_node[triVerts[2]];
+
+					if (pointTriangleCCDBroadphase(P, A, B, C, parameters.IPC_dis))
+					{
+						int type = DIS::dType_PT(P, A, B, C);
+						double dis2 = 0;
+						DIS::computePointTriD(P, A, B, C, dis2);
+
+						if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+						{
+							Eigen::Vector4i ptIndices = { vert , triVerts[0] , triVerts[1] , triVerts[2] };
+							BarrierEnergy::gradAndHess_PT(hessian_triplet, grad_triplet, tetMesh.boundaryCondition_node, ptIndices, type, dis2, tetMesh, squaredDouble(parameters.IPC_dis), parameters.IPC_kStiffness, parameters.dt);
+						}
+					}
+				}
+			}
+		}
+
+		// calcualte the EE pair
+		for (std::set<int>::iterator itE1 = spatialHash_vec[y].edgeIndices.begin(); itE1 != spatialHash_vec[y].edgeIndices.end(); itE1++)
+		{
+			for (std::set<int>::iterator itE2 = spatialHash_vec[y].edgeIndices.begin(); itE2 != spatialHash_vec[y].edgeIndices.end(); itE2++)
+			{
+				if (*itE1 != *itE2)
+				{
+					Eigen::Vector2i E1 = tetMesh.index_boundaryEdge[*itE1], E2 = tetMesh.index_boundaryEdge[*itE2];
+					int P1I = E1[0], P2I = E1[1], Q1I = E2[0], Q2I = E2[1];
+					if (P1I != Q1I && P1I != Q2I && P2I != Q1I && P2I != Q2I) // not duplicated and incident edges
+					{
+						Eigen::Vector3d P1 = tetMesh.pos_node[P1I];
+						Eigen::Vector3d P2 = tetMesh.pos_node[P2I];
+						Eigen::Vector3d Q1 = tetMesh.pos_node[Q1I];
+						Eigen::Vector3d Q2 = tetMesh.pos_node[Q2I];
+
+						if (edgeEdgeCCDBroadphase(P1, P2, Q1, Q2, parameters.IPC_dis))
+						{
+							int type = DIS::dType_EE(P1, P2, Q1, Q2);
+							double dis2 = 0;
+							DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
+
+							if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+							{
+								Eigen::Vector4i ptIndices = { P1I , P2I , Q1I , Q2I };
+								BarrierEnergy::gradAndHess_EE(hessian_triplet, grad_triplet, tetMesh.boundaryCondition_node, ptIndices, type, dis2, tetMesh, squaredDouble(parameters.IPC_dis), parameters.IPC_kStiffness, parameters.dt);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		energyValue_perHash[y] = energy;
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	// energy contribution from barrier
 	// point-triangle barrier
@@ -556,7 +665,7 @@ double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep, std
 	//}
 	//else // use spatial hash to calculate the actual full CCD
 	{
-		double CCD_step = calMaxStep_spatialHash(tetMesh, direction, parameters.IPC_hashSize, parameters.IPC_dis, parameters.IPC_eta);
+		double CCD_step = calMaxStep_spatialHash(parameters, tetMesh, direction, parameters.IPC_hashSize, parameters.IPC_dis, parameters.IPC_eta);
 		if (parameters.enableGround == true)
 		{
 			double stepGround = 1.0;

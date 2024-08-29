@@ -6,11 +6,20 @@
 // Check if two edges' boundingbox intersect or not
 // All points' coordinates are real coordinates not increments
 bool edgeEdgeCCDBroadphase(const Eigen::Vector3d& P1, const Eigen::Vector3d& P2, const Eigen::Vector3d& dP1, 
-	const Eigen::Vector3d& dP2, const Eigen::Vector3d& Q1, const Eigen::Vector3d& Q2, const Eigen::Vector3d& dQ1, const Eigen::Vector3d& dQ2, double dist_threshold = 1.0E-3);
+	const Eigen::Vector3d& dP2, const Eigen::Vector3d& Q1, const Eigen::Vector3d& Q2, const Eigen::Vector3d& dQ1, const Eigen::Vector3d& dQ2, double dist_threshold);
+
+// Check if two edges' boundingbox intersect or not (no advection)
+bool edgeEdgeCCDBroadphase(const Eigen::Vector3d& P1, const Eigen::Vector3d& P2, const Eigen::Vector3d& Q1, const Eigen::Vector3d& Q2,  double dist_threshold);
+
+
 
 // check if a point and a triangle's boundingboxes intersect or not
 bool pointTriangleCCDBroadphase(const Eigen::Vector3d& P, const Eigen::Vector3d& dP, const Eigen::Vector3d& A, 
-	const Eigen::Vector3d& dA, const Eigen::Vector3d& B, const Eigen::Vector3d& dB, const Eigen::Vector3d& C, const Eigen::Vector3d& dC, double dist_threshold = 1.0e-3);
+	const Eigen::Vector3d& dA, const Eigen::Vector3d& B, const Eigen::Vector3d& dB, const Eigen::Vector3d& C, const Eigen::Vector3d& dC, double dist_threshold);
+
+// check if a point and a triangle's boundingboxes intersect or not (no advection)
+bool pointTriangleCCDBroadphase(const Eigen::Vector3d& P,  const Eigen::Vector3d& A, const Eigen::Vector3d& B,  const Eigen::Vector3d& C, double dist_threshold);
+
 
 // Calcualte the first time of contact: toc
 // Actually calculate the time that first brings the distance to eta * currentDis
@@ -30,9 +39,13 @@ struct spatialHashCellData
 };
 
 // initialize spatial hash
-void initSpatialHash(Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, std::unordered_map<int, spatialHashCellData>& spatialHash);
+void initSpatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, std::vector<spatialHashCellData>& spatialHash_vec);
+
+// initialize spatial hash (no advection)
+void initSpatialHash(FEMParamters& parameters, Mesh& tetMesh, double cellSize, std::vector<spatialHashCellData>& spatialHash_vec);
+
 
 // use spatial hash to calculate the maximum feasible step
-double calMaxStep_spatialHash(Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, double dist_threshold, double eta);
+double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, double dist_threshold, double eta);
 
 #endif

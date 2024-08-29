@@ -24,6 +24,9 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 // move points' position according to the direction; Note this is a trial movement
 void step_forward(FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Vector3d>& currentPosition, std::vector<Eigen::Vector3d>& direction, double step);
 
+// calculate the barrier energy of contact
+double compute_Barrier_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep);
+
 // calculate the contact info: a) contact or not; b) contact type; 3) contact energy, derivative and hessian; 
 void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, BarrierEnergyRes& pTeEBarrVec);
 
