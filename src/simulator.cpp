@@ -28,7 +28,6 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 			std::cout << "		ite = " << ite << std::endl;
 			
 			std::vector<Eigen::Vector3d> direction = solve_linear_system(tetMesh, parameters, timestep);
-				
 			double dist_to_converge = infiniteNorm(direction);
 			if (ite && (dist_to_converge < sqrt(parameters.searchResidual * tetMesh.calBBXDiagSize() * parameters.dt * parameters.dt)))
 			{
@@ -234,14 +233,16 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	// update defromation gradient
 	tetMesh.update_F(parameters.numOfThreads);
 
-
+	std::cout << "	Calculate contact!" << std::endl;
 
 	BarrierEnergyRes pTeEBarrVec;
 	pTeEBarrVec.grad_triplet_vec.resize(tetMesh.boundaryVertices_vec.size() + tetMesh.index_boundaryEdge_vec.size() + tetMesh.pos_node.size() + tetMesh.tetrahedrals.size());
 	pTeEBarrVec.hessian_triplet_vec.resize(tetMesh.boundaryVertices_vec.size() + tetMesh.index_boundaryEdge_vec.size() + tetMesh.pos_node.size() + tetMesh.tetrahedrals.size());
 	calContactInfo(tetMesh, parameters, timestep, pTeEBarrVec);
 
-	int startIndex = pTeEBarrVec.grad_triplet_vec.size();
+	std::cout << "	Calculate ine_ext!" << std::endl;
+
+	int startIndex = tetMesh.boundaryVertices_vec.size() + tetMesh.index_boundaryEdge_vec.size();
 	// energy contribution per vertex
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 	for (int vI = 0; vI < tetMesh.pos_node.size(); vI++)
@@ -267,7 +268,9 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	}
 
 
-	startIndex = pTeEBarrVec.grad_triplet_vec.size();
+	std::cout << "	Calculate elas!" << std::endl;
+
+	startIndex = tetMesh.boundaryVertices_vec.size() + tetMesh.index_boundaryEdge_vec.size() + tetMesh.pos_node.size();
 	// energy contribution per element
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 	for (int eI = 0; eI < tetMesh.tetrahedrals.size(); eI++)
@@ -289,7 +292,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 		pTeEBarrVec.hessian_triplet_vec[startIndex + eI] = elasEngHess;
 	}
 
-
+	std::cout << "	Vectorize!" << std::endl;
 
 	// hessian is the left-hand side, and grad is the right-hand side
 	std::vector<Eigen::Triplet<double>> hessian_triplet;
@@ -300,6 +303,8 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 		hessian_triplet.insert(hessian_triplet.end(), pTeEBarrVec.hessian_triplet_vec[s].begin(), pTeEBarrVec.hessian_triplet_vec[s].end());
 	}
 
+
+	std::cout << "	Solve!" << std::endl;
 
 	// assemable the left-hand side 
 	Eigen::SparseMatrix<double> leftHandSide(3 * tetMesh.pos_node.size(), 3 * tetMesh.pos_node.size());

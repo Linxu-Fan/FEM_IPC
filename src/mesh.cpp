@@ -441,6 +441,7 @@ void Mesh::exportSurfaceMesh(std::string fileName, int timestep)
 // update each tetrahedral's deformation gradient
 void Mesh::update_F(int numOfThreads)
 {
+	tetra_F.resize(tetrahedrals.size());
 #pragma omp parallel for num_threads(numOfThreads)
 	for (int i = 0; i < tetrahedrals.size(); i++) 
 	{

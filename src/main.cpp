@@ -65,15 +65,23 @@ int main()
 		mat1.updateDenpendecies();
 
 
-
-		//meshConfiguration m1;
+		//// cube collision test
+		//std::vector<meshConfiguration> config;
+		//meshConfiguration m1, m2;
 		//m1.filePath = "./input/cube.msh";
 		//m1.mesh_material = mat1;
-		//m1.velocity = { 0, 0 , 0 };
-		//Mesh tetMesh;
-		//tetMesh.readMesh(m1);
-		//tetMesh.initializeMesh();
-		//tetMesh.surfaceMesh.outputFile("surfMesh");
+		//m1.velocity = { 5.1245678, 0 , 0 };
+		//m1.translation = { 0, 0, 1.0 };
+		//config.push_back(m1);
+		//m2 = m1;
+		//m2.mesh_material = mat1;
+		//m2.velocity = { -5.1245678, 0 , 0 };
+		//m2.rotation_point = { 0.5, 0.5, 0.5 };
+		////m2.translation = { 1.03, 0, 1.0 };
+		//m2.rotation_angle = { PI / 4.0, PI / 4.0, PI / 4.0 };
+		//m2.translation = { 1.66, 0.5, 0.6 };
+		//config.push_back(m2);
+
 
 
 		std::vector<meshConfiguration> config;
@@ -81,17 +89,17 @@ int main()
 		m1.filePath = "./input/beam.msh";
 		m1.mesh_material = mat1;
 		m1.note = "beam";
-		config.push_back(m1);
+		//config.push_back(m1);
 
-		m2 = m1;
-		m2.filePath = "./input/Left_bottom_fix.msh";
-		m2.note = "Left_bottom_fix";
-		config.push_back(m2);
+		//m2 = m1;
+		//m2.filePath = "./input/Left_bottom_fix.msh";
+		//m2.note = "Left_bottom_fix";
+		//config.push_back(m2);
 
-		m3 = m1;
-		m3.filePath = "./input/Left_top_fix.msh";
-		m3.note = "Left_top_fix";
-		config.push_back(m3);
+		//m3 = m1;
+		//m3.filePath = "./input/Left_top_fix.msh";
+		//m3.note = "Left_top_fix";
+		//config.push_back(m3);
 
 		m4 = m1;
 		m4.filePath = "./input/Middle_support.msh";
@@ -109,6 +117,9 @@ int main()
 		tetMesh.initializeMesh();
 		tetMesh.surfaceMesh.outputFile("surfMesh");
 
+
+		std::cout << "tetMesh.pos_node.size() = " << tetMesh.pos_node.size() << std::endl;
+		std::cout << "tetMesh.tetrahedrals.size() = " << tetMesh.tetrahedrals.size() << std::endl;
 
 
 		FEMParamters parameters;
