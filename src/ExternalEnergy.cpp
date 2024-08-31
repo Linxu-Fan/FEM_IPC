@@ -8,22 +8,23 @@ double ExternalEnergy::Val(double nodeMass, double dt, Eigen::Vector3d& x, FEMPa
 }
 
 // compute the energy gradient wrt vertex's position.
-std::vector<std::pair<int, double>> ExternalEnergy::Grad(double nodeMass, double dt, Eigen::Vector3d& x, FEMParamters& param, Eigen::Vector3d& extForce, int vertIndex, int BC)
+void ExternalEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_grad, double nodeMass, double dt, Eigen::Vector3d& x, FEMParamters& param, Eigen::Vector3d& extForce, int vertIndex, int BC)
 {
 	Eigen::Vector3d gravityForceEng = -dt * dt * (nodeMass * param.gravity + extForce);
 
-	std::vector<std::pair<int, double>> res;
 	for (int dI = 0; dI < 3; dI++)
 	{
 		if (BC != 1)
 		{
-			res.emplace_back(vertIndex * 3 + dI, gravityForceEng[dI]);
+			std::pair<int, double> pa = std::make_pair(vertIndex * 3 + dI, gravityForceEng[dI]);
+			grad_triplet[startIndex_grad + dI] = pa;
+
 		}
 		else
 		{
-			res.emplace_back(vertIndex * 3 + dI, 0);
+			std::pair<int, double> pa = std::make_pair(vertIndex * 3 + dI, 0);
+			grad_triplet[startIndex_grad + dI] = pa;
 		}
 		
 	}
-	return res;
 }

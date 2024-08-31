@@ -9,41 +9,42 @@ double InertiaEnergy::Val(double nodeMass, double dt, Eigen::Vector3d& xt, Eigen
 }
 
 // compute the energy gradient wrt vertex's position.
-std::vector<std::pair<int, double>> InertiaEnergy::Grad(double nodeMass, double dt, Eigen::Vector3d& xt, Eigen::Vector3d& v, Eigen::Vector3d& x, Eigen::Vector3d& extForce, int vertIndex, FEMParamters& param, int BC)
+void InertiaEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_grad, double nodeMass, double dt, Eigen::Vector3d& xt, Eigen::Vector3d& v, Eigen::Vector3d& x, Eigen::Vector3d& extForce, int vertIndex, FEMParamters& param, int BC)
 {
 	Eigen::Vector3d x_minus_xt = x - (xt + dt * v + dt * dt / nodeMass * (nodeMass * param.gravity + extForce));
 	Eigen::Vector3d gradVec = nodeMass * x_minus_xt;
 
-	std::vector<std::pair<int, double>> res;
 	for (int dI = 0; dI < 3; dI++)
 	{	
 		if (BC != 1)
 		{
-			res.emplace_back(vertIndex * 3 + dI, gradVec[dI]);
+			std::pair<int, double> pa = std::make_pair(vertIndex * 3 + dI, gradVec[dI]);
+			grad_triplet[startIndex_grad + dI] = pa;
 		}
 		else
 		{
-			res.emplace_back(vertIndex * 3 + dI, 0);
+			std::pair<int, double> pa = std::make_pair(vertIndex * 3 + dI, 0);
+			grad_triplet[startIndex_grad + dI] = pa;
 		}
 
 	}
-	return res;
+
 }
 
 // the hessian is just an Identity matrix
-std::vector<Eigen::Triplet<double>> InertiaEnergy::Hess(double nodeMass, int vertIndex, int BC)
+void InertiaEnergy::Hess(std::vector<Eigen::Triplet<double>>& hessian_triplet, int& startIndex_hess, double nodeMass, int vertIndex, int BC)
 {
-	std::vector<Eigen::Triplet<double>> res;
 	for (int dI = 0; dI < 3; dI++)
 	{
 		if (BC != 1)
 		{
-			res.emplace_back(vertIndex * 3 + dI, vertIndex * 3 + dI, nodeMass);
+			Eigen::Triplet<double> pa = { vertIndex * 3 + dI, vertIndex * 3 + dI, nodeMass };
+			hessian_triplet[startIndex_hess + dI] = pa;
 		}
 		else
 		{
-			res.emplace_back(vertIndex * 3 + dI, 0);
+			Eigen::Triplet<double> pa = { vertIndex * 3 + dI, vertIndex * 3 + dI, 0 };
+			hessian_triplet[startIndex_hess + dI] = pa;
 		}
 	}
-	return res;
 }

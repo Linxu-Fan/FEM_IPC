@@ -99,7 +99,7 @@ double ElasticEnergy::Val(Material& mat, std::string model, Eigen::Matrix3d& F, 
 }
 
 // compute the energy gradient dPHI/dF (PK1 stress). Return a vectorized gradient which is a 9x1 matrix
-std::vector<std::pair<int, double>> ElasticEnergy::Grad(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd, Eigen::Vector4i& tetVertInd_BC)
+void ElasticEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_grad, Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd, Eigen::Vector4i& tetVertInd_BC)
 {
 	Vector9d grad_tmp;
 	if (model == "neoHookean")
@@ -161,7 +161,6 @@ std::vector<std::pair<int, double>> ElasticEnergy::Grad(Material& mat, std::stri
 	}
 
 	Eigen::Matrix<double, 12, 1> engGrad = dt * dt * vol * dFdx.transpose() * grad_tmp;
-	std::vector<std::pair<int, double>> res;
 	for (int m = 0; m < 4; m++)
 	{
 		if (tetVertInd_BC[m] != 1)
@@ -169,17 +168,25 @@ std::vector<std::pair<int, double>> ElasticEnergy::Grad(Material& mat, std::stri
 			int x1_Ind = tetVertInd[m]; // the first vertex index
 			for (int xd = 0; xd < 3; xd++)
 			{
-				double value = engGrad(m * 3 + xd, 1);
-				res.emplace_back(x1_Ind * 3 + xd, value);
+				std::pair<int, double> pa = std::make_pair(x1_Ind * 3 + xd, engGrad(m * 3 + xd, 1));
+				grad_triplet[startIndex_grad + xd] = pa;
+			}
+		}
+		else
+		{
+			int x1_Ind = tetVertInd[m]; // the first vertex index
+			for (int xd = 0; xd < 3; xd++)
+			{
+				std::pair<int, double> pa = std::make_pair(x1_Ind * 3 + xd, 0);
+				grad_triplet[startIndex_grad + xd] = pa;
 			}
 		}
 	}
-	return  res;
 
 }
 
 // compute the energy hessian dPHI2/d2F. Return a vectorized gradient which is a 9x9 matrix
-std::vector<Eigen::Triplet<double>> ElasticEnergy::Hess(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd, Eigen::Vector4i& tetVertInd_BC)
+void ElasticEnergy::Hess(std::vector<Eigen::Triplet<double>>& hessian_triplet, int& startIndex_hess, Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd, Eigen::Vector4i& tetVertInd_BC)
 {
 
 	Eigen::Matrix<double, 9, 9> hessian = Eigen::Matrix<double, 9, 9>::Zero();
@@ -365,29 +372,39 @@ std::vector<Eigen::Triplet<double>> ElasticEnergy::Hess(Material& mat, std::stri
 	}
 
 	Eigen::Matrix<double, 12, 12> engHess = dt * dt * vol * dFdx.transpose() * hessian * dFdx;
-	std::vector<Eigen::Triplet<double>> res;
 	for (int m = 0; m < 4; m++)
 	{
 		if (tetVertInd_BC[m] != 1)
 		{
-			int x1_Ind = tetVertInd[m]; // the first vertex index
-			for (int n = 0; n < 4; n++)
-			{
-				if (tetVertInd_BC[n] != 1)
-				{
-					int x2_Ind = tetVertInd[n]; // the second vertex index	
-					for (int xd = 0; xd < 3; xd++)
-					{
-						for (int yd = 0; yd < 3; yd++)
-						{
-							double value = engHess(m * 3 + xd, n * 3 + yd);
-							res.emplace_back(x1_Ind * 3 + xd, x2_Ind * 3 + yd, value);
-						}
-					}
-				}
-			}
+			engHess.col(m * 3).setZero();
+			engHess.col(m * 3 + 1).setZero();
+			engHess.col(m * 3 + 2).setZero();
+
+			engHess.row(m * 3).setZero();
+			engHess.row(m * 3 + 1).setZero();
+			engHess.row(m * 3 + 2).setZero();
 		}
 	}
-	return res;
+
+	int ac = 0;
+	for (int m = 0; m < 4; m++)
+	{
+		int x1_Ind = tetVertInd[m]; // the first vertex index
+		for (int n = 0; n < 4; n++)
+		{
+			int x2_Ind = tetVertInd[n]; // the second vertex index	
+			for (int xd = 0; xd < 3; xd++)
+			{
+				for (int yd = 0; yd < 3; yd++)
+				{
+					double value = engHess(m * 3 + xd, n * 3 + yd);
+					Eigen::Triplet<double> pa = { x1_Ind * 3 + xd, x2_Ind * 3 + yd, value };
+					hessian_triplet[startIndex_hess + ac] = pa;
+					ac += 1;
+				}
+			}			
+		}
+	}
+
 
 }

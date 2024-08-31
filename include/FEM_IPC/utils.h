@@ -39,6 +39,7 @@ typedef std::complex<double> DComplex;
 
 
 typedef Eigen::Matrix<int, 7, 1> Vector7i;
+typedef Eigen::Matrix<int, 5, 1> Vector5i;
 
 typedef Eigen::Matrix<double, 3, 1> Vector3d;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
@@ -167,10 +168,10 @@ struct BE_Grad_Hess
     std::vector<std::pair<int, double>> grad_triplet;
 };
 
-void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, std::vector<boundaryCondition>& boundaryCondition_node, int& D1Index, Vector3d& V3, Matrix3d& H3x3);
-void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector2i& D2Index, Vector6d& V6, Matrix6d& H6x6);
-void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector3i& D3Index, Vector9d& V9, Matrix9d& H9x9);
-void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector4i& D4Index, Vector12d& V12, Matrix12d& H12x12);
+void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, int& D1Index, Vector3d& V3, Matrix3d& H3x3);
+void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector2i& D2Index, Vector6d& V6, Matrix6d& H6x6);
+void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector3i& D3Index, Vector9d& V9, Matrix9d& H9x9);
+void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector4i& D4Index, Vector12d& V12, Matrix12d& H12x12);
 
 struct BarrierEnergyElement
 {

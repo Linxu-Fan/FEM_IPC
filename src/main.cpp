@@ -2,7 +2,7 @@
 
 // TODO
 // 1. Accelerate and parallel openMP
-
+// 2. If the code doesn't work, check line45 of InertiaEnergy.cpp
 
 
 int main()
@@ -10,51 +10,25 @@ int main()
 
 	if (0)
 	{
-		Material mat1;
-		mat1.updateDenpendecies();
+		std::vector<Eigen::Triplet<double>> hessian_triplet;
+		hessian_triplet.emplace_back(1, 1, 2);
+		hessian_triplet.emplace_back(2, 3, 5);
+		hessian_triplet.emplace_back(3, 1, 4);
+		hessian_triplet.emplace_back(2, 2, 4);
 
-		Material mat2;
-		mat2.updateDenpendecies();
+		std::vector<Eigen::Triplet<double>> hessian_triplet2;
+		hessian_triplet2.emplace_back(1, 1, 3);
+		hessian_triplet2.emplace_back(2, 3, 4);
+		hessian_triplet2.emplace_back(3, 1, 1);
+		hessian_triplet2.emplace_back(2, 2, 2);
 
+		Eigen::SparseMatrix<double> leftHandSide(4, 4), leftHandSide2(4, 4);
+		leftHandSide.setFromTriplets(hessian_triplet.begin(), hessian_triplet.end());
+		leftHandSide2.setFromTriplets(hessian_triplet2.begin(), hessian_triplet2.end());
+		leftHandSide += leftHandSide2;
 
+		std::cout << "leftHandSide = " << leftHandSide << std::endl;
 
-		std::vector<meshConfiguration> config;
-		meshConfiguration m1, m2;
-		m1.filePath = "./input/tet_neg.msh";
-		m1.mesh_material = mat1;
-		m1.velocity = { 1, 0 , 0 };
-		m1.translation = { 0, 0, 0.1 };
-		config.push_back(m1);
-
-		m2 = m1;
-		m2.mesh_material = mat2;
-		m2.velocity = { -1, 0 , 0 };
-		m2.translation = { 1.1, 0, 0.1 };
-		config.push_back(m2);
-		Mesh tetMesh;
-		tetMesh.readMeshes(config);
-		tetMesh.initializeMesh();
-		tetMesh.surfaceMesh.outputFile("surfMesh");
-
-
-
-		FEMParamters parameters;
-		parameters.dt = 1.0E-3;
-		parameters.gravity = { 0, 0, 0 };
-		parameters.num_timesteps = 1511;
-		parameters.outputFrequency = 1;
-		parameters.enableGround = true;
-		parameters.searchResidual = 0.003;
-		parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
-		parameters.IPC_dis = 0.001;
-		parameters.IPC_eta = 0.1;
-		parameters.IPC_kStiffness = 1.0e14;
-		parameters.IPC_hashSize = tetMesh.calLargestEdgeLength() * 40.0;
-
-
-
-
-		implicitFEM(tetMesh, parameters);
 	}
 	else
 	{

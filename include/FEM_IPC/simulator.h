@@ -28,7 +28,7 @@ void step_forward(FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Ve
 double compute_Barrier_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep);
 
 // calculate the contact info: a) contact or not; b) contact type; 3) contact energy, derivative and hessian; 
-void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, BarrierEnergyRes& pTeEBarrVec);
+void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::vector<Vector5i>& PG_PG, std::vector<Vector5i>& PT_PP, std::vector<Vector5i>& PT_PE, std::vector<Vector5i>& PT_PT, std::vector<Vector5i>& EE_EE);
 
 // calculate the maximum feasible step size
 double calMaxStepSize(Mesh& tetMesh, FEMParamters& parameters, int timestep,  std::vector<Eigen::Vector3d>& direction);
