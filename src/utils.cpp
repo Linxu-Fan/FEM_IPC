@@ -168,34 +168,45 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 
 void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector2i& D2Index, Vector6d& V6, Matrix6d& H6x6)
 {
+	for (int j = 0; j < 2; j++)
+	{
+		int pt = D2Index[j];
+		if (boundaryCondition_node[pt].type == 1)
+		{
+			V6[j * 3] = 0;
+			V6[j * 3 + 1] = 0;
+			V6[j * 3 + 1] = 0;
+
+			H6x6.row(j * 3).setZero();
+			H6x6.row(j * 3 + 1).setZero();
+			H6x6.row(j * 3 + 2).setZero();
+			H6x6.col(j * 3).setZero();
+			H6x6.col(j * 3 + 1).setZero();
+			H6x6.col(j * 3 + 2).setZero();
+		}
+	}
+
+
 
 	for (int j = 0; j < 2; j++)
 	{
 		int pt1 = D2Index[j];
-		if (boundaryCondition_node[pt1].type != 1)
+		for (int xd = 0; xd < 3; xd++)
 		{
+			double value = V6[j * 3 + xd];
+			grad_triplet[startIndex_grad + xd] = { pt1 * 3 + xd, value };
+		}
+
+		for (int q = 0; q < 2; q++)
+		{
+			int pt2 = D2Index[q];
 			for (int xd = 0; xd < 3; xd++)
 			{
-				double value = V6[j * 3 + xd];
-				grad_triplet.emplace_back(pt1 * 3 + xd, value);
-			}
-
-			for (int q = 0; q < 2; q++)
-			{
-				int pt2 = D2Index[q];
-				if (boundaryCondition_node[pt2].type != 1)
+				for (int yd = 0; yd < 3; yd++)
 				{
-					for (int xd = 0; xd < 3; xd++)
-					{
-						for (int yd = 0; yd < 3; yd++)
-						{
-							hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, H6x6(j * 3 + xd, q * 3 + yd));
-						}
-					}
-
+					hessian_triplet[startIndex_hess + xd * 3 + yd] = { pt1 * 3 + xd, pt2 * 3 + yd, H6x6(j * 3 + xd, q * 3 + yd) };
 				}
 			}
-
 		}
 	}
 
@@ -207,32 +218,45 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 {
 	for (int j = 0; j < 3; j++)
 	{
-		int pt1 = D3Index[j];
-		if (boundaryCondition_node[pt1].type != 1)
+		int pt = D3Index[j];
+		if (boundaryCondition_node[pt].type == 1)
 		{
+			V9[j * 3] = 0;
+			V9[j * 3 + 1] = 0;
+			V9[j * 3 + 1] = 0;
+
+			H9x9.row(j * 3).setZero();
+			H9x9.row(j * 3 + 1).setZero();
+			H9x9.row(j * 3 + 2).setZero();
+			H9x9.col(j * 3).setZero();
+			H9x9.col(j * 3 + 1).setZero();
+			H9x9.col(j * 3 + 2).setZero();
+		}
+	}
+
+	for (int j = 0; j < 3; j++)
+	{
+		int pt1 = D3Index[j];
+		for (int xd = 0; xd < 3; xd++)
+		{
+			double value = V9[j * 3 + xd];
+			grad_triplet[startIndex_grad + xd] = { pt1 * 3 + xd, value };
+		}
+
+		for (int q = 0; q < 3; q++)
+		{
+			int pt2 = D3Index[q];
+
 			for (int xd = 0; xd < 3; xd++)
 			{
-				double value = V9[j * 3 + xd];
-				grad_triplet.emplace_back(pt1 * 3 + xd, value);
-			}
-
-			for (int q = 0; q < 3; q++)
-			{
-				int pt2 = D3Index[q];
-				if (boundaryCondition_node[pt2].type != 1)
+				for (int yd = 0; yd < 3; yd++)
 				{
-					for (int xd = 0; xd < 3; xd++)
-					{
-						for (int yd = 0; yd < 3; yd++)
-						{
-							hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, H9x9(j * 3 + xd, q * 3 + yd));
-						}
-					}
-
+					hessian_triplet[startIndex_hess + xd * 3 + yd] = { pt1 * 3 + xd, pt2 * 3 + yd, H9x9(j * 3 + xd, q * 3 + yd) };
 				}
-			}
-
+			}		
 		}
+
+	
 	}
 
 }
@@ -242,32 +266,45 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 {
 	for (int j = 0; j < 4; j++)
 	{
-		int pt1 = D4Index[j];
-		if (boundaryCondition_node[pt1].type != 1)
+		int pt = D4Index[j];
+		if (boundaryCondition_node[pt].type == 1)
 		{
+			V12[j * 3] = 0;
+			V12[j * 3 + 1] = 0;
+			V12[j * 3 + 1] = 0;
+
+			H12x12.row(j * 3).setZero();
+			H12x12.row(j * 3 + 1).setZero();
+			H12x12.row(j * 3 + 2).setZero();
+			H12x12.col(j * 3).setZero();
+			H12x12.col(j * 3 + 1).setZero();
+			H12x12.col(j * 3 + 2).setZero();
+		}
+	}
+
+	for (int j = 0; j < 4; j++)
+	{
+		int pt1 = D4Index[j];
+		for (int xd = 0; xd < 3; xd++)
+		{
+			double value = V12[j * 3 + xd];
+			grad_triplet[startIndex_grad + xd] = { pt1 * 3 + xd, value };
+		}
+
+		for (int q = 0; q < 4; q++)
+		{
+			int pt2 = D4Index[q];
+
 			for (int xd = 0; xd < 3; xd++)
 			{
-				double value = V12[j * 3 + xd];
-				grad_triplet.emplace_back(pt1 * 3 + xd, value);
-			}
-
-			for (int q = 0; q < 4; q++)
-			{
-				int pt2 = D4Index[q];
-				if (boundaryCondition_node[pt2].type != 1)
+				for (int yd = 0; yd < 3; yd++)
 				{
-					for (int xd = 0; xd < 3; xd++)
-					{
-						for (int yd = 0; yd < 3; yd++)
-						{
-							hessian_triplet.emplace_back(pt1 * 3 + xd, pt2 * 3 + yd, H12x12(j * 3 + xd, q * 3 + yd));
-						}
-					}
-
+					hessian_triplet[startIndex_hess + xd * 3 + yd] = { pt1 * 3 + xd, pt2 * 3 + yd, H12x12(j * 3 + xd, q * 3 + yd) };
 				}
-			}
-
+			}			
 		}
+
+		
 	}
 
 }

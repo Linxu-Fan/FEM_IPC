@@ -36,7 +36,7 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 			step_forward(parameters,tetMesh, currentPosition, direction, step);
 			double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
 			std::cout << std::scientific << std::setprecision(4) << "		step = " << step<<"; newEnergyVal = "<< newEnergyVal << "; dist_to_converge = " << dist_to_converge << "; threshold = " << sqrt(parameters.searchResidual * tetMesh.calBBXDiagSize() * parameters.dt * parameters.dt) << std::endl;
-			while (newEnergyVal >= lastEnergyVal && step >= 1.0e-7)
+			while (newEnergyVal > lastEnergyVal && step >= 1.0e-7)
 			{
 				step /= 2.0;
 				std::cout << "			step = " << step << std::endl;
@@ -57,6 +57,7 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 		for (int i = 0; i < tetMesh.pos_node.size(); i++)
 		{
 			tetMesh.vel_node[i] = (tetMesh.pos_node[i] - tetMesh.pos_node_prev[i]) / parameters.dt;
+			//std::cout << "		12121 = " << std::endl;
 		}
 
 	}
@@ -101,7 +102,8 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 		eng += InertiaEnergy::Val(nodeMass, parameters.dt, xt, v, x, extForce, parameters);
 		node_ext_ine_energy_vec[vI] = eng;
 	}
-	energyVal += std::accumulate(node_ext_ine_energy_vec.begin(), node_ext_ine_energy_vec.end(), 0);
+	energyVal = std::accumulate(node_ext_ine_energy_vec.begin(), node_ext_ine_energy_vec.end(), 0.0);
+
 
 
 	// energy contribution per element
@@ -113,12 +115,16 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 		int matInd = tetMesh.materialInd[eI];
 		tex_est_energy_vec[eI] = ElasticEnergy::Val(tetMesh.materialMesh[matInd], parameters.model, tetMesh.tetra_F[eI], parameters.dt, tetMesh.tetra_vol[eI]);
 	}	
-	energyVal += std::accumulate(tex_est_energy_vec.begin(), tex_est_energy_vec.end(), 0);
+	energyVal += std::accumulate(tex_est_energy_vec.begin(), tex_est_energy_vec.end(), 0.0);
 
 
 	// energy contribution from barrier
 	energyVal += compute_Barrier_energy(tetMesh, parameters, timestep);
 
+	//if (energyVal != 0)
+	//{
+	//	std::cout << "compute_Barrier_energy(tetMesh, parameters, timestep) = " << compute_Barrier_energy(tetMesh, parameters, timestep) << std::endl;
+	//}
 
 
 	return energyVal;
@@ -199,9 +205,15 @@ double compute_Barrier_energy(Mesh& tetMesh, FEMParamters& parameters, int times
 
 		energyValue_perHash[y] = energy;
 	}
-	double energyHash = std::accumulate(energyValue_perHash.begin(), energyValue_perHash.end(), 0);
+	double energyHash = std::accumulate(energyValue_perHash.begin(), energyValue_perHash.end(), 0.0);
 
-
+	//if (timestep == 56)
+	//{
+	//	//energyValue_perHash[1] = 12;
+	//	std::cout << std::scientific << std::setprecision(8) << "energyHash = " << std::accumulate(energyValue_perHash.begin(), energyValue_perHash.end(), 0.0) << std::endl;
+	//	std::cout << "energyValue_perHash.size() = " << energyValue_perHash.size() << std::endl;
+	//}
+	
 	// ground barrier
 	if (parameters.enableGround == true)
 	{
@@ -218,10 +230,15 @@ double compute_Barrier_energy(Mesh& tetMesh, FEMParamters& parameters, int times
 			}
 			bov_ground_energy_vec[ft] = eng;
 		}
-		double energyGround = std::accumulate(bov_ground_energy_vec.begin(), bov_ground_energy_vec.end(), 0);
+		double energyGround = std::accumulate(bov_ground_energy_vec.begin(), bov_ground_energy_vec.end(), 0.0);
 		energyHash += energyGround;
 	}
 
+	//if (timestep == 56)
+	//{
+	//	std::cout << std::scientific << std::setprecision(8) << "energyHash = " << energyHash << std::endl;
+	//	std::cout << "energyValue_perHash.size() = " << energyValue_perHash.size() << std::endl;
+	//}
 
 	return energyHash;
 }
@@ -235,7 +252,6 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	// update defromation gradient
 	tetMesh.update_F(parameters.numOfThreads);
 
-	std::cout << "	Calculate contact!" << std::endl;
 
 
 	std::vector<Vector5i> PG_PG, PT_PP, PT_PE, PT_PT, EE_EE;
@@ -251,8 +267,15 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	std::vector<Eigen::Triplet<double>> hessian_triplet(hessSize);
 	
 
+	if (gradSize > tetMesh.pos_node.size() * 6 + tetMesh.tetrahedrals.size() * 12)
+	{
+		std::cout << "	PG_PG.size() = " << PG_PG.size() << std::endl;
+		std::cout << "	PT_PP.size() = " << PT_PP.size() << std::endl;
+		std::cout << "	PT_PE.size() = " << PT_PE.size() << std::endl;
+		std::cout << "	PT_PT.size() = " << PT_PT.size() << std::endl;
+		std::cout << "	EE_EE.size() = " << EE_EE.size() << std::endl;
+	}
 
-	std::cout << "	Calculate ine_ext!" << std::endl;
 
 	// energy contribution per vertex
 #pragma omp parallel for num_threads(parameters.numOfThreads)
@@ -279,7 +302,6 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	}
 
 
-	std::cout << "	Calculate elas!" << std::endl;
 
 	int startIndex_grad = tetMesh.pos_node.size() * 6, startIndex_hess = tetMesh.pos_node.size() * 3;
 	// energy contribution per element
@@ -304,11 +326,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 		
 	}
 
-	std::cout << "	Calculate contact!" << std::endl;
 
-	std::cout << "Theoretical gradSize = " << tetMesh.pos_node.size() * 6 + tetMesh.tetrahedrals.size() * 12  << "; Actual gradSize = " << grad_triplet.size() << std::endl;
-	std::cout << "Theoretical hessSize = " << tetMesh.pos_node.size() * 3 + tetMesh.tetrahedrals.size() * 144 << "; Actual hessSize = " << hessian_triplet.size() << std::endl;
-	
 	// calculate the barrier gradient and hessian
 	{
 		startIndex_grad += tetMesh.tetrahedrals.size() * 12, startIndex_hess += tetMesh.tetrahedrals.size() * 144;
@@ -412,8 +430,6 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	}
 
 
-	std::cout << "	Solve!" << std::endl;
-
 	// assemable the left-hand side 
 	Eigen::SparseMatrix<double> leftHandSide(3 * tetMesh.pos_node.size(), 3 * tetMesh.pos_node.size());
 	leftHandSide.setFromTriplets(hessian_triplet.begin(), hessian_triplet.end());
@@ -511,7 +527,7 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 								Vector5i ct = { 0 , vert , tri , type, 3 };
 								cont_pair.push_back(ct);
 							}
-							else
+							else if(type == 6)
 							{
 								Vector5i ct = { 0 , vert , tri , type, 4 };
 								cont_pair.push_back(ct);
@@ -604,126 +620,6 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 
 	}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//
-//
-//
-//	// energy contribution from barrier
-//	// point-triangle barrier
-//#pragma omp parallel for num_threads(parameters.numOfThreads)
-//	for(int ft = 0; ft < tetMesh.boundaryVertices_vec.size(); ft++)
-//	{
-//		int ptInd = tetMesh.boundaryVertices_vec[ft];
-//		Eigen::Vector3d P = tetMesh.pos_node[ptInd];
-//
-//		std::vector<Eigen::Triplet<double>> hessian_triplet;
-//		std::vector<std::pair<int, double>> grad_triplet;
-//		for (int tI = 0; tI < tetMesh.boundaryTriangles.size(); tI++)
-//		{
-//			if (tetMesh.boundaryVertices[ptInd].find(tI) == tetMesh.boundaryVertices[ptInd].end()) // this triangle is not incident with the point
-//			{
-//				Eigen::Vector3i tri = tetMesh.boundaryTriangles[tI];
-//				Eigen::Vector3d A = tetMesh.pos_node[tri[0]];
-//				Eigen::Vector3d B = tetMesh.pos_node[tri[1]];
-//				Eigen::Vector3d C = tetMesh.pos_node[tri[2]];
-//
-//
-//				int type = DIS::dType_PT(P, A, B, C);
-//				double dis2 =0;
-//				DIS::computePointTriD(P, A, B, C, dis2);
-//				
-//				if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
-//				{
-//					Eigen::Vector4i ptIndices = { ptInd , tri[0] , tri[1] , tri[2] };
-//					BarrierEnergy::gradAndHess_PT(hessian_triplet, grad_triplet, tetMesh.boundaryCondition_node, ptIndices, type, dis2, tetMesh, parameters.IPC_dis * parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
-//				}
-//				
-//			}
-//		}
-//		pTeEBarrVec.hessian_triplet_vec[ft] = hessian_triplet;
-//		pTeEBarrVec.grad_triplet_vec[ft] = grad_triplet;
-//	}
-//
-//
-//	// edge-edge barrier
-//	int startIndex = tetMesh.boundaryVertices_vec.size();
-//#pragma omp parallel for num_threads(parameters.numOfThreads)
-//	for (int ft = 0; ft < tetMesh.index_boundaryEdge_vec.size(); ft++)
-//	{
-//		int edge1 = tetMesh.index_boundaryEdge_vec[ft];
-//
-//		std::vector<Eigen::Triplet<double>> hessian_triplet;
-//		std::vector<std::pair<int, double>> grad_triplet;
-//		for (int gt = 0; gt < tetMesh.index_boundaryEdge_vec.size(); gt++)
-//		{
-//			int edge2 = tetMesh.index_boundaryEdge_vec[gt];
-//			if (ft != gt)
-//			{
-//				int e1p1 = tetMesh.index_boundaryEdge[edge1][0], e1p2 = tetMesh.index_boundaryEdge[edge1][1], e2p1 = tetMesh.index_boundaryEdge[edge2][0], e2p2 = tetMesh.index_boundaryEdge[edge2][1];
-//				if (e1p1 != e2p1 && e1p1 != e2p2 && e1p2 != e2p1 && e1p2 != e2p2) // not duplicated and incident edges
-//				{
-//					Eigen::Vector3d P1 = tetMesh.pos_node[e1p1];
-//					Eigen::Vector3d P2 = tetMesh.pos_node[e1p2];
-//					Eigen::Vector3d Q1 = tetMesh.pos_node[e2p1];
-//					Eigen::Vector3d Q2 = tetMesh.pos_node[e2p2];
-//
-//
-//					int type = DIS::dType_EE(P1, P2, Q1, Q2);
-//					double dis2 = 0;
-//					DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
-//
-//					if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
-//					{
-//						Eigen::Vector4i ptIndices = { e1p1 , e1p2 , e2p1 , e2p2 };
-//						BarrierEnergy::gradAndHess_EE(hessian_triplet, grad_triplet, tetMesh.boundaryCondition_node, ptIndices, type, dis2, tetMesh, parameters.IPC_dis * parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
-//					}
-//				}
-//			}
-//		}
-//		pTeEBarrVec.hessian_triplet_vec[startIndex + ft] = hessian_triplet;
-//		pTeEBarrVec.grad_triplet_vec[startIndex + ft] = grad_triplet;
-//	
-//	}
-//
-
-	//// ground barrier
-	//// !!!!!!!!!!!!!!!!!Cannot use the following code directly because the vector didn't consider the size of ground contact
-	//if (parameters.enableGround == true)
-	//{
-	//	std::vector<Eigen::Triplet<double>> hessian_triplet;
-	//	std::vector<std::pair<int, double>> grad_triplet;
-	//	for (int ft = 0; ft < tetMesh.boundaryVertices_vec.size(); ft++)
-	//	{
-	//		int ptInd = tetMesh.boundaryVertices_vec[ft];
-	//		Eigen::Vector3d P = tetMesh.pos_node[ptInd];
-	//		if (P[2] <= parameters.IPC_dis)
-	//		{
-	//			Ground::gradAndHess(hessian_triplet, grad_triplet, tetMesh.boundaryCondition_node, ptInd, P[2] * P[2], parameters.IPC_dis * parameters.IPC_dis, tetMesh.boundaryVertices_area[ptInd], parameters.IPC_kStiffness, parameters.dt);
-	//		}
-	//	}
-	//	pTeEBarrVec.grad_triplet_vec.push_back(grad_triplet);
-	//	pTeEBarrVec.hessian_triplet_vec.push_back(hessian_triplet);
-	//}
-	
 }
 
 // calculate the maximum feasible step size

@@ -16,14 +16,11 @@ void ExternalEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int
 	{
 		if (BC != 1)
 		{
-			std::pair<int, double> pa = std::make_pair(vertIndex * 3 + dI, gravityForceEng[dI]);
-			grad_triplet[startIndex_grad + dI] = pa;
-
+			grad_triplet[startIndex_grad + dI] = { vertIndex * 3 + dI, gravityForceEng[dI] };
 		}
 		else
 		{
-			std::pair<int, double> pa = std::make_pair(vertIndex * 3 + dI, 0);
-			grad_triplet[startIndex_grad + dI] = pa;
+			grad_triplet[startIndex_grad + dI] = { vertIndex * 3 + dI, 0 };
 		}
 		
 	}
