@@ -18,7 +18,7 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 		std::vector<Eigen::Vector3d> currentPosition = tetMesh.pos_node;
 		double lastEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
 		std::cout << "	lastEnergyVal = " << lastEnergyVal << std::endl;
-		for(int ite = 0; ite < 50; ite++)
+		for(int ite = 0; ite < 20; ite++)
 		{	
 					
 			std::cout << "		ite = " << ite << std::endl;
@@ -36,7 +36,7 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 			step_forward(parameters,tetMesh, currentPosition, direction, step);
 			double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
 			std::cout << std::scientific << std::setprecision(4) << "		step = " << step<<"; newEnergyVal = "<< newEnergyVal << "; dist_to_converge = " << dist_to_converge << "; threshold = " << sqrt(parameters.searchResidual * tetMesh.calBBXDiagSize() * parameters.dt * parameters.dt) << std::endl;
-			while (newEnergyVal > lastEnergyVal && step >= 1.0e-7)
+			while (newEnergyVal > lastEnergyVal && step >= 1.0e-5)
 			{
 				step /= 2.0;
 				std::cout << "			step = " << step << std::endl;
@@ -57,7 +57,6 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 		for (int i = 0; i < tetMesh.pos_node.size(); i++)
 		{
 			tetMesh.vel_node[i] = (tetMesh.pos_node[i] - tetMesh.pos_node_prev[i]) / parameters.dt;
-			//std::cout << "		12121 = " << std::endl;
 		}
 
 	}
@@ -121,10 +120,6 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 	// energy contribution from barrier
 	energyVal += compute_Barrier_energy(tetMesh, parameters, timestep);
 
-	//if (energyVal != 0)
-	//{
-	//	std::cout << "compute_Barrier_energy(tetMesh, parameters, timestep) = " << compute_Barrier_energy(tetMesh, parameters, timestep) << std::endl;
-	//}
 
 
 	return energyVal;
@@ -267,14 +262,6 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	std::vector<Eigen::Triplet<double>> hessian_triplet(hessSize);
 	
 
-	if (gradSize > tetMesh.pos_node.size() * 6 + tetMesh.tetrahedrals.size() * 12)
-	{
-		std::cout << "	PG_PG.size() = " << PG_PG.size() << std::endl;
-		std::cout << "	PT_PP.size() = " << PT_PP.size() << std::endl;
-		std::cout << "	PT_PE.size() = " << PT_PE.size() << std::endl;
-		std::cout << "	PT_PT.size() = " << PT_PT.size() << std::endl;
-		std::cout << "	EE_EE.size() = " << EE_EE.size() << std::endl;
-	}
 
 
 	// energy contribution per vertex
@@ -302,7 +289,6 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	}
 
 
-
 	int startIndex_grad = tetMesh.pos_node.size() * 6, startIndex_hess = tetMesh.pos_node.size() * 3;
 	// energy contribution per element
 #pragma omp parallel for num_threads(parameters.numOfThreads)
@@ -324,6 +310,15 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 		ElasticEnergy::Hess(hessian_triplet, actualStartIndex_hess, tetMesh.materialMesh[matInd], parameters.model, tetMesh.tetra_F[eI], parameters.dt, tetMesh.tetra_vol[eI], dFdx, tetMesh.tetrahedrals[eI], tetVertInd_BC);
 		
 		
+	}
+
+	if (gradSize > tetMesh.pos_node.size() * 6 + tetMesh.tetrahedrals.size() * 12)
+	{
+		std::cout << "PT_PP.size() = " << PT_PP.size() << std::endl;
+		std::cout << "PT_PE.size() = " << PT_PE.size() << std::endl;
+		std::cout << "PT_PT.size() = " << PT_PT.size() << std::endl;
+		std::cout << "EE_EE.size() = " << EE_EE.size() << std::endl;
+		std::cout << "EE_EE.size() = " << EE_EE.size() << std::endl;
 	}
 
 
@@ -397,6 +392,13 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 			Eigen::Vector3d C = tetMesh.pos_node[tri[2]];
 			int type = cont_PT[3];
 
+			//std::cout << "ptInd = " << ptInd << std::endl << std::endl;
+			//std::cout << "cont_PT = " << cont_PT << std::endl << std::endl;
+			//std::cout << "tri = " << tri << std::endl << std::endl;
+
+			//std::cout << "cont_PT[1] = " << cont_PT[1] << std::endl;
+
+
 			double dis2 = 0;
 			DIS::computePointTriD(P, A, B, C, dis2);
 			Eigen::Vector4i ptIndices = { ptInd , tri[0] , tri[1] , tri[2] };
@@ -468,6 +470,8 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	{
 		movingDir[i] = result.block<3, 1>(3 * i, 0);
 	}
+
+
 
 	return movingDir;
 }

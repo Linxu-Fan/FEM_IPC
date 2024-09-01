@@ -160,9 +160,6 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 	}
 
 
-
-
-
 }
 
 
@@ -175,7 +172,7 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 		{
 			V6[j * 3] = 0;
 			V6[j * 3 + 1] = 0;
-			V6[j * 3 + 1] = 0;
+			V6[j * 3 + 2] = 0;
 
 			H6x6.row(j * 3).setZero();
 			H6x6.row(j * 3 + 1).setZero();
@@ -194,7 +191,7 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 		for (int xd = 0; xd < 3; xd++)
 		{
 			double value = V6[j * 3 + xd];
-			grad_triplet[startIndex_grad + xd] = { pt1 * 3 + xd, value };
+			grad_triplet[startIndex_grad + j * 3 + xd] = { pt1 * 3 + xd, value };
 		}
 
 		for (int q = 0; q < 2; q++)
@@ -204,7 +201,7 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 			{
 				for (int yd = 0; yd < 3; yd++)
 				{
-					hessian_triplet[startIndex_hess + xd * 3 + yd] = { pt1 * 3 + xd, pt2 * 3 + yd, H6x6(j * 3 + xd, q * 3 + yd) };
+					hessian_triplet[startIndex_hess + j * 18 + q * 9 + xd * 3 + yd] = { pt1 * 3 + xd, pt2 * 3 + yd, H6x6(j * 3 + xd, q * 3 + yd) };
 				}
 			}
 		}
@@ -223,7 +220,7 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 		{
 			V9[j * 3] = 0;
 			V9[j * 3 + 1] = 0;
-			V9[j * 3 + 1] = 0;
+			V9[j * 3 + 2] = 0;
 
 			H9x9.row(j * 3).setZero();
 			H9x9.row(j * 3 + 1).setZero();
@@ -240,7 +237,7 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 		for (int xd = 0; xd < 3; xd++)
 		{
 			double value = V9[j * 3 + xd];
-			grad_triplet[startIndex_grad + xd] = { pt1 * 3 + xd, value };
+			grad_triplet[startIndex_grad + j * 3 + xd] = { pt1 * 3 + xd, value };
 		}
 
 		for (int q = 0; q < 3; q++)
@@ -251,7 +248,7 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 			{
 				for (int yd = 0; yd < 3; yd++)
 				{
-					hessian_triplet[startIndex_hess + xd * 3 + yd] = { pt1 * 3 + xd, pt2 * 3 + yd, H9x9(j * 3 + xd, q * 3 + yd) };
+					hessian_triplet[startIndex_hess + j * 27 + q * 9 + xd * 3 + yd] = { pt1 * 3 + xd, pt2 * 3 + yd, H9x9(j * 3 + xd, q * 3 + yd) };
 				}
 			}		
 		}
@@ -271,7 +268,7 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 		{
 			V12[j * 3] = 0;
 			V12[j * 3 + 1] = 0;
-			V12[j * 3 + 1] = 0;
+			V12[j * 3 + 2] = 0;
 
 			H12x12.row(j * 3).setZero();
 			H12x12.row(j * 3 + 1).setZero();
@@ -288,7 +285,7 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 		for (int xd = 0; xd < 3; xd++)
 		{
 			double value = V12[j * 3 + xd];
-			grad_triplet[startIndex_grad + xd] = { pt1 * 3 + xd, value };
+			grad_triplet[startIndex_grad + j * 3 + xd] = { pt1 * 3 + xd, value };
 		}
 
 		for (int q = 0; q < 4; q++)
@@ -299,7 +296,7 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 			{
 				for (int yd = 0; yd < 3; yd++)
 				{
-					hessian_triplet[startIndex_hess + xd * 3 + yd] = { pt1 * 3 + xd, pt2 * 3 + yd, H12x12(j * 3 + xd, q * 3 + yd) };
+					hessian_triplet[startIndex_hess + j * 36 + q * 9 + xd * 3 + yd] = { pt1 * 3 + xd, pt2 * 3 + yd, H12x12(j * 3 + xd, q * 3 + yd) };
 				}
 			}			
 		}

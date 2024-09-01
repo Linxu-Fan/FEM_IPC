@@ -168,8 +168,7 @@ void ElasticEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int&
 			int x1_Ind = tetVertInd[m]; // the first vertex index
 			for (int xd = 0; xd < 3; xd++)
 			{
-				std::pair<int, double> pa = std::make_pair(x1_Ind * 3 + xd, engGrad(m * 3 + xd, 1));
-				grad_triplet[startIndex_grad + xd] = pa;
+				grad_triplet[startIndex_grad + m * 3 + xd] = { x1_Ind * 3 + xd, engGrad(m * 3 + xd, 1) };
 			}
 		}
 		else
@@ -177,8 +176,7 @@ void ElasticEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int&
 			int x1_Ind = tetVertInd[m]; // the first vertex index
 			for (int xd = 0; xd < 3; xd++)
 			{
-				std::pair<int, double> pa = std::make_pair(x1_Ind * 3 + xd, 0);
-				grad_triplet[startIndex_grad + xd] = pa;
+				grad_triplet[startIndex_grad + m * 3 + xd] = { x1_Ind * 3 + xd, 0 };
 			}
 		}
 	}
