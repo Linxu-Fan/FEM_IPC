@@ -21,7 +21,7 @@ int main()
 		{
 			Material mat1;
 			mat1.density = 1000;
-			mat1.E = 1.0e6;
+			mat1.E = 1.0e4;
 			mat1.updateDenpendecies();
 
 
@@ -72,7 +72,8 @@ int main()
 			meshConfiguration m1, m2, m3, m4, m5;
 			m1.filePath = "./input/beam.msh";
 			m1.mesh_material = mat1;
-			//m1.scale = {1000, 1000, 1000};
+			m1.scale = {1000, 1000, 1000};
+			m1.velocity = { 0, 0 , 0 };
 			m1.note = "beam";
 			config.push_back(m1);
 
@@ -93,6 +94,8 @@ int main()
 
 			m5 = m1;
 			m5.filePath = "../input/Right_top_move.msh";
+			m5.translation = { 0, 0, -0.1 };
+			m5.velocity = { 0, 0 , -2 };
 			m5.note = "Right_top_move";
 			config.push_back(m5);
 
@@ -113,19 +116,18 @@ int main()
 
 
 			FEMParamters parameters;
-			parameters.dt = 2.0E-4;
+			parameters.dt = 1.0E-4;
 			parameters.gravity = { 0, 0, 0 };
 			parameters.num_timesteps = 10001;
-			parameters.outputFrequency = 10;
+			parameters.outputFrequency = 1;
 			parameters.enableGround = false;
-			parameters.searchResidual = 0.001;
+			parameters.searchResidual = 0.005;
 			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;
 			parameters.objectNames = objectNames;
-			parameters.IPC_dis = 0.001;
-			//parameters.IPC_dis = 0.003121;
+			parameters.IPC_dis = 0.003;
 			parameters.IPC_eta = 0.05;
-			parameters.IPC_kStiffness = 1.0e16;
+			parameters.IPC_kStiffness = 1.0e10;
 			parameters.IPC_hashSize = tetMesh.calLargestEdgeLength() * 1.1;
 
 			std::cout << "parameters.IPC_hashSize = " << parameters.IPC_hashSize << std::endl;

@@ -309,92 +309,6 @@ std::set<std::string> getTheIntersectedHash(bool advected, FEMParamters& paramet
 void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, std::vector<spatialHashCellData>& spatialHash_vec, std::map<std::string, int>& hashNameIndex, int timestep = 0)
 {
 
-    //if (timestep == 56)
-    //{
-
-    //    int numOfPts = tetMesh.boundaryVertices.size();
-    //    if (advected)
-    //    {
-    //        numOfPts = tetMesh.boundaryVertices.size() * 2;
-    //    }
-
-    //    std::vector<std::vector<Eigen::Vector3d>> pos_node_current_and_next(parameters.objectNames.size());
-    //    std::map<std::string, int> objectNameIndex;
-    //    for (int i = 0; i < parameters.objectNames.size(); i++)
-    //    {
-    //        objectNameIndex[parameters.objectNames[i]] = i;
-    //    }
-
-    //    if (advected)
-    //    {
-    //        for (int ft = 0; ft < tetMesh.boundaryVertices_vec.size(); ft++)
-    //        {
-    //            int ptInd = tetMesh.boundaryVertices_vec[ft];
-    //            int indexPt = objectNameIndex[tetMesh.note_node[ptInd]];
-    //            pos_node_current_and_next[indexPt].push_back(tetMesh.pos_node[ptInd]);
-    //            pos_node_current_and_next[indexPt].push_back(tetMesh.pos_node[ptInd] + direction[ptInd]);
-    //        }
-    //    }
-    //    else
-    //    {
-    //        for (int ft = 0; ft < tetMesh.boundaryVertices_vec.size(); ft++)
-    //        {
-    //            int ptInd = tetMesh.boundaryVertices_vec[ft];
-    //            int indexPt = objectNameIndex[tetMesh.note_node[ptInd]];
-    //            pos_node_current_and_next[indexPt].push_back(tetMesh.pos_node[ptInd]);
-    //        }
-    //    }
-
-
-    //    std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3i>> intersectVec;
-    //    for (int i = 0; i < pos_node_current_and_next.size(); i++)
-    //    {
-    //        std::pair<Eigen::Vector3d, Eigen::Vector3d> bbx = findBoundingBox_vec(pos_node_current_and_next[i]);
-    //        std::cout << "bbx.first = " << bbx.first << std::endl;
-    //        std::cout << "bbx.second = " << bbx.second << std::endl;
-    //        Eigen::Vector3i minFloor = { static_cast<int>(std::floor(bbx.first[0] / cellSize)) ,
-    //            static_cast<int>(std::floor(bbx.first[1] / cellSize)) , static_cast<int>(std::floor(bbx.first[2] / cellSize)) };
-    //        Eigen::Vector3i maxFloor = { static_cast<int>(std::floor(bbx.second[0] / cellSize)) ,
-    //            static_cast<int>(std::floor(bbx.second[1] / cellSize)) , static_cast<int>(std::floor(bbx.second[2] / cellSize)) };
-
-    //        std::pair<Eigen::Vector3i, Eigen::Vector3i> pr = std::make_pair(minFloor - Eigen::Vector3i::Ones(), maxFloor + Eigen::Vector3i::Ones());
-    //        intersectVec.push_back(pr);
-    //    }
-
-
-
-    //    std::set<std::string> hashCellNames;
-    //    for (int i = 0; i < intersectVec.size(); i++)
-    //    {
-    //        std::pair<Eigen::Vector3i, Eigen::Vector3i> I1 = intersectVec[i];
-    //        for (int j = i + 1; j < intersectVec.size(); j++)
-    //        {
-    //            std::pair<Eigen::Vector3i, Eigen::Vector3i> I2 = intersectVec[j];
-    //            Eigen::Vector3i intersectMin, intersectMax;
-    //            bool success = findIntersectionOfTwoVector3i(I1.first, I1.second, I2.first, I2.second, intersectMin, intersectMax);
-    //            if (success)
-    //            {
-    //                for (int mnx = intersectMin[0]; mnx < intersectMax[0] + 1; mnx++)
-    //                {
-    //                    for (int mny = intersectMin[1]; mny < intersectMax[1] + 1; mny++)
-    //                    {
-    //                        for (int mnz = intersectMin[2]; mnz < intersectMax[2] + 1; mnz++)
-    //                        {
-    //                            Eigen::Vector3i index = { mnx , mny , mnz };
-    //                            std::string ID = calculateID(index);
-    //                            hashCellNames.insert(ID);
-    //                        }
-    //                    }
-    //                }
-
-    //            }
-    //        }
-    //    }
-
-    //    std::cout << "hashCellNames = " << hashCellNames.size() << std::endl;
-    //    std::cout << "hashCellNames = " << hashCellNames.size() << std::endl;
-    //}
-
 
     std::unordered_map<std::string, spatialHashCellData> spatialHash;
 
@@ -476,41 +390,41 @@ void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetMesh, std
 
 
 
-    //{
+    {
 
-    //    std::ofstream outfile2("./output/hash.obj", std::ios::trunc);
-    //    for (int k = 0; k < spatialHash_vec.size(); k++)
-    //    {
-    //        Eigen::Vector3d P1 = spatialHash_vec[k].bottomLeftCorner.cast<double>() * cellSize;
-    //        Eigen::Vector3d P2 = P1;
-    //        P2[0] += cellSize;
-    //        Eigen::Vector3d P3 = P1;
-    //        P3[1] += cellSize;
-    //        Eigen::Vector3d P4 = P1;
-    //        P4[0] += cellSize;
-    //        P4[1] += cellSize;
+        std::ofstream outfile2("./output/hash.obj", std::ios::trunc);
+        for (int k = 0; k < spatialHash_vec.size(); k++)
+        {
+            Eigen::Vector3d P1 = spatialHash_vec[k].bottomLeftCorner.cast<double>() * cellSize;
+            Eigen::Vector3d P2 = P1;
+            P2[0] += cellSize;
+            Eigen::Vector3d P3 = P1;
+            P3[1] += cellSize;
+            Eigen::Vector3d P4 = P1;
+            P4[0] += cellSize;
+            P4[1] += cellSize;
 
-    //        Eigen::Vector3d P1Q = P1;
-    //        P1Q[2] += cellSize;
-    //        Eigen::Vector3d P2Q = P2;
-    //        P2Q[2] += cellSize;
-    //        Eigen::Vector3d P3Q = P3;
-    //        P3Q[2] += cellSize;
-    //        Eigen::Vector3d P4Q = P4;
-    //        P4Q[2] += cellSize;
+            Eigen::Vector3d P1Q = P1;
+            P1Q[2] += cellSize;
+            Eigen::Vector3d P2Q = P2;
+            P2Q[2] += cellSize;
+            Eigen::Vector3d P3Q = P3;
+            P3Q[2] += cellSize;
+            Eigen::Vector3d P4Q = P4;
+            P4Q[2] += cellSize;
 
 
-    //        outfile2 << std::scientific << std::setprecision(8) << "v " << P1[0] << " " << P1[1] << " " << P1[2] << std::endl;
-    //        outfile2 << std::scientific << std::setprecision(8) << "v " << P2[0] << " " << P2[1] << " " << P2[2] << std::endl;
-    //        outfile2 << std::scientific << std::setprecision(8) << "v " << P3[0] << " " << P3[1] << " " << P3[2] << std::endl;
-    //        outfile2 << std::scientific << std::setprecision(8) << "v " << P4[0] << " " << P4[1] << " " << P4[2] << std::endl;
-    //        outfile2 << std::scientific << std::setprecision(8) << "v " << P1Q[0] << " " << P1Q[1] << " " << P1Q[2] << std::endl;
-    //        outfile2 << std::scientific << std::setprecision(8) << "v " << P2Q[0] << " " << P2Q[1] << " " << P2Q[2] << std::endl;
-    //        outfile2 << std::scientific << std::setprecision(8) << "v " << P3Q[0] << " " << P3Q[1] << " " << P3Q[2] << std::endl;
-    //        outfile2 << std::scientific << std::setprecision(8) << "v " << P4Q[0] << " " << P4Q[1] << " " << P4Q[2] << std::endl;
-    //    }
-    //    outfile2.close();
-    //}
+            outfile2 << std::scientific << std::setprecision(8) << "v " << P1[0] << " " << P1[1] << " " << P1[2] << std::endl;
+            outfile2 << std::scientific << std::setprecision(8) << "v " << P2[0] << " " << P2[1] << " " << P2[2] << std::endl;
+            outfile2 << std::scientific << std::setprecision(8) << "v " << P3[0] << " " << P3[1] << " " << P3[2] << std::endl;
+            outfile2 << std::scientific << std::setprecision(8) << "v " << P4[0] << " " << P4[1] << " " << P4[2] << std::endl;
+            outfile2 << std::scientific << std::setprecision(8) << "v " << P1Q[0] << " " << P1Q[1] << " " << P1Q[2] << std::endl;
+            outfile2 << std::scientific << std::setprecision(8) << "v " << P2Q[0] << " " << P2Q[1] << " " << P2Q[2] << std::endl;
+            outfile2 << std::scientific << std::setprecision(8) << "v " << P3Q[0] << " " << P3Q[1] << " " << P3Q[2] << std::endl;
+            outfile2 << std::scientific << std::setprecision(8) << "v " << P4Q[0] << " " << P4Q[1] << " " << P4Q[2] << std::endl;
+        }
+        outfile2.close();
+    }
 
 
 
@@ -525,7 +439,7 @@ double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vect
     std::map<std::string, int> hashNameIndex;
     initSpatialHash(true, parameters, tetMesh, direction, cellSize, spatialHash_vec, hashNameIndex);
 
-    std::cout << "              spatialHash_vec.size() = " << spatialHash_vec.size() << std::endl;
+    //std::cout << "              spatialHash_vec.size() = " << spatialHash_vec.size() << std::endl;
 
     std::vector<double> stepValue_perHash(spatialHash_vec.size());
 #pragma omp parallel for num_threads(parameters.numOfThreads)
