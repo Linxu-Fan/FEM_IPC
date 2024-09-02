@@ -10,32 +10,8 @@ int main()
 
 	if (0)
 	{
-		std::vector<double> test;
-		test.push_back(2.0);
-		test.push_back(4.0);
-		test.push_back(6.0);
-		test.push_back(1.0);
-		double value = std::accumulate(test.begin(), test.end(), 0.0);
-		std::cout << "value = " << value << std::endl;
-
-		//std::vector<Eigen::Triplet<double>> hessian_triplet;
-		//hessian_triplet.emplace_back(1, 1, 2);
-		//hessian_triplet.emplace_back(2, 3, 5);
-		//hessian_triplet.emplace_back(3, 1, 4);
-		//hessian_triplet.emplace_back(2, 2, 4);
-
-		//std::vector<Eigen::Triplet<double>> hessian_triplet2;
-		//hessian_triplet2.emplace_back(1, 1, 3);
-		//hessian_triplet2.emplace_back(2, 3, 4);
-		//hessian_triplet2.emplace_back(3, 1, 1);
-		//hessian_triplet2.emplace_back(2, 2, 2);
-
-		//Eigen::SparseMatrix<double> leftHandSide(4, 4), leftHandSide2(4, 4);
-		//leftHandSide.setFromTriplets(hessian_triplet.begin(), hessian_triplet.end());
-		//leftHandSide2.setFromTriplets(hessian_triplet2.begin(), hessian_triplet2.end());
-		//leftHandSide += leftHandSide2;
-
-		//std::cout << "leftHandSide = " << leftHandSide << std::endl;
+		Eigen::Vector2i res = findIntersectionOfTwoNums(0, 3, 2, 5);
+		std::cout << res;
 
 	}
 	else
@@ -54,16 +30,21 @@ int main()
 			//meshConfiguration m1, m2;
 			//m1.filePath = "../input/cube.msh";
 			//m1.mesh_material = mat1;
+			//m1.note = "cube1";
 			//m1.velocity = { 5.0, 0 , 0 };
-			//m1.translation = { 0, 0, 0.1 };
+			////m1.translation = { 0, 0, 0.1 };
 			//config.push_back(m1);
 			//m2 = m1;
 			//m2.mesh_material = mat1;
+			//m2.note = "cube2";
 			//m2.velocity = { -5.0, 0 , 0 };
-			//m2.rotation_point = { 0.5, 0.5, 0.5 };
-			////m2.translation = { 1.03, 0, 1.0 };
-			//m2.rotation_angle = { PI / 4.0, PI / 4.0, PI / 4.0 };
-			//m2.translation = { 1.76, 0.5, -0.1 };
+			////m2.rotation_point = { 0.5, 0.5, 0.5 };
+			////m2.rotation_angle = { PI / 4.0, PI / 4.0, PI / 4.0 };
+			////m2.translation = { 1.76, 0.5, -0.1 };
+
+
+			//m2.translation = { 1.1, 0, 0 };
+
 			//config.push_back(m2);
 
 
@@ -87,8 +68,7 @@ int main()
 
 
 
-
-			std::vector<meshConfiguration> config;
+			std::vector<meshConfiguration> config;			
 			meshConfiguration m1, m2, m3, m4, m5;
 			m1.filePath = "./input/beam.msh";
 			m1.mesh_material = mat1;
@@ -99,17 +79,17 @@ int main()
 			m2 = m1;
 			m2.filePath = "../input/Left_bottom_fix.msh";
 			m2.note = "Left_bottom_fix";
-			config.push_back(m2);
+			//config.push_back(m2);
 
 			m3 = m1;
 			m3.filePath = "../input/Left_top_fix.msh";
 			m3.note = "Left_top_fix";
-			config.push_back(m3);
+			//config.push_back(m3);
 
 			m4 = m1;
 			m4.filePath = "../input/Middle_support.msh";
 			m4.note = "Middle_support";
-			config.push_back(m4);
+			//config.push_back(m4);
 
 			m5 = m1;
 			m5.filePath = "../input/Right_top_move.msh";
@@ -118,6 +98,11 @@ int main()
 
 
 			Mesh tetMesh;
+			std::vector<std::string> objectNames;
+			for (int i = 0; i < config.size(); i++)
+			{
+				objectNames.push_back(config[i].note);
+			}
 			tetMesh.readMeshes(config);
 			tetMesh.initializeMesh();
 			tetMesh.surfaceMesh.outputFile("surfMesh");
@@ -134,13 +119,16 @@ int main()
 			parameters.outputFrequency = 10;
 			parameters.enableGround = false;
 			parameters.searchResidual = 0.001;
-			parameters.model = "ARAP_linear"; // neoHookean ARAP ARAP_linear ACAP
+			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+			parameters.rigidMode = true;
+			parameters.objectNames = objectNames;
 			parameters.IPC_dis = 0.001;
+			//parameters.IPC_dis = 0.003121;
 			parameters.IPC_eta = 0.05;
-			parameters.IPC_kStiffness = 1.0e15;
-			parameters.IPC_hashSize = tetMesh.calLargestEdgeLength() * 1.3;
+			parameters.IPC_kStiffness = 1.0e16;
+			parameters.IPC_hashSize = tetMesh.calLargestEdgeLength() * 1.1;
 
-
+			std::cout << "parameters.IPC_hashSize = " << parameters.IPC_hashSize << std::endl;
 
 			implicitFEM(tetMesh, parameters);
 

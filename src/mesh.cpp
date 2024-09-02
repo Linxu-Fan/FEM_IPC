@@ -362,7 +362,8 @@ void Mesh::findBoundaryElements()
 
 		int emin = std::min(v1, v2), emax = std::max(v1, v2);
 		boundaryEdges[emin][emax] = tris;
-
+		boundaryVertices_egde[v1].insert(edgeIndex);
+		boundaryVertices_egde[v2].insert(edgeIndex);
 		boundaryEdge_index[emin][emax] = edgeIndex;
 		edgeIndex += 1;
 	}

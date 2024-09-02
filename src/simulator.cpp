@@ -117,6 +117,7 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 	energyVal += std::accumulate(tex_est_energy_vec.begin(), tex_est_energy_vec.end(), 0.0);
 
 
+
 	// energy contribution from barrier
 	energyVal += compute_Barrier_energy(tetMesh, parameters, timestep);
 
@@ -129,9 +130,18 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 double compute_Barrier_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 {
 	std::vector<spatialHashCellData> spatialHash_vec;
-	initSpatialHash(parameters, tetMesh, parameters.IPC_hashSize, spatialHash_vec);
+	std::map<std::string, int> hashNameIndex;
+	std::vector<Eigen::Vector3d> direction(tetMesh.pos_node.size());
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+	for (int i = 0; i < tetMesh.pos_node.size(); i++)
+	{
+		direction[i] = Eigen::Vector3d::Zero();
+	}
+	initSpatialHash(false, parameters, tetMesh, direction, parameters.IPC_hashSize, spatialHash_vec, hashNameIndex,timestep);
 
-	std::vector<double> energyValue_perHash(spatialHash_vec.size());
+	
+
+	std::vector<double> energyValue_perHash_PT(spatialHash_vec.size());
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 	for (int y = 0; y < spatialHash_vec.size(); y++)
 	{
@@ -139,76 +149,127 @@ double compute_Barrier_energy(Mesh& tetMesh, FEMParamters& parameters, int times
 		// calcualte the PT pair
 		for (std::set<int>::iterator itP = spatialHash_vec[y].vertIndices.begin(); itP != spatialHash_vec[y].vertIndices.end(); itP++)
 		{
-			for (std::set<int>::iterator itT = spatialHash_vec[y].triaIndices.begin(); itT != spatialHash_vec[y].triaIndices.end(); itT++)
+			Eigen::Vector3i bottomLeftCorner = spatialHash_vec[y].bottomLeftCorner;
+			for (int xx = bottomLeftCorner[0] - 1; xx <= bottomLeftCorner[0] + 1; xx++)
 			{
-				int vert = *itP, tri = *itT;
-				if (tetMesh.boundaryVertices[vert].find(tri) == tetMesh.boundaryVertices[vert].end()) // this triangle is not incident with the point
+				for (int yy = bottomLeftCorner[1] - 1; yy <= bottomLeftCorner[1] + 1; yy++)
 				{
-					Eigen::Vector3i triVerts = tetMesh.boundaryTriangles[tri];
-					Eigen::Vector3d P = tetMesh.pos_node[vert];
-					Eigen::Vector3d A = tetMesh.pos_node[triVerts[0]];
-					Eigen::Vector3d B = tetMesh.pos_node[triVerts[1]];
-					Eigen::Vector3d C = tetMesh.pos_node[triVerts[2]];
-
-					if (pointTriangleCCDBroadphase(P, A, B, C, parameters.IPC_dis))
+					for (int zz = bottomLeftCorner[2] - 1; zz <= bottomLeftCorner[2] + 1; zz++)
 					{
-						int type = DIS::dType_PT(P, A, B, C);
-						double dis2 = 0;
-						DIS::computePointTriD(P, A, B, C, dis2);
-
-						if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+						Eigen::Vector3i index = { xx , yy , zz };
+						std::string ID = calculateID(index);
+						if (hashNameIndex.find(ID) != hashNameIndex.end())
 						{
-							energy += BarrierEnergy::val_PT(tetMesh.boundaryVertices_area[vert], dis2, squaredDouble(parameters.IPC_dis), parameters.IPC_kStiffness, parameters.dt);
-						}
-					}
-				}
-			}
-		}
-
-		// calcualte the EE pair
-		for (std::set<int>::iterator itE1 = spatialHash_vec[y].edgeIndices.begin(); itE1 != spatialHash_vec[y].edgeIndices.end(); itE1++)
-		{
-			for (std::set<int>::iterator itE2 = spatialHash_vec[y].edgeIndices.begin(); itE2 != spatialHash_vec[y].edgeIndices.end(); itE2++)
-			{
-				if (*itE1 != *itE2)
-				{
-					Eigen::Vector2i E1 = tetMesh.index_boundaryEdge[*itE1], E2 = tetMesh.index_boundaryEdge[*itE2];
-					int P1I = E1[0], P2I = E1[1], Q1I = E2[0], Q2I = E2[1];
-					if (P1I != Q1I && P1I != Q2I && P2I != Q1I && P2I != Q2I) // not duplicated and incident edges
-					{
-						Eigen::Vector3d P1 = tetMesh.pos_node[P1I];
-						Eigen::Vector3d P2 = tetMesh.pos_node[P2I];
-						Eigen::Vector3d Q1 = tetMesh.pos_node[Q1I];
-						Eigen::Vector3d Q2 = tetMesh.pos_node[Q2I];
-
-						if (edgeEdgeCCDBroadphase(P1, P2, Q1, Q2, parameters.IPC_dis))
-						{
-							int type = DIS::dType_EE(P1, P2, Q1, Q2);
-							double dis2 = 0;
-							DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
-
-							if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+							int neigHashIndex = hashNameIndex[ID];
+							for (std::set<int>::iterator itT = spatialHash_vec[neigHashIndex].triaIndices.begin(); itT != spatialHash_vec[neigHashIndex].triaIndices.end(); itT++)
 							{
-								Eigen::Vector4i ptIndices = { P1I , P2I , Q1I , Q2I };
-								energy += BarrierEnergy::val_EE(tetMesh.boundaryEdges_area[P1I][P2I], dis2, tetMesh, ptIndices, squaredDouble(parameters.IPC_dis), parameters.IPC_kStiffness, parameters.dt);
+								int vert = *itP, tri = *itT;
+								if (tetMesh.boundaryVertices[vert].find(tri) == tetMesh.boundaryVertices[vert].end()) // this triangle is not incident with the point
+								{
+									Eigen::Vector3i triVerts = tetMesh.boundaryTriangles[tri];
+									Eigen::Vector3d P = tetMesh.pos_node[vert];
+									Eigen::Vector3d A = tetMesh.pos_node[triVerts[0]];
+									Eigen::Vector3d B = tetMesh.pos_node[triVerts[1]];
+									Eigen::Vector3d C = tetMesh.pos_node[triVerts[2]];
+
+									if (pointTriangleCCDBroadphase(P, A, B, C, parameters.IPC_dis))
+									{
+										int type = DIS::dType_PT(P, A, B, C);
+										double dis2 = 0;
+										DIS::computePointTriD(P, A, B, C, dis2);
+
+										if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+										{
+											energy += BarrierEnergy::val_PT(tetMesh.boundaryVertices_area[vert], dis2, squaredDouble(parameters.IPC_dis), parameters.IPC_kStiffness, parameters.dt);
+										}
+									}
+								}
 							}
 						}
 					}
 				}
 			}
 		}
-
-		energyValue_perHash[y] = energy;
+		energyValue_perHash_PT[y] = energy;
 	}
-	double energyHash = std::accumulate(energyValue_perHash.begin(), energyValue_perHash.end(), 0.0);
+	double energyHash = std::accumulate(energyValue_perHash_PT.begin(), energyValue_perHash_PT.end(), 0.0);
 
-	//if (timestep == 56)
-	//{
-	//	//energyValue_perHash[1] = 12;
-	//	std::cout << std::scientific << std::setprecision(8) << "energyHash = " << std::accumulate(energyValue_perHash.begin(), energyValue_perHash.end(), 0.0) << std::endl;
-	//	std::cout << "energyValue_perHash.size() = " << energyValue_perHash.size() << std::endl;
-	//}
-	
+
+	std::vector<std::map<std::string,double>> energyValue_perHash_EE(spatialHash_vec.size());
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+	for (int y = 0; y < spatialHash_vec.size(); y++)
+	{
+		std::map<std::string, double> energyValue;
+		// calcualte the EE pair
+		for (std::set<int>::iterator itE1 = spatialHash_vec[y].edgeIndices.begin(); itE1 != spatialHash_vec[y].edgeIndices.end(); itE1++)
+		{
+			Eigen::Vector3i bottomLeftCorner = spatialHash_vec[y].bottomLeftCorner;
+			for (int xx = bottomLeftCorner[0]; xx <= bottomLeftCorner[0] + 1; xx++)
+			{
+				for (int yy = bottomLeftCorner[1]; yy <= bottomLeftCorner[1] + 1; yy++)
+				{
+					for (int zz = bottomLeftCorner[2]; zz <= bottomLeftCorner[2] + 1; zz++)
+					{
+						Eigen::Vector3i index = { xx , yy , zz };
+						std::string ID = calculateID(index);
+						if (hashNameIndex.find(ID) != hashNameIndex.end())
+						{
+							int neigHashIndex = hashNameIndex[ID];
+							for (std::set<int>::iterator itE2 = spatialHash_vec[neigHashIndex].edgeIndices.begin(); itE2 != spatialHash_vec[neigHashIndex].edgeIndices.end(); itE2++)
+							{
+								if (*itE1 != *itE2)
+								{
+									Eigen::Vector2i E1 = tetMesh.index_boundaryEdge[*itE1], E2 = tetMesh.index_boundaryEdge[*itE2];
+									int P1I = E1[0], P2I = E1[1], Q1I = E2[0], Q2I = E2[1];
+									if (P1I != Q1I && P1I != Q2I && P2I != Q1I && P2I != Q2I) // not duplicated and incident edges
+									{
+										Eigen::Vector3d P1 = tetMesh.pos_node[P1I];
+										Eigen::Vector3d P2 = tetMesh.pos_node[P2I];
+										Eigen::Vector3d Q1 = tetMesh.pos_node[Q1I];
+										Eigen::Vector3d Q2 = tetMesh.pos_node[Q2I];
+
+										if (edgeEdgeCCDBroadphase(P1, P2, Q1, Q2, parameters.IPC_dis))
+										{
+											int type = DIS::dType_EE(P1, P2, Q1, Q2);
+											double dis2 = 0;
+											DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
+
+											if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+											{
+												Eigen::Vector4i ptIndices = { P1I , P2I , Q1I , Q2I };
+												double energy = BarrierEnergy::val_EE(tetMesh.boundaryEdges_area[P1I][P2I], dis2, tetMesh, ptIndices, squaredDouble(parameters.IPC_dis), parameters.IPC_kStiffness, parameters.dt);
+												std::string EEPair = std::to_string(std::min(*itE1, *itE2)) + "#" + std::to_string(std::max(*itE1, *itE2));
+												energyValue[EEPair] = energy;
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		energyValue_perHash_EE[y] = energyValue;
+	}
+
+
+	// add the edge-edge energy value
+	std::set<std::string> addedEnergy;
+	for (int i = 0; i < energyValue_perHash_EE.size(); i++)
+	{
+		for (std::map<std::string, double>::iterator it = energyValue_perHash_EE[i].begin(); it != energyValue_perHash_EE[i].end(); it++)
+		{
+			std::string name = it->first;
+			if (addedEnergy.find(name) == addedEnergy.end())
+			{
+				addedEnergy.insert(name);
+				energyHash += it->second;
+			}
+		}
+	}
+
+
 	// ground barrier
 	if (parameters.enableGround == true)
 	{
@@ -229,11 +290,6 @@ double compute_Barrier_energy(Mesh& tetMesh, FEMParamters& parameters, int times
 		energyHash += energyGround;
 	}
 
-	//if (timestep == 56)
-	//{
-	//	std::cout << std::scientific << std::setprecision(8) << "energyHash = " << energyHash << std::endl;
-	//	std::cout << "energyValue_perHash.size() = " << energyValue_perHash.size() << std::endl;
-	//}
 
 	return energyHash;
 }
@@ -251,7 +307,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 
 	std::vector<Vector5i> PG_PG, PT_PP, PT_PE, PT_PT, EE_EE;
 	calContactInfo(tetMesh, parameters, timestep, PG_PG, PT_PP, PT_PE, PT_PT, EE_EE);
-
+	std::cout << "EE_EE.size() = " << EE_EE.size() << std::endl;
 
 
 	int gradSize = tetMesh.pos_node.size() * 6 + tetMesh.tetrahedrals.size() * 12 + PG_PG.size() * 3
@@ -312,13 +368,45 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 		
 	}
 
+
 	if (gradSize > tetMesh.pos_node.size() * 6 + tetMesh.tetrahedrals.size() * 12)
 	{
+		std::cout << "Export EE pair" << std::endl;
 		std::cout << "PT_PP.size() = " << PT_PP.size() << std::endl;
 		std::cout << "PT_PE.size() = " << PT_PE.size() << std::endl;
 		std::cout << "PT_PT.size() = " << PT_PT.size() << std::endl;
 		std::cout << "EE_EE.size() = " << EE_EE.size() << std::endl;
-		std::cout << "EE_EE.size() = " << EE_EE.size() << std::endl;
+
+		std::ofstream outfile2("./output/" + std::to_string(timestep) + ".obj", std::ios::trunc);
+		for (int i = 0; i < EE_EE.size(); i++)
+		{
+			Vector5i cont_EE = EE_EE[i];
+			int E1 = cont_EE[1], E2 = cont_EE[2];
+			int e1p1 = tetMesh.index_boundaryEdge[E1][0], e1p2 = tetMesh.index_boundaryEdge[E1][1], e2p1 = tetMesh.index_boundaryEdge[E2][0], e2p2 = tetMesh.index_boundaryEdge[E2][1];
+
+			Eigen::Vector3d P1 = tetMesh.pos_node[e1p1];
+			Eigen::Vector3d P2 = tetMesh.pos_node[e1p2];
+			Eigen::Vector3d Q1 = tetMesh.pos_node[e2p1];
+			Eigen::Vector3d Q2 = tetMesh.pos_node[e2p2];
+
+			outfile2 << std::scientific << std::setprecision(8) << "v " << P1[0] << " " << P1[1] << " " << P1[2] << std::endl;
+			outfile2 << std::scientific << std::setprecision(8) << "v " << P2[0] << " " << P2[1] << " " << P2[2] << std::endl;
+			outfile2 << std::scientific << std::setprecision(8) << "v " << Q1[0] << " " << Q1[1] << " " << Q1[2] << std::endl;
+			outfile2 << std::scientific << std::setprecision(8) << "v " << Q2[0] << " " << Q2[1] << " " << Q2[2] << std::endl;
+
+		}
+
+
+		for (int i = 0; i < EE_EE.size(); i++)
+		{
+			outfile2 << std::scientific << std::setprecision(8) << "l " << std::to_string(i * 2 + 1) << " " << std::to_string(i * 2 + 1) << std::endl;
+			outfile2 << std::scientific << std::setprecision(8) << "l " << std::to_string(i * 2 + 3) << " " << std::to_string(i * 2 + 4) << std::endl;
+
+		}
+		outfile2.close();
+
+		std::cout <<  std::endl;
+		
 	}
 
 
@@ -391,13 +479,6 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 			Eigen::Vector3d B = tetMesh.pos_node[tri[1]];
 			Eigen::Vector3d C = tetMesh.pos_node[tri[2]];
 			int type = cont_PT[3];
-
-			//std::cout << "ptInd = " << ptInd << std::endl << std::endl;
-			//std::cout << "cont_PT = " << cont_PT << std::endl << std::endl;
-			//std::cout << "tri = " << tri << std::endl << std::endl;
-
-			//std::cout << "cont_PT[1] = " << cont_PT[1] << std::endl;
-
 
 			double dis2 = 0;
 			DIS::computePointTriD(P, A, B, C, dis2);
@@ -476,6 +557,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	return movingDir;
 }
 
+
 // move points' position according to the direction; Note this is a trial movement
 void step_forward(FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Vector3d>& currentPosition, std::vector<Eigen::Vector3d>& direction, double step)
 {
@@ -486,10 +568,18 @@ void step_forward(FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Ve
 	}
 }
 
+
 void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::vector<Vector5i> & PG_PG, std::vector<Vector5i>& PT_PP, std::vector<Vector5i>& PT_PE, std::vector<Vector5i>& PT_PT, std::vector<Vector5i>& EE_EE)
 {
 	std::vector<spatialHashCellData> spatialHash_vec;
-	initSpatialHash(parameters, tetMesh, parameters.IPC_hashSize, spatialHash_vec);
+	std::map<std::string, int> hashNameIndex;
+	std::vector<Eigen::Vector3d> direction(tetMesh.pos_node.size());
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+	for (int i = 0; i < tetMesh.pos_node.size(); i++)
+	{
+		direction[i] = Eigen::Vector3d::Zero();
+	}
+	initSpatialHash(false, parameters, tetMesh, direction, parameters.IPC_hashSize, spatialHash_vec, hashNameIndex, timestep);
 
 
 	// Step 1: find contact pairs and types
@@ -498,90 +588,117 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 	for (int y = 0; y < spatialHash_vec.size(); y++)
 	{
 		std::vector<Vector5i> cont_pair;
-
-		// calcualte the PT pair
 		for (std::set<int>::iterator itP = spatialHash_vec[y].vertIndices.begin(); itP != spatialHash_vec[y].vertIndices.end(); itP++)
 		{
-			for (std::set<int>::iterator itT = spatialHash_vec[y].triaIndices.begin(); itT != spatialHash_vec[y].triaIndices.end(); itT++)
+			Eigen::Vector3i bottomLeftCorner = spatialHash_vec[y].bottomLeftCorner;
+			for (int xx = bottomLeftCorner[0] - 1; xx <= bottomLeftCorner[0] + 1; xx++)
 			{
-				int vert = *itP, tri = *itT;
-				if (tetMesh.boundaryVertices[vert].find(tri) == tetMesh.boundaryVertices[vert].end()) // this triangle is not incident with the point
+				for (int yy = bottomLeftCorner[1] - 1; yy <= bottomLeftCorner[1] + 1; yy++)
 				{
-					Eigen::Vector3i triVerts = tetMesh.boundaryTriangles[tri];
-					Eigen::Vector3d P = tetMesh.pos_node[vert];
-					Eigen::Vector3d A = tetMesh.pos_node[triVerts[0]];
-					Eigen::Vector3d B = tetMesh.pos_node[triVerts[1]];
-					Eigen::Vector3d C = tetMesh.pos_node[triVerts[2]];
-
-					if (pointTriangleCCDBroadphase(P, A, B, C, parameters.IPC_dis))
+					for (int zz = bottomLeftCorner[2] - 1; zz <= bottomLeftCorner[2] + 1; zz++)
 					{
-						int type = DIS::dType_PT(P, A, B, C);
-						double dis2 = 0;
-						DIS::computePointTriD(P, A, B, C, dis2);
-
-						if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+						Eigen::Vector3i index = { xx , yy , zz };
+						std::string ID = calculateID(index);
+						if (hashNameIndex.find(ID) != hashNameIndex.end())
 						{
-							if (type <= 2)
+							int neigHashIndex = hashNameIndex[ID];
+							for (std::set<int>::iterator itT = spatialHash_vec[neigHashIndex].triaIndices.begin(); itT != spatialHash_vec[neigHashIndex].triaIndices.end(); itT++)
 							{
-								Vector5i ct = { 0 , vert , tri , type, 2 };
-								cont_pair.push_back(ct);
-							}
-							else if (type > 2 && type <= 5)
-							{
-								Vector5i ct = { 0 , vert , tri , type, 3 };
-								cont_pair.push_back(ct);
-							}
-							else if(type == 6)
-							{
-								Vector5i ct = { 0 , vert , tri , type, 4 };
-								cont_pair.push_back(ct);
-							}
+								int vert = *itP, tri = *itT;
+								if (tetMesh.boundaryVertices[vert].find(tri) == tetMesh.boundaryVertices[vert].end()) // this triangle is not incident with the point
+								{
+									Eigen::Vector3i triVerts = tetMesh.boundaryTriangles[tri];
+									Eigen::Vector3d P = tetMesh.pos_node[vert];
+									Eigen::Vector3d A = tetMesh.pos_node[triVerts[0]];
+									Eigen::Vector3d B = tetMesh.pos_node[triVerts[1]];
+									Eigen::Vector3d C = tetMesh.pos_node[triVerts[2]];
 
+									if (pointTriangleCCDBroadphase(P, A, B, C, parameters.IPC_dis))
+									{
+										int type = DIS::dType_PT(P, A, B, C);
+										double dis2 = 0;
+										DIS::computePointTriD(P, A, B, C, dis2);
+
+										if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+										{
+											if (type <= 2)
+											{
+												Vector5i ct = { 0 , vert , tri , type, 2 };
+												cont_pair.push_back(ct);
+											}
+											else if (type > 2 && type <= 5)
+											{
+												Vector5i ct = { 0 , vert , tri , type, 3 };
+												cont_pair.push_back(ct);
+											}
+											else if (type == 6)
+											{
+												Vector5i ct = { 0 , vert , tri , type, 4 };
+												cont_pair.push_back(ct);
+											}
+										}
+									}
+								}
+							}
 						}
 					}
 				}
 			}
 		}
-
-		// calcualte the EE pair
+	
 		for (std::set<int>::iterator itE1 = spatialHash_vec[y].edgeIndices.begin(); itE1 != spatialHash_vec[y].edgeIndices.end(); itE1++)
 		{
-			for (std::set<int>::iterator itE2 = spatialHash_vec[y].edgeIndices.begin(); itE2 != spatialHash_vec[y].edgeIndices.end(); itE2++)
+			Eigen::Vector3i bottomLeftCorner = spatialHash_vec[y].bottomLeftCorner;
+			for (int xx = bottomLeftCorner[0]; xx <= bottomLeftCorner[0] + 1; xx++)
 			{
-				if (*itE1 != *itE2)
+				for (int yy = bottomLeftCorner[1]; yy <= bottomLeftCorner[1] + 1; yy++)
 				{
-					Eigen::Vector2i E1 = tetMesh.index_boundaryEdge[*itE1], E2 = tetMesh.index_boundaryEdge[*itE2];
-					int P1I = E1[0], P2I = E1[1], Q1I = E2[0], Q2I = E2[1];
-					if (P1I != Q1I && P1I != Q2I && P2I != Q1I && P2I != Q2I) // not duplicated and incident edges
+					for (int zz = bottomLeftCorner[2]; zz <= bottomLeftCorner[2] + 1; zz++)
 					{
-						Eigen::Vector3d P1 = tetMesh.pos_node[P1I];
-						Eigen::Vector3d P2 = tetMesh.pos_node[P2I];
-						Eigen::Vector3d Q1 = tetMesh.pos_node[Q1I];
-						Eigen::Vector3d Q2 = tetMesh.pos_node[Q2I];
-
-						if (edgeEdgeCCDBroadphase(P1, P2, Q1, Q2, parameters.IPC_dis))
+						Eigen::Vector3i index = { xx , yy , zz };
+						std::string ID = calculateID(index);
+						if (hashNameIndex.find(ID) != hashNameIndex.end())
 						{
-							int type = DIS::dType_EE(P1, P2, Q1, Q2);
-							double dis2 = 0;
-							DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
-
-							if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+							int neigHashIndex = hashNameIndex[ID];
+							for (std::set<int>::iterator itE2 = spatialHash_vec[neigHashIndex].edgeIndices.begin(); itE2 != spatialHash_vec[neigHashIndex].edgeIndices.end(); itE2++)
 							{
-								Vector5i ct = { 1 , *itE1 , *itE2 , type , 4 };
-								cont_pair.push_back(ct);
+								if (*itE1 != *itE2)
+								{
+									Eigen::Vector2i E1 = tetMesh.index_boundaryEdge[*itE1], E2 = tetMesh.index_boundaryEdge[*itE2];
+									int P1I = E1[0], P2I = E1[1], Q1I = E2[0], Q2I = E2[1];
+									if (P1I != Q1I && P1I != Q2I && P2I != Q1I && P2I != Q2I) // not duplicated and incident edges
+									{
+										Eigen::Vector3d P1 = tetMesh.pos_node[P1I];
+										Eigen::Vector3d P2 = tetMesh.pos_node[P2I];
+										Eigen::Vector3d Q1 = tetMesh.pos_node[Q1I];
+										Eigen::Vector3d Q2 = tetMesh.pos_node[Q2I];
+
+										if (edgeEdgeCCDBroadphase(P1, P2, Q1, Q2, parameters.IPC_dis))
+										{
+											int type = DIS::dType_EE(P1, P2, Q1, Q2);
+											double dis2 = 0;
+											DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
+
+											if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+											{
+												Vector5i ct = { 1 , *itE1 , *itE2 , type , 4 };
+												cont_pair.push_back(ct);
+											}
+										}
+									}
+								}
 							}
 						}
 					}
 				}
 			}
 		}
-
 		cont_pair_vec[y] = cont_pair;
-
 	}
 
 
-	// Step 2: delete empty pairs	
+	// Step 2: delete empty pairs
+	std::set<std::string> storedEEPairs;
 	for (int i = 0; i < cont_pair_vec.size(); i++)
 	{
 		for (int j = 0; j < cont_pair_vec[i].size(); j++)
@@ -603,7 +720,12 @@ void calContactInfo(Mesh& tetMesh, FEMParamters& parameters, int timestep, std::
 			}
 			else
 			{
-				EE_EE.push_back(cont_pair_vec[i][j]);
+				std::string EEPair = std::to_string(std::min(cont_pair_vec[i][j][1], cont_pair_vec[i][j][2])) + "#" + std::to_string(std::max(cont_pair_vec[i][j][1], cont_pair_vec[i][j][2]));
+				if (storedEEPairs.find(EEPair) == storedEEPairs.end())
+				{
+					EE_EE.push_back(cont_pair_vec[i][j]);
+					storedEEPairs.insert(EEPair);
+				}
 			}
 		}
 	}

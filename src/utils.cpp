@@ -86,7 +86,65 @@ Eigen::Matrix3d vector2CrossProductMatrix(const Eigen::Vector3d& vec)
 }
 
 
+Eigen::Vector2i findIntersectionOfTwoNums(int min1, int max1, int min2, int max2)
+{
+	Eigen::Vector2i res = {-999999999999, -999999999999 };
+	if (max2 <= min1)
+	{
+		res = { -999999999999, -999999999999 };
+	}
+	else if (max2 > min1 && max2 <= max1)
+	{
+		if (min2 <= min1)
+		{
+			res = { min1, max2 };
+		}
+		else
+		{
+			res = { min2, max2 };
+		}
+	}
+	else
+	{
+		if (min2 <= min1)
+		{
+			res = { min1, max1 };
+		}
+		else if (min2 > min1 && min2 <= max1)
+		{
+			res = { min2, max1 };
+		}
+		else
+		{
+			res = { -999999999999, -999999999999 };
+		}
+	}
 
+	if (res[0] == res[1])
+	{
+		res = { -999999999999, -999999999999 };
+	}
+
+	return res;
+}
+
+bool findIntersectionOfTwoVector3i(Eigen::Vector3i& minCoor1, Eigen::Vector3i& maxCoor1, Eigen::Vector3i& minCoor2, Eigen::Vector3i& maxCoor2, Eigen::Vector3i& intersectMin, Eigen::Vector3i& intersectMax)
+{
+	bool success = true;
+	for (int i = 0; i < 3; i++)
+	{
+		Eigen::Vector2i xyz = findIntersectionOfTwoNums(minCoor1[i], maxCoor1[i], minCoor2[i], maxCoor2[i]);
+		if (xyz[0] == -999999999999)
+		{
+			success = false;
+			break;
+		}
+		intersectMin[i] = xyz[0];
+		intersectMax[i] = xyz[1];
+	}
+	
+	return success;
+}
 
 // find if an element exists in a multimap
 bool existInMultiMap_2(int x, int y, std::map<int, std::map<int, int>>& gridMap)

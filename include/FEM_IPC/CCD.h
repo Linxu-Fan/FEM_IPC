@@ -33,16 +33,18 @@ double pointTriangleCCDNarrowphase(const Eigen::Vector3d& P, const Eigen::Vector
 // spatial hash data structure
 struct spatialHashCellData
 {
+	Eigen::Vector3i bottomLeftCorner = {0,0,0}; // bottom left corner of this spatial hash cell
+	std::set<std::string> hashObjects; // store the names of objects within this hash
 	std::set<int> vertIndices; // vertex whose boundingbox intersects with this cell
 	std::set<int> edgeIndices; // edge whose boundingbox intersects with this cell
 	std::set<int> triaIndices; // triangle whose boundingbox intersects with this cell
 };
 
 // initialize spatial hash
-void initSpatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, std::vector<spatialHashCellData>& spatialHash_vec);
+void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, std::vector<spatialHashCellData>& spatialHash_vec, std::map<std::string, int>& hashNameIndex, int timestep);
 
 // initialize spatial hash (no advection)
-void initSpatialHash(FEMParamters& parameters, Mesh& tetMesh, double cellSize, std::vector<spatialHashCellData>& spatialHash_vec);
+void initSpatialHash(FEMParamters& parameters, Mesh& tetMesh, double cellSize, std::vector<spatialHashCellData>& spatialHash_vec, std::map<std::string, int>& hashNameIndex);
 
 
 // use spatial hash to calculate the maximum feasible step

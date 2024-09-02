@@ -63,6 +63,8 @@ struct FEMParamters
     bool enableGround = true;
 	double searchResidual = 1.0e-4;
 
+    bool rigidMode = false; // if rigidMode, IPC will only check contact pairs that belongs to two different objects
+    std::vector<std::string> objectNames; // name of objects in the scene
 	double IPC_dis = 0.01; // the distance of IPC gap, i.e., barrier energy emerges if the distance is smaller than this threshold
 	double IPC_eta = 0.1; // the distance ratio that bring two edges or point-triangle to
 	double IPC_hashSize = 0.1; // the spatial hash's grid cell size
@@ -126,6 +128,10 @@ Eigen::Matrix3d vector2CrossProductMatrix(const Eigen::Vector3d& vec);
 double infiniteNorm(std::vector<Eigen::Vector3d>& vec3d);
 
 
+Eigen::Vector2i findIntersectionOfTwoNums(int min1, int max1, int min2, int max2);
+
+ 
+bool findIntersectionOfTwoVector3i(Eigen::Vector3i& minCoor1, Eigen::Vector3i& maxCoor1, Eigen::Vector3i& minCoor2, Eigen::Vector3i& maxCoor2, Eigen::Vector3i& intersectMin, Eigen::Vector3i& intersectMax);
 
 
 // find if an element exists in a multimap
