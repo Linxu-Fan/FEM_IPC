@@ -18,7 +18,7 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 		std::vector<Eigen::Vector3d> currentPosition = tetMesh.pos_node;
 		double lastEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
 		std::cout << "	lastEnergyVal = " << lastEnergyVal << std::endl;
-		for(int ite = 0; ite < 20; ite++)
+		for(int ite = 0; ite < 15; ite++)
 		{	
 					
 			std::cout << "		ite = " << ite << std::endl;
@@ -51,6 +51,10 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 				std::cout << "			step = " << step << std::endl;
 				step_forward(parameters, tetMesh, currentPosition, direction, step);
 				newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
+				if (std::abs(newEnergyVal - lastEnergyVal) / lastEnergyVal < 0.001)
+				{
+					break;
+				}
 			}
 			currentPosition = tetMesh.pos_node;
 			lastEnergyVal = newEnergyVal;
@@ -394,7 +398,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 		std::cout << "PT_PT.size() = " << PT_PT.size() << std::endl;
 		std::cout << "EE_EE.size() = " << EE_EE.size() << std::endl;
 
-		std::ofstream outfile2("./output/EE_PAIR.obj", std::ios::trunc);
+		/*std::ofstream outfile2("./output/EE_PAIR.obj", std::ios::trunc);
 		for (int i = 0; i < EE_EE.size(); i++)
 		{
 			Vector5i cont_EE = EE_EE[i];
@@ -422,7 +426,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 		}
 		outfile2.close();
 
-		std::cout <<  std::endl;
+		std::cout <<  std::endl;*/
 		
 	}
 

@@ -259,7 +259,7 @@ std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3i>> getMinMaxCorner_boundar
         Eigen::Vector3i maxFloor = { static_cast<int>(std::floor(bbx.second[0] / cellSize)) ,
             static_cast<int>(std::floor(bbx.second[1] / cellSize)) , static_cast<int>(std::floor(bbx.second[2] / cellSize)) };
 
-        std::pair<Eigen::Vector3i, Eigen::Vector3i> pr = std::make_pair(minFloor - Eigen::Vector3i::Ones(), maxFloor + Eigen::Vector3i::Ones());
+        std::pair<Eigen::Vector3i, Eigen::Vector3i> pr = std::make_pair(minFloor , maxFloor + Eigen::Vector3i::Ones());
         res.push_back(pr);
     }
 
@@ -285,11 +285,11 @@ std::set<std::string> getTheIntersectedHash(bool advected, FEMParamters& paramet
             bool success = findIntersectionOfTwoVector3i(I1.first, I1.second, I2.first, I2.second, intersectMin, intersectMax);
             if (success)
             {
-                for (int mnx = intersectMin[0]; mnx < intersectMax[0] + 1; mnx++)
+                for (int mnx = intersectMin[0]; mnx < intersectMax[0] + 2; mnx++)
                 {
-                    for (int mny = intersectMin[1]; mny < intersectMax[1] + 1; mny++)
+                    for (int mny = intersectMin[1]; mny < intersectMax[1] + 2; mny++)
                     {
-                        for (int mnz = intersectMin[2]; mnz < intersectMax[2] + 1; mnz++)
+                        for (int mnz = intersectMin[2]; mnz < intersectMax[2] + 2; mnz++)
                         {
                             Eigen::Vector3i index = { mnx , mny , mnz };
                             std::string ID = calculateID(index);
@@ -392,10 +392,10 @@ void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetMesh, std
 
     {
 
-        std::ofstream outfile2("./output/hash.obj", std::ios::trunc);
+       /* std::ofstream outfile2("./output/hash.obj", std::ios::trunc);
         for (int k = 0; k < spatialHash_vec.size(); k++)
         {
-            Eigen::Vector3d P1 = spatialHash_vec[k].bottomLeftCorner.cast<double>() * cellSize;
+            Eigen::Vector3d P1 = (spatialHash_vec[k].bottomLeftCorner.cast<double>()) * cellSize + minFloor;
             Eigen::Vector3d P2 = P1;
             P2[0] += cellSize;
             Eigen::Vector3d P3 = P1;
@@ -423,7 +423,7 @@ void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetMesh, std
             outfile2 << std::scientific << std::setprecision(8) << "v " << P3Q[0] << " " << P3Q[1] << " " << P3Q[2] << std::endl;
             outfile2 << std::scientific << std::setprecision(8) << "v " << P4Q[0] << " " << P4Q[1] << " " << P4Q[2] << std::endl;
         }
-        outfile2.close();
+        outfile2.close();*/
     }
 
 

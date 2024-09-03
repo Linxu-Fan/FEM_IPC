@@ -21,7 +21,7 @@ int main()
 		{
 			Material mat1;
 			mat1.density = 1000;
-			mat1.E = 1.0e4;
+			mat1.E = 1.0e6;
 			mat1.updateDenpendecies();
 
 
@@ -38,13 +38,9 @@ int main()
 			//m2.mesh_material = mat1;
 			//m2.note = "cube2";
 			//m2.velocity = { -5.0, 0 , 0 };
-			////m2.rotation_point = { 0.5, 0.5, 0.5 };
-			////m2.rotation_angle = { PI / 4.0, PI / 4.0, PI / 4.0 };
-			////m2.translation = { 1.76, 0.5, -0.1 };
-
-
-			//m2.translation = { 1.1, 0, 0 };
-
+			//m2.rotation_point = { 0.5, 0.5, 0.5 };
+			//m2.rotation_angle = { PI / 4.0, PI / 4.0, PI / 4.0 };
+			//m2.translation = { 1.76, 0.5, -0.3 };
 			//config.push_back(m2);
 
 
@@ -80,17 +76,17 @@ int main()
 			m2 = m1;
 			m2.filePath = "../input/Left_bottom_fix.msh";
 			m2.note = "Left_bottom_fix";
-			//config.push_back(m2);
+			config.push_back(m2);
 
 			m3 = m1;
 			m3.filePath = "../input/Left_top_fix.msh";
 			m3.note = "Left_top_fix";
-			//config.push_back(m3);
+			config.push_back(m3);
 
 			m4 = m1;
 			m4.filePath = "../input/Middle_support.msh";
 			m4.note = "Middle_support";
-			//config.push_back(m4);
+			config.push_back(m4);
 
 			m5 = m1;
 			m5.filePath = "../input/Right_top_move.msh";
@@ -116,18 +112,18 @@ int main()
 
 
 			FEMParamters parameters;
-			parameters.dt = 1.0E-4;
 			parameters.gravity = { 0, 0, 0 };
-			parameters.num_timesteps = 10001;
+			parameters.num_timesteps = 100001;
+			parameters.dt = 1.0e-3;
 			parameters.outputFrequency = 1;
 			parameters.enableGround = false;
-			parameters.searchResidual = 0.005;
+			parameters.searchResidual = 0.001;
 			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;
 			parameters.objectNames = objectNames;
-			parameters.IPC_dis = 0.003;
+			parameters.IPC_dis = 0.001;
 			parameters.IPC_eta = 0.05;
-			parameters.IPC_kStiffness = 1.0e10;
+			parameters.IPC_kStiffness = 1.0e15;
 			parameters.IPC_hashSize = tetMesh.calLargestEdgeLength() * 1.1;
 
 			std::cout << "parameters.IPC_hashSize = " << parameters.IPC_hashSize << std::endl;
