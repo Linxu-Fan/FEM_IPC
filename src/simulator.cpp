@@ -25,13 +25,7 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 			
 			std::vector<Eigen::Vector3d> direction = solve_linear_system(tetMesh, parameters, timestep);
 
-			//for (int d = 0; d < direction.size(); d++)
-			//{
-			//	if (std::abs(direction[d].norm() - 4.0e-4) >= 0.0000001)
-			//	{
-			//		std::cout << "weird = ("<< direction[d][0]<<"," << direction[d][1] << "," << direction[d][2] << ")" << std::endl;
-			//	}
-			//}
+
 
 			double dist_to_converge = infiniteNorm(direction);
 			if (ite && (dist_to_converge < sqrt(parameters.searchResidual * tetMesh.calBBXDiagSize() * parameters.dt * parameters.dt)))

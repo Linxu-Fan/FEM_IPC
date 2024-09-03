@@ -85,6 +85,47 @@ Eigen::Matrix3d vector2CrossProductMatrix(const Eigen::Vector3d& vec)
 	return result;
 }
 
+Eigen::Vector2d findIntersectionOfTwoNums(double min1, double max1, double min2, double max2)
+{
+	Eigen::Vector2d res = { -999999999999, -999999999999 };
+	if (max2 <= min1)
+	{
+		res = { -999999999999, -999999999999 };
+	}
+	else if (max2 > min1 && max2 <= max1)
+	{
+		if (min2 <= min1)
+		{
+			res = { min1, max2 };
+		}
+		else
+		{
+			res = { min2, max2 };
+		}
+	}
+	else
+	{
+		if (min2 <= min1)
+		{
+			res = { min1, max1 };
+		}
+		else if (min2 > min1 && min2 <= max1)
+		{
+			res = { min2, max1 };
+		}
+		else
+		{
+			res = { -999999999999, -999999999999 };
+		}
+	}
+
+	if (res[0] == res[1])
+	{
+		res = { -999999999999, -999999999999 };
+	}
+
+	return res;
+}
 
 Eigen::Vector2i findIntersectionOfTwoNums(int min1, int max1, int min2, int max2)
 {
@@ -143,6 +184,25 @@ bool findIntersectionOfTwoVector3i(Eigen::Vector3i& minCoor1, Eigen::Vector3i& m
 		intersectMax[i] = xyz[1];
 	}
 	
+	return success;
+}
+
+
+bool findIntersectionOfTwoVector3d(Eigen::Vector3d& minCoor1, Eigen::Vector3d& maxCoor1, Eigen::Vector3d& minCoor2, Eigen::Vector3d& maxCoor2, Eigen::Vector3d& intersectMin, Eigen::Vector3d& intersectMax)
+{
+	bool success = true;
+	for (int i = 0; i < 3; i++)
+	{
+		Eigen::Vector2d xyz = findIntersectionOfTwoNums(minCoor1[i], maxCoor1[i], minCoor2[i], maxCoor2[i]);
+		if (xyz[0] == -999999999999)
+		{
+			success = false;
+			break;
+		}
+		intersectMin[i] = xyz[0];
+		intersectMax[i] = xyz[1];
+	}
+
 	return success;
 }
 

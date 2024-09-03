@@ -129,9 +129,11 @@ double infiniteNorm(std::vector<Eigen::Vector3d>& vec3d);
 
 
 Eigen::Vector2i findIntersectionOfTwoNums(int min1, int max1, int min2, int max2);
+Eigen::Vector2d findIntersectionOfTwoNums(double min1, double max1, double min2, double max2);
 
  
 bool findIntersectionOfTwoVector3i(Eigen::Vector3i& minCoor1, Eigen::Vector3i& maxCoor1, Eigen::Vector3i& minCoor2, Eigen::Vector3i& maxCoor2, Eigen::Vector3i& intersectMin, Eigen::Vector3i& intersectMax);
+bool findIntersectionOfTwoVector3d(Eigen::Vector3d& minCoor1, Eigen::Vector3d& maxCoor1, Eigen::Vector3d& minCoor2, Eigen::Vector3d& maxCoor2, Eigen::Vector3d& intersectMin, Eigen::Vector3d& intersectMax);
 
 
 // find if an element exists in a multimap
