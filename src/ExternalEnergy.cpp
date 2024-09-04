@@ -14,7 +14,7 @@ void ExternalEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int
 
 	for (int dI = 0; dI < 3; dI++)
 	{
-		if (BC != 1)
+		if (BC != 1 && BC != 3)
 		{
 			grad_triplet[startIndex_grad + dI] = { vertIndex * 3 + dI, gravityForceEng[dI] };
 		}

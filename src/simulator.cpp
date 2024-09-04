@@ -19,15 +19,11 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 		double lastEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
 		std::cout << "	lastEnergyVal = " << lastEnergyVal << std::endl;
 		for(int ite = 0; ite < 15; ite++)
-		{	
-					
-			std::cout << "		ite = " << ite << std::endl;
-			
+		{						
+			std::cout << std::endl << "		ite = " << ite << std::endl;
 			std::vector<Eigen::Vector3d> direction = solve_linear_system(tetMesh, parameters, timestep);
-
-
-
 			double dist_to_converge = infiniteNorm(direction);
+			std::cout << std::scientific << std::setprecision(4) << "		dist_to_converge = " <<  dist_to_converge << "; threshold = " << sqrt(parameters.searchResidual * tetMesh.calBBXDiagSize() * parameters.dt * parameters.dt) << std::endl;
 			if (ite && (dist_to_converge < sqrt(parameters.searchResidual * tetMesh.calBBXDiagSize() * parameters.dt * parameters.dt)))
 			{
 				break;
@@ -38,20 +34,25 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 			std::cout << "		Step forward" << std::endl;
 			step_forward(parameters,tetMesh, currentPosition, direction, step);
 			double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
-			std::cout << std::scientific << std::setprecision(4) << "		step = " << step<<"; newEnergyVal = "<< newEnergyVal << "; dist_to_converge = " << dist_to_converge << "; threshold = " << sqrt(parameters.searchResidual * tetMesh.calBBXDiagSize() * parameters.dt * parameters.dt) << std::endl;
+			std::cout << std::scientific << std::setprecision(4) << "		step = " << step<<"; newEnergyVal = "<< newEnergyVal << std::endl;
 			while (newEnergyVal > lastEnergyVal && step >= 1.0e-5)
 			{
 				step /= 2.0;
 				std::cout << "			step = " << step << std::endl;
 				step_forward(parameters, tetMesh, currentPosition, direction, step);
 				newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
-				if (std::abs(newEnergyVal - lastEnergyVal) / lastEnergyVal < 0.001)
-				{
-					break;
-				}
 			}
 			currentPosition = tetMesh.pos_node;
-			lastEnergyVal = newEnergyVal;
+			if (std::abs(newEnergyVal - lastEnergyVal) / lastEnergyVal < 0.001) // traped in the local mimima
+			{
+				lastEnergyVal = newEnergyVal;
+				break;
+			}
+			else
+			{
+				lastEnergyVal = newEnergyVal;
+			}
+
 
 			std::cout << "		lastEnergyVal = " << lastEnergyVal << std::endl;
 
@@ -539,6 +540,21 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	{	
 		std::pair<int, double> ele = grad_triplet[i];
 		rightHandSide[ele.first] += ele.second;
+	}
+	// change the gradient in case of type-3 particles
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+	for (int h = 0; h < tetMesh.pos_node.size(); h++)
+	{
+		if (tetMesh.boundaryCondition_node[h].type == 3)
+		{
+			leftHandSide.coeffRef(3 * h, 3 * h) = 1.0;
+			leftHandSide.coeffRef(3 * h + 1, 3 * h + 1) = 1.0;
+			leftHandSide.coeffRef(3 * h + 2, 3 * h + 2) = 1.0;
+
+			rightHandSide[h * 3] = -parameters.dt * tetMesh.boundaryCondition_node[h].velocity[0];
+			rightHandSide[h * 3 + 1] = -parameters.dt * tetMesh.boundaryCondition_node[h].velocity[1];
+			rightHandSide[h * 3 + 2] = -parameters.dt * tetMesh.boundaryCondition_node[h].velocity[2];
+		}
 	}
 
 	

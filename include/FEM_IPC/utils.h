@@ -160,12 +160,15 @@ static std::string calculateID(Eigen::Vector3i index)
 // boundary condition of each vertex in the mesh
 struct boundaryCondition
 {
-    // vertex's type: 0) default: without constraint; 1) fixed points: velocity = 0; 2) external force, f_ext = xxx
+    // vertex's type: 0) default: without constraint; 1) fixed points: velocity = 0; 2) external force, f_ext = xxx; 3) constant velocity
     int type = 0;
     // 1st and 2nd element are the starting and ending timestep when a boundary condition is applied
     Eigen::Vector2i appliedTime = { 0, 100000 };
     // for type2 particles, the applied force magnitude
     Eigen::Vector3d force = { 0,0,0 };
+    // for tyepe3 particles, the velocity 
+    Eigen::Vector3d velocity = {0 , 0 , 0};
+
 };
 
 

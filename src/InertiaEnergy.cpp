@@ -16,7 +16,7 @@ void InertiaEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int&
 
 	for (int dI = 0; dI < 3; dI++)
 	{	
-		if (BC != 1)
+		if (BC != 1 && BC != 3)
 		{
 			grad_triplet[startIndex_grad + dI] = { vertIndex * 3 + dI, gradVec[dI] };
 		}
@@ -34,7 +34,7 @@ void InertiaEnergy::Hess(std::vector<Eigen::Triplet<double>>& hessian_triplet, i
 {
 	for (int dI = 0; dI < 3; dI++)
 	{
-		if (BC != 1)
+		if (BC != 1 && BC != 3)
 		{
 			hessian_triplet[startIndex_hess + dI] = { vertIndex * 3 + dI, vertIndex * 3 + dI, nodeMass };
 		}

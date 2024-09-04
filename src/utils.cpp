@@ -254,7 +254,7 @@ std::pair<Eigen::Vector3d, Eigen::Vector3d> findBoundingBox_vec(std::vector<Eige
 void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, int& D1Index, Vector3d& V3, Matrix3d& H3x3)
 {
 
-	if (boundaryCondition_node[D1Index].type != 1)
+	if (boundaryCondition_node[D1Index].type != 1 && boundaryCondition_node[D1Index].type != 3)
 	{
 		for (int xd = 0; xd < 3; xd++)
 		{
@@ -286,7 +286,7 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 	for (int j = 0; j < 2; j++)
 	{
 		int pt = D2Index[j];
-		if (boundaryCondition_node[pt].type == 1)
+		if (boundaryCondition_node[pt].type == 1 || boundaryCondition_node[pt].type == 3)
 		{
 			V6[j * 3] = 0;
 			V6[j * 3 + 1] = 0;
@@ -334,7 +334,7 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 	for (int j = 0; j < 3; j++)
 	{
 		int pt = D3Index[j];
-		if (boundaryCondition_node[pt].type == 1)
+		if (boundaryCondition_node[pt].type == 1 || boundaryCondition_node[pt].type == 3)
 		{
 			V9[j * 3] = 0;
 			V9[j * 3 + 1] = 0;
@@ -382,7 +382,7 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 	for (int j = 0; j < 4; j++)
 	{
 		int pt = D4Index[j];
-		if (boundaryCondition_node[pt].type == 1)
+		if (boundaryCondition_node[pt].type == 1 || boundaryCondition_node[pt].type == 3)
 		{
 			V12[j * 3] = 0;
 			V12[j * 3 + 1] = 0;

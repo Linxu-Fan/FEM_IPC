@@ -163,7 +163,7 @@ void ElasticEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int&
 	Eigen::Matrix<double, 12, 1> engGrad = dt * dt * vol * dFdx.transpose() * grad_tmp;
 	for (int m = 0; m < 4; m++)
 	{
-		if (tetVertInd_BC[m] != 1)
+		if (tetVertInd_BC[m] != 1 && tetVertInd_BC[m] != 3)
 		{
 			int x1_Ind = tetVertInd[m]; // the first vertex index
 			for (int xd = 0; xd < 3; xd++)
@@ -370,9 +370,10 @@ void ElasticEnergy::Hess(std::vector<Eigen::Triplet<double>>& hessian_triplet, i
 	}
 
 	Eigen::Matrix<double, 12, 12> engHess = dt * dt * vol * dFdx.transpose() * hessian * dFdx;
+	makePD<double, 12>(engHess);
 	for (int m = 0; m < 4; m++)
 	{
-		if (tetVertInd_BC[m] != 1)
+		if (tetVertInd_BC[m] == 1 || tetVertInd_BC[m] == 3)
 		{
 			engHess.col(m * 3).setZero();
 			engHess.col(m * 3 + 1).setZero();

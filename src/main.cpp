@@ -37,10 +37,10 @@ int main()
 			m2 = m1;
 			m2.mesh_material = mat1;
 			m2.note = "cube2";
-			m2.velocity = { -5.0, 0 , 0 };
+			m2.velocity = { 0, 0 , 0 };
 			m2.rotation_point = { 0.5, 0.5, 0.5 };
 			m2.rotation_angle = { PI / 4.0, PI / 4.0, PI / 4.0 };
-			m2.translation = { 1.76, 0.5, -0.3 };
+			m2.translation = { 1.80, 0.5, -0.3 };
 			config.push_back(m2);
 
 
@@ -110,7 +110,10 @@ int main()
 			{
 				if (tetMesh.pos_node[p][0] < 0.3)
 				{
-					tetMesh.boundaryCondition_node[p].type = 1;
+					tetMesh.vel_node[p] = { 5.0 , 0 , 0 };
+
+					tetMesh.boundaryCondition_node[p].type = 3;
+					tetMesh.boundaryCondition_node[p].velocity = {5.0 , 0 , 0};
 				}
 			}
 
@@ -121,7 +124,7 @@ int main()
 
 			FEMParamters parameters;
 			parameters.gravity = { 0, 0, 0 };
-			parameters.num_timesteps = 100001;
+			parameters.num_timesteps = 200000;
 			parameters.dt = 1.0e-3;
 			parameters.outputFrequency = 1;
 			parameters.enableGround = false;
