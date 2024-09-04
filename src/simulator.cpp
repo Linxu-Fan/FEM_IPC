@@ -41,17 +41,12 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 				std::cout << "			step = " << step << std::endl;
 				step_forward(parameters, tetMesh, currentPosition, direction, step);
 				newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
+				if (std::abs(newEnergyVal - lastEnergyVal) / lastEnergyVal < 0.001) // traped in the local mimima
+				{
+					break;
+				}
 			}
-			currentPosition = tetMesh.pos_node;
-			if (std::abs(newEnergyVal - lastEnergyVal) / lastEnergyVal < 0.001) // traped in the local mimima
-			{
-				lastEnergyVal = newEnergyVal;
-				break;
-			}
-			else
-			{
-				lastEnergyVal = newEnergyVal;
-			}
+			lastEnergyVal = newEnergyVal;
 
 
 			std::cout << "		lastEnergyVal = " << lastEnergyVal << std::endl;
@@ -128,7 +123,6 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 
 	// energy contribution from barrier
 	energyVal += compute_Barrier_energy(tetMesh, parameters, timestep);
-
 
 
 	return energyVal;
@@ -318,7 +312,6 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 
 	// update defromation gradient
 	tetMesh.update_F(parameters.numOfThreads);
-
 
 
 	std::vector<Vector5i> PG_PG, PT_PP, PT_PE, PT_PT, EE_EE;
@@ -551,9 +544,12 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 			leftHandSide.coeffRef(3 * h + 1, 3 * h + 1) = 1.0;
 			leftHandSide.coeffRef(3 * h + 2, 3 * h + 2) = 1.0;
 
-			rightHandSide[h * 3] = -parameters.dt * tetMesh.boundaryCondition_node[h].velocity[0];
-			rightHandSide[h * 3 + 1] = -parameters.dt * tetMesh.boundaryCondition_node[h].velocity[1];
-			rightHandSide[h * 3 + 2] = -parameters.dt * tetMesh.boundaryCondition_node[h].velocity[2];
+			Eigen::Vector3d desiredPosition = (double)(timestep + 1) * parameters.dt * tetMesh.boundaryCondition_node[h].velocity + tetMesh.pos_node_Rest[h];
+			Eigen::Vector3d diff = desiredPosition - tetMesh.pos_node[h];
+
+			rightHandSide[h * 3] = -diff[0];
+			rightHandSide[h * 3 + 1] = -diff[1];
+			rightHandSide[h * 3 + 2] = -diff[2];
 		}
 	}
 
@@ -576,6 +572,10 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> solver;
 	solver.compute(leftHandSide);
 	Eigen::VectorXd result = solver.solve(-rightHandSide);
+
+	//std::cout << "leftHandSide = " << std::endl << leftHandSide << std::endl;
+	//std::cout << "rightHandSide = " << std::endl << rightHandSide << std::endl;
+	//std::cout << "rightHandSide!"  << std::endl;
 	
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 	for (int i = 0; i < tetMesh.pos_node.size(); i++)
@@ -587,7 +587,6 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 
 	return movingDir;
 }
-
 
 // move points' position according to the direction; Note this is a trial movement
 void step_forward(FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Vector3d>& currentPosition, std::vector<Eigen::Vector3d>& direction, double step)
