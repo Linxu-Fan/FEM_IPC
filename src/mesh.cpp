@@ -19,7 +19,7 @@ void objMesh::outputFile(std::string fileName, int timestep)
 	for (int k = 0; k < faces.size(); k++)
 	{
 		outfile9 << "f ";
-		if (1)
+		if (0)
 		{
 			for (int m = 0; m < faces[k].size(); m++)
 			{

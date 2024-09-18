@@ -71,6 +71,10 @@ Eigen::Vector3d compute_external_force(Mesh& tetMesh, int vertInd, int timestep)
 {
 	Eigen::Vector3d extForce = Eigen::Vector3d::Zero();
 
+	if (tetMesh.pos_node[vertInd][0] >= 48)
+	{
+		extForce = { 0,0,-10000 };
+	}
 
 	if (tetMesh.boundaryCondition_node[vertInd].type == 2)
 	{
@@ -569,7 +573,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	}
 	
 
-	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> solver;
+	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> solver;	
 	solver.compute(leftHandSide);
 	Eigen::VectorXd result = solver.solve(-rightHandSide);
 

@@ -8,10 +8,33 @@
 int main()
 {
 
-	if (0)
+	if (1)
 	{
-		Eigen::Vector2i res = findIntersectionOfTwoNums(0, 3, 2, 5);
-		std::cout << res;
+		double pi = 3.141592653;
+
+		Eigen::Matrix3d F = Eigen::Matrix3d::Identity();
+
+		Eigen::Matrix3d RX = Eigen::Matrix3d::Zero();
+		Eigen::Matrix3d RY = Eigen::Matrix3d::Zero();
+		Eigen::Matrix3d RZ = Eigen::Matrix3d::Zero();
+
+		double tx = 0, ty = 0, tz = 0;
+		RX(0, 0) = 1.0;
+		RX(1, 1) = cos(tx);
+		RX(1, 2) = -sin(tx);
+		RX(2, 1) = sin(tx);
+		RX(2, 2) = cos(tx);
+
+		F = F * RX;
+
+		double xv2 = F(0,0) * PI / 2.0 * PI + F(0, 1) * PI / 2.0 * PI + F(0, 2) * PI * PI + 2 * F(0, 0) * F(0, 2) * 2.0 * PI ;
+		double yv2 = F(1,0) * PI / 2.0 * PI + F(1, 1) * PI / 2.0 * PI + F(1, 2) * PI * PI + 2 * F(1, 0) * F(1, 2) * 2.0 * PI ;
+		double zv2 = F(2,0) * PI / 2.0 * PI + F(2, 1) * PI / 2.0 * PI + F(2, 2) * PI * PI + 2 * F(2, 0) * F(2, 2) * 2.0 * PI ;
+
+		std::cout << "(xv2 + yv2 + zv2) / 2 / PI /PI = " << (xv2 + yv2 + zv2) / 2 / PI / PI << std::endl;
+
+
+
 
 	}
 	else
@@ -20,8 +43,8 @@ int main()
 		if (caseNum == 0)
 		{
 			Material mat1;
-			mat1.density = 1000;
-			mat1.E = 1.0e6;
+			mat1.density = 2780;
+			mat1.E = 7.26e10;
 			mat1.updateDenpendecies();
 
 
@@ -84,19 +107,20 @@ int main()
 			m3.note = "Left_top_fix";
 			m3.translation = { 0, 0, -0.1 };
 			m3.velocity = { 0, 0 , -2 };
-			config.push_back(m3);
+			//config.push_back(m3);
 
 			m4 = m1;
 			m4.filePath = "../input/Middle_support.msh";
 			m4.note = "Middle_support";
-			config.push_back(m4);
+			m4.translation = { 0, 0, 0.197 };
+			//config.push_back(m4);
 
 			m5 = m1;
 			m5.filePath = "../input/Right_top_move.msh";
 			m5.translation = { 0, 0, -0.1 };
 			m5.velocity = { 0, 0 , -2 };
 			m5.note = "Right_top_move";
-			config.push_back(m5);
+			//config.push_back(m5);
 
 
 			Mesh tetMesh;
@@ -124,11 +148,9 @@ int main()
 
 			for (int p = 0; p < tetMesh.pos_node.size(); p++)
 			{
-				if (tetMesh.note_node[p] == "Left_top_fix" || tetMesh.note_node[p] == "Right_top_move")
+				if (tetMesh.pos_node[p][0] <= 2)
 				{
-					tetMesh.vel_node[p] = { 0, 0 , -2 };
-					tetMesh.boundaryCondition_node[p].type = 3;
-					tetMesh.boundaryCondition_node[p].velocity = { 0, 0 , -2 };
+					tetMesh.boundaryCondition_node[p].type = 1;
 				}
 
 				if (tetMesh.note_node[p] == "Middle_support")
@@ -157,9 +179,10 @@ int main()
 
 			FEMParamters parameters;
 			parameters.gravity = { 0, 0, 0 };
-			parameters.num_timesteps = 200000;
-			parameters.dt = 1.0e-3;
-			parameters.outputFrequency = 1;
+			parameters.num_timesteps = 2000000;
+			parameters.numOfThreads = 32;
+			parameters.dt = 1.0e-4;
+			parameters.outputFrequency = 20;
 			parameters.enableGround = false;
 			parameters.searchResidual = 0.001;
 			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
