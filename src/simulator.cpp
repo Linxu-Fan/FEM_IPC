@@ -17,28 +17,27 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 		tetMesh.pos_node_prev = tetMesh.pos_node;
 		std::vector<Eigen::Vector3d> currentPosition = tetMesh.pos_node;
 		double lastEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
-		std::cout << "	lastEnergyVal = " << lastEnergyVal << std::endl;
 		for(int ite = 0; ite < 15; ite++)
 		{						
-			std::cout << std::endl << "		ite = " << ite << std::endl;
+			std::cout << "		ite = " << ite << "; lastEnergyVal = " << lastEnergyVal << std::endl;
 			std::vector<Eigen::Vector3d> direction = solve_linear_system(tetMesh, parameters, timestep);
 			double dist_to_converge = infiniteNorm(direction);
-			std::cout << std::scientific << std::setprecision(4) << "		dist_to_converge = " <<  dist_to_converge << "; threshold = " << sqrt(parameters.searchResidual * tetMesh.calBBXDiagSize() * parameters.dt * parameters.dt) << std::endl;
-			if (ite && (dist_to_converge < sqrt(parameters.searchResidual * tetMesh.calBBXDiagSize() * parameters.dt * parameters.dt)))
+			std::cout << std::scientific << std::setprecision(4) << "			dist_to_converge = " <<  dist_to_converge / parameters.dt << "m/s; threshold = " << parameters.searchResidual<<"m/s" << std::endl;
+			if (ite && (dist_to_converge / parameters.dt < parameters.searchResidual))
 			{
 				break;
 			}
 			
-			std::cout << "		Calculate step size"  << std::endl;
+			std::cout << "			Calculate step size"  << std::endl;
 			double step = calMaxStepSize(tetMesh, parameters, timestep, direction);
-			std::cout << "		Step forward" << std::endl;
+			std::cout << "			Step forward" << std::endl;
 			step_forward(parameters,tetMesh, currentPosition, direction, step);
 			double newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
-			std::cout << std::scientific << std::setprecision(4) << "		step = " << step<<"; newEnergyVal = "<< newEnergyVal << std::endl;
+			std::cout << std::scientific << std::setprecision(4) << "			step = " << step<<"; newEnergyVal = "<< newEnergyVal << std::endl;
 			while (newEnergyVal > lastEnergyVal && step >= 1.0e-5)
 			{
 				step /= 2.0;
-				std::cout << "			step = " << step << std::endl;
+				std::cout << "				step = " << step << std::endl;
 				step_forward(parameters, tetMesh, currentPosition, direction, step);
 				newEnergyVal = compute_IP_energy(tetMesh, parameters, timestep);
 				if (std::abs(newEnergyVal - lastEnergyVal) / lastEnergyVal < 0.001) // traped in the local mimima
@@ -49,7 +48,7 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 			lastEnergyVal = newEnergyVal;
 
 
-			std::cout << "		lastEnergyVal = " << lastEnergyVal << std::endl;
+			std::cout << "			lastEnergyVal = " << lastEnergyVal << std::endl;
 
 
 
@@ -105,7 +104,7 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 		double eng = 0;
 		eng += ExternalEnergy::Val(nodeMass, parameters.dt, x, parameters, extForce);
 		// the inertia energy contribution
-		eng += InertiaEnergy::Val(nodeMass, parameters.dt, xt, v, x, extForce, parameters);
+		eng += InertiaEnergy::Val(nodeMass, parameters.dt, xt, v, x, extForce, parameters, vI, tetMesh.boundaryCondition_node, timestep);
 		node_ext_ine_energy_vec[vI] = eng;
 	}
 	energyVal = std::accumulate(node_ext_ine_energy_vec.begin(), node_ext_ine_energy_vec.end(), 0.0);
@@ -347,9 +346,9 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 
 		// the inertia energy contribution
 		int actGradIndex = vI * 6;
-		InertiaEnergy::Grad(grad_triplet, actGradIndex, nodeMass, parameters.dt, xt, v, x, extForce, vI, parameters, tetMesh.boundaryCondition_node[vI].type);
+		InertiaEnergy::Grad(grad_triplet, actGradIndex, nodeMass, parameters.dt, xt, v, x, extForce, vI, parameters, tetMesh.boundaryCondition_node,  timestep);
 		int actHessIndex = vI * 3;
-		InertiaEnergy::Hess(hessian_triplet, actHessIndex, nodeMass, vI, tetMesh.boundaryCondition_node[vI].type);
+		InertiaEnergy::Hess(hessian_triplet, actHessIndex, nodeMass, vI, tetMesh.boundaryCondition_node, timestep, parameters);
 		
 		// the external energy contribution
 		actGradIndex = vI * 6 + 3;
@@ -384,11 +383,10 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 
 	if (gradSize > tetMesh.pos_node.size() * 6 + tetMesh.tetrahedrals.size() * 12)
 	{
-		std::cout << "Export EE pair" << std::endl;
-		std::cout << "PT_PP.size() = " << PT_PP.size() << std::endl;
-		std::cout << "PT_PE.size() = " << PT_PE.size() << std::endl;
-		std::cout << "PT_PT.size() = " << PT_PT.size() << std::endl;
-		std::cout << "EE_EE.size() = " << EE_EE.size() << std::endl;
+		std::cout << "			PT_PP.size() = " << PT_PP.size();
+		std::cout << "; PT_PE.size() = " << PT_PE.size();
+		std::cout << "; PT_PT.size() = " << PT_PT.size();
+		std::cout << "; EE_EE.size() = " << EE_EE.size() << std::endl;
 
 		/*std::ofstream outfile2("./output/EE_PAIR.obj", std::ios::trunc);
 		for (int i = 0; i < EE_EE.size(); i++)
@@ -538,39 +536,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 		std::pair<int, double> ele = grad_triplet[i];
 		rightHandSide[ele.first] += ele.second;
 	}
-	// change the gradient in case of type-3 particles
-#pragma omp parallel for num_threads(parameters.numOfThreads)
-	for (int h = 0; h < tetMesh.pos_node.size(); h++)
-	{
-		if (tetMesh.boundaryCondition_node[h].type == 3)
-		{
-			leftHandSide.coeffRef(3 * h, 3 * h) = 1.0;
-			leftHandSide.coeffRef(3 * h + 1, 3 * h + 1) = 1.0;
-			leftHandSide.coeffRef(3 * h + 2, 3 * h + 2) = 1.0;
 
-			Eigen::Vector3d desiredPosition = (double)(timestep + 1) * parameters.dt * tetMesh.boundaryCondition_node[h].velocity + tetMesh.pos_node_Rest[h];
-			Eigen::Vector3d diff = desiredPosition - tetMesh.pos_node[h];
-
-			rightHandSide[h * 3] = -diff[0];
-			rightHandSide[h * 3 + 1] = -diff[1];
-			rightHandSide[h * 3 + 2] = -diff[2];
-		}
-	}
-
-	
-	// apply the fixed boundary condition
-#pragma omp parallel for num_threads(parameters.numOfThreads)
-	for (int vI = 0; vI < tetMesh.pos_node.size(); vI++)
-	{
-		if (tetMesh.boundaryCondition_node[vI].type == 1) // fixed points
-		{
-			// modify the hessian's diagonal elements
-			for (int row = vI * 3; row < vI * 3 + 3; row++)
-			{
-				leftHandSide.coeffRef(row, row) = 1.0;
-			}
-		}
-	}
 	
 
 	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> solver;	

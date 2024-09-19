@@ -72,6 +72,7 @@ struct FEMParamters
 	double IPC_eta = 0.1; // the distance ratio that bring two edges or point-triangle to
 	double IPC_hashSize = 0.1; // the spatial hash's grid cell size
     double IPC_kStiffness = 1.0e14;
+    double IPC_B3Stiffness = 200; // in order to move a point to the desired position, we define an energy
 
 };
 
@@ -166,14 +167,13 @@ static std::string calculateID(Eigen::Vector3i index)
 // boundary condition of each vertex in the mesh
 struct boundaryCondition
 {
-    // vertex's type: 0) default: without constraint; 1) fixed points: velocity = 0; 2) external force, f_ext = xxx; 3) constant velocity
+    // vertex's type: 0) default: without constraint; 1) specify location in each timestep(include fixed point); 2) external force, f_ext = xxx; 
     int type = 0;
-    // 1st and 2nd element are the starting and ending timestep when a boundary condition is applied
-    Eigen::Vector2i appliedTime = { 0, 100000 };
+    // for tyepe1 particles, the location of each timestep 
+    std::vector<Eigen::Vector3d> location;
     // for type2 particles, the applied force magnitude
     Eigen::Vector3d force = { 0,0,0 };
-    // for tyepe3 particles, the velocity 
-    Eigen::Vector3d velocity = {0 , 0 , 0};
+
 
 };
 

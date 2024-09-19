@@ -133,6 +133,7 @@ void Mesh::readMeshes(std::vector<meshConfiguration>& config)
 						note_node.push_back(config[ii].note);
 						pos_node.push_back(rotation * nd_pos + translation);
 						vel_node.push_back(config[ii].velocity);
+						
 						currNodesNum += 1;
 					}
 

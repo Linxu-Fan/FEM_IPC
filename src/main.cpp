@@ -9,7 +9,7 @@
 int main()
 {
 
-	if (1)
+	if (0)
 	{
 		FEMParamters parameters;
 		parameters.IPC_dis = 0.01;
@@ -86,79 +86,34 @@ int main()
 			mat1.updateDenpendecies();
 
 
-			//// cube collision test
-			//std::vector<meshConfiguration> config;
-			//meshConfiguration m1, m2;
-			//m1.filePath = "../input/cube.msh";
-			//m1.mesh_material = mat1;
-			//m1.note = "cube1";
-			//m1.velocity = { 0, 0 , 0 };
-			////m1.translation = { 0, 0, 0.1 };
-			////config.push_back(m1);
-			//m2 = m1;
-			//m2.mesh_material = mat1;
-			//m2.note = "cube2";
-			//m2.velocity = { 0, 0 , 0 };
-			//m2.rotation_point = { 0.5, 0.5, 0.5 };
-			//m2.rotation_angle = { PI / 4.0, PI / 4.0, PI / 4.0 };
-			//m2.translation = { 1.80, 0.5, -0.3 };
-			////config.push_back(m2);
-
-
-
-			//// tet drop test
-			//std::vector<meshConfiguration> config;
-			//meshConfiguration m1, m2;
-			//m1.filePath = "../input/tet.msh";
-			//m1.mesh_material = mat1;
-			//m1.note = "tet1";
-			////m1.velocity = { 0, 0 , -2.0 };
-			////m1.translation = { 0, 0, 0.1 };
-			//config.push_back(m1);
-			//m2 = m1;
-			//m2.mesh_material = mat1;
-			//m2.velocity = { 0, 0 , -2.0 };
-			//m2.rotation_point = { 0, 0, 0 };
-			////m2.translation = { 1.03, 0, 1.0 };
-			//m2.rotation_angle = { PI , 0, 0 };
-			//m2.translation = { 0, 0, 1.034 };
-			////config.push_back(m2);
-
-
-
+			
 			std::vector<meshConfiguration> config;			
-			meshConfiguration m1, m2, m3, m4, m5;
-			m1.filePath = "./input/beam.msh";
+			meshConfiguration m1, m2, m3, m4;
+			m1.filePath = "../input/beam.msh";
 			m1.mesh_material = mat1;
 			m1.scale = {1000, 1000, 1000};
-			m1.velocity = { 0, 0 , 0 };
 			m1.note = "beam";
 			config.push_back(m1);
 
 			m2 = m1;
-			m2.filePath = "../input/Left_bottom_fix.msh";
-			m2.note = "Left_bottom_fix";
-			//config.push_back(m2);
+			m2.filePath = "../input/left_support.msh";
+			m2.note = "left_support";
+			m2.translation = { 0, 0, 1.0e-4};
+			config.push_back(m2);
 
 			m3 = m1;
-			m3.filePath = "../input/Left_top_fix.msh";
-			m3.note = "Left_top_fix";
-			m3.translation = { 0, 0, -0.1 };
-			m3.velocity = { 0, 0 , -2 };
-			//config.push_back(m3);
+			m3.filePath = "../input/middle_support.msh";
+			m3.note = "middle_support";
+			m3.translation = { 0, 0, -1.0e-4 };
+			config.push_back(m3);
 
 			m4 = m1;
-			m4.filePath = "../input/Middle_support.msh";
-			m4.note = "Middle_support";
-			m4.translation = { 0, 0, 0.197 };
-			//config.push_back(m4);
+			m4.filePath = "../input/impactor.msh";
+			m4.note = "impactor";
+			m4.translation = { 0, 0, 1.0e-4 };
+			config.push_back(m4);
 
-			m5 = m1;
-			m5.filePath = "../input/Right_top_move.msh";
-			m5.translation = { 0, 0, -0.1 };
-			m5.velocity = { 0, 0 , -2 };
-			m5.note = "Right_top_move";
-			//config.push_back(m5);
+
 
 
 			Mesh tetMesh;
@@ -171,45 +126,6 @@ int main()
 			tetMesh.initializeMesh();
 			tetMesh.surfaceMesh.outputFile("surfMesh");
 
-			//for (int p = 0; p < tetMesh.pos_node.size(); p++)
-			//{
-			//	if (tetMesh.pos_node[p][0] < 0.3)
-			//	{
-			//		tetMesh.vel_node[p] = { 5.0 , 0 , 0 };
-
-			//		tetMesh.boundaryCondition_node[p].type = 3;
-			//		tetMesh.boundaryCondition_node[p].velocity = {5.0 , 0 , 0};
-			//	}
-			//}
-
-
-
-			for (int p = 0; p < tetMesh.pos_node.size(); p++)
-			{
-				if (tetMesh.pos_node[p][0] <= 2)
-				{
-					tetMesh.boundaryCondition_node[p].type = 1;
-				}
-
-				if (tetMesh.note_node[p] == "Middle_support")
-				{
-					tetMesh.boundaryCondition_node[p].type = 1;
-				}
-			}
-
-
-			//for (int p = 0; p < tetMesh.pos_node.size(); p++)
-			//{
-			//	if (tetMesh.note_node[p] == "tet1" )
-			//	{
-			//		tetMesh.vel_node[p] = { 0, 0 , -2 };
-			//		tetMesh.boundaryCondition_node[p].type = 3;
-			//		tetMesh.boundaryCondition_node[p].velocity = { 0, 0 , -2 };
-			//	}
-			//}
-
-
-
 
 			std::cout << "tetMesh.pos_node.size() = " << tetMesh.pos_node.size() << std::endl;
 			std::cout << "tetMesh.tetrahedrals.size() = " << tetMesh.tetrahedrals.size() << std::endl;
@@ -217,21 +133,40 @@ int main()
 
 			FEMParamters parameters;
 			parameters.gravity = { 0, 0, 0 };
-			parameters.num_timesteps = 2000000;
+			parameters.num_timesteps = 3000;
 			parameters.numOfThreads = 32;
-			parameters.dt = 1.0e-4;
+			parameters.dt = 5.0e-5;
 			parameters.outputFrequency = 20;
 			parameters.enableGround = false;
-			parameters.searchResidual = 0.001;
-			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+			parameters.searchResidual = 5.0;
+			parameters.model = "ARAP_linear"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;
 			parameters.objectNames = objectNames;
-			parameters.IPC_dis = 0.001;
+			parameters.IPC_dis = 0.01;
 			parameters.IPC_eta = 0.05;
-			parameters.IPC_kStiffness = 1.0e16;
+			parameters.IPC_kStiffness = 1.0e14;
 			parameters.IPC_hashSize = tetMesh.calLargestEdgeLength() * 1.1;
+			parameters.IPC_B3Stiffness = 500;
 
-			std::cout << "parameters.IPC_hashSize = " << parameters.IPC_hashSize << std::endl;
+
+
+			for (int p = 0; p < tetMesh.pos_node.size(); p++)
+			{
+				if (tetMesh.note_node[p] == "impactor")
+				{
+					tetMesh.boundaryCondition_node[p].type = 1;
+					for (int fra = 0; fra < parameters.num_timesteps; fra++)
+					{
+						double incre = 2.0 / (double)parameters.num_timesteps * (double)fra;
+						Eigen::Vector3d inc = {0,0,incre };
+						Eigen::Vector3d desiredPos = inc + tetMesh.pos_node[p];
+
+						tetMesh.boundaryCondition_node[p].location.push_back(desiredPos);
+					}
+				}
+			}
+
+
 
 			implicitFEM(tetMesh, parameters);
 

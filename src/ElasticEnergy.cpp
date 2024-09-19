@@ -163,21 +163,10 @@ void ElasticEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int&
 	Eigen::Matrix<double, 12, 1> engGrad = dt * dt * vol * dFdx.transpose() * grad_tmp;
 	for (int m = 0; m < 4; m++)
 	{
-		if (tetVertInd_BC[m] != 1 && tetVertInd_BC[m] != 3)
+		int x1_Ind = tetVertInd[m]; // the first vertex index
+		for (int xd = 0; xd < 3; xd++)
 		{
-			int x1_Ind = tetVertInd[m]; // the first vertex index
-			for (int xd = 0; xd < 3; xd++)
-			{
-				grad_triplet[startIndex_grad + m * 3 + xd] = { x1_Ind * 3 + xd, engGrad(m * 3 + xd, 1) };
-			}
-		}
-		else
-		{
-			int x1_Ind = tetVertInd[m]; // the first vertex index
-			for (int xd = 0; xd < 3; xd++)
-			{
-				grad_triplet[startIndex_grad + m * 3 + xd] = { x1_Ind * 3 + xd, 0 };
-			}
+			grad_triplet[startIndex_grad + m * 3 + xd] = { x1_Ind * 3 + xd, engGrad(m * 3 + xd, 1) };
 		}
 	}
 
@@ -373,16 +362,13 @@ void ElasticEnergy::Hess(std::vector<Eigen::Triplet<double>>& hessian_triplet, i
 	makePD<double, 12>(engHess);
 	for (int m = 0; m < 4; m++)
 	{
-		if (tetVertInd_BC[m] == 1 || tetVertInd_BC[m] == 3)
-		{
-			engHess.col(m * 3).setZero();
-			engHess.col(m * 3 + 1).setZero();
-			engHess.col(m * 3 + 2).setZero();
+		engHess.col(m * 3).setZero();
+		engHess.col(m * 3 + 1).setZero();
+		engHess.col(m * 3 + 2).setZero();
 
-			engHess.row(m * 3).setZero();
-			engHess.row(m * 3 + 1).setZero();
-			engHess.row(m * 3 + 2).setZero();
-		}
+		engHess.row(m * 3).setZero();
+		engHess.row(m * 3 + 1).setZero();
+		engHess.row(m * 3 + 2).setZero();
 	}
 
 	int ac = 0;

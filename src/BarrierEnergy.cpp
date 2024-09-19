@@ -208,8 +208,8 @@ void BarrierEnergy::gradAndHess_EE(std::vector<Eigen::Triplet<double>>& hessian_
         project_grad_to_full(activePtsLocalInd, grad_, hess_, grad_b, hess_b); // since we add edge-edge mollifier, we have to project the hessian to full 12x12 matrix
 
         // now calcualte the final val, grad and hess considering the mollifier   
-        dt* dt* k_stiff* contactArea* (grad_ek * val_b + val_ek * grad_b);
-        dt* dt* k_stiff* contactArea* (hess_ek * val_b + grad_ek * grad_b.transpose() + grad_b * grad_ek.transpose() + val_ek * hess_b);
+        grad = dt* dt* k_stiff* contactArea* (grad_ek * val_b + val_ek * grad_b);
+        hessian = dt* dt* k_stiff* contactArea* (hess_ek * val_b + grad_ek * grad_b.transpose() + grad_b * grad_ek.transpose() + val_ek * hess_b);
         makePD<double, 12>(hessian);
 
     }
