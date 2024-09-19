@@ -1,4 +1,5 @@
 #include "simulator.h" 
+#include "tools.h" 
 
 // TODO
 // 1. Accelerate and parallel openMP
@@ -10,9 +11,46 @@ int main()
 
 	if (1)
 	{
-		double pi = 3.141592653;
+		FEMParamters parameters;
+		parameters.IPC_dis = 0.01;
+		parameters.IPC_kStiffness = 1.0e16;
+		parameters.numOfThreads = 24;
+		Eigen::Vector3d bbx_min = {23.5, -99, -99}, bbx_max = {26.5, 99 , 99};
 
-		Eigen::Matrix3d F = Eigen::Matrix3d::Identity();
+
+		std::vector<Eigen::Vector3d> forceFrame(500, Eigen::Vector3d::Zero());
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+		for (int frame = 0 ; frame < 500; frame++)
+		{		
+			objMeshFormat testMesh;
+			testMesh.readObjFile("E:/hydroStatic_object/Libuipc/libuipc/output/tests/sim_case/25_linear_arap_beam.cpp/scene_surface" + std::to_string(frame) + ".obj");
+			testMesh.sepConnectedComponents();
+
+			Eigen::Vector3d force = compute_contact_force(testMesh.componentsSep[0], testMesh.componentsSep[3], bbx_min, bbx_max, parameters);
+			forceFrame[frame] = force;
+
+			std::cout<<"Frame = "<<frame<<"; Force = ("<< " " << force[0] << " " << force[1] << " " << force[2]<<")" << std::endl;
+			std::cout << std::endl;
+		}
+
+
+
+
+
+
+		std::ofstream outfile9("./output/force.txt", std::ios::trunc);
+		for (int frame = 0; frame < 500; frame++)
+		{
+			outfile9 << std::scientific << std::setprecision(8) << frame << " " << forceFrame[frame][0] << " " << forceFrame[frame][1] << " " << forceFrame[frame][2] << std::endl;
+		}
+		outfile9.close();
+
+
+
+
+		/*double pi = 3.141592653;
+
+		//Eigen::Matrix3d F = Eigen::Matrix3d::Identity();
 
 		Eigen::Matrix3d RX = Eigen::Matrix3d::Zero();
 		Eigen::Matrix3d RY = Eigen::Matrix3d::Zero();
@@ -31,7 +69,7 @@ int main()
 		double yv2 = F(1,0) * PI / 2.0 * PI + F(1, 1) * PI / 2.0 * PI + F(1, 2) * PI * PI + 2 * F(1, 0) * F(1, 2) * 2.0 * PI ;
 		double zv2 = F(2,0) * PI / 2.0 * PI + F(2, 1) * PI / 2.0 * PI + F(2, 2) * PI * PI + 2 * F(2, 0) * F(2, 2) * 2.0 * PI ;
 
-		std::cout << "(xv2 + yv2 + zv2) / 2 / PI /PI = " << (xv2 + yv2 + zv2) / 2 / PI / PI << std::endl;
+		std::cout << "(xv2 + yv2 + zv2) / 2 / PI /PI = " << (xv2 + yv2 + zv2) / 2 / PI / PI << std::endl;*/
 
 
 

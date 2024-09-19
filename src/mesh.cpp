@@ -1,44 +1,6 @@
 #include "mesh.h"
 
 
-void objMesh::clear()
-{
-	vertices.clear();
-	faces.clear();
-}
-
-
-void objMesh::outputFile(std::string fileName, int timestep)
-{
-	std::ofstream outfile9("./output/" + fileName + "_" + std::to_string(timestep) + ".obj", std::ios::trunc);
-	for (int k = 0; k < vertices.size(); k++)
-	{
-		Eigen::Vector3d scale = vertices[k];
-		outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
-	}
-	for (int k = 0; k < faces.size(); k++)
-	{
-		outfile9 << "f ";
-		if (0)
-		{
-			for (int m = 0; m < faces[k].size(); m++)
-			{
-				outfile9 << faces[k][m] + 1 << " ";
-			}
-		}
-		else
-		{
-			for (int m = faces[k].size() - 1; m >= 0; m--)
-			{
-				outfile9 << faces[k][m] + 1 << " ";
-			}
-		}
-		outfile9 << std::endl;
-	}
-	outfile9.close();
-}
-
-
 ////////////////////////////////////////////////////////////////////////
 // Is it possible that node and element are not placed in order? If possible, then the reading code may crash.
 ////////////////////////////////////////////////////////////////////////
@@ -316,10 +278,11 @@ void Mesh::findBoundaryElements()
 	{
 		if (pair.second.first == 1)
 		{
-			surfaceMesh.faces.push_back(pair.second.second);
+			
 
 			Eigen::Vector3i tri = { pair.second.second[0], pair.second.second[1], pair.second.second[2]};
 			boundaryTriangles.push_back(tri);
+			surfaceMesh.faces.push_back(tri);
 		}
 	}
 

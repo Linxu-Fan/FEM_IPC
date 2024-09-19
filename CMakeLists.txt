@@ -46,6 +46,10 @@ add_executable(
 	src/BarrierEnergy.cpp
 	src/distance.cpp
 	src/CCD.cpp
+	src/objMesh.cpp
+	src/tools.cpp
+	include/FEM_IPC/tools.h
+	include/FEM_IPC/objMesh.h
 	include/FEM_IPC/distance.h
 	include/FEM_IPC/CCD.h
 	include/FEM_IPC/BarrierEnergy.h

@@ -51,6 +51,9 @@ typedef Eigen::Matrix<double, 9, 9> Matrix9d;
 typedef Eigen::Matrix<double, 12, 12> Matrix12d;
 
 
+
+
+
 struct FEMParamters
 {
     double dt = 1.0E-2; // simulation timestep size
@@ -115,6 +118,7 @@ struct Material
 
 
 
+
 // split a line from a text file
 std::vector<std::string> split(const std::string& s, const std::string& seperator);
 
@@ -132,6 +136,8 @@ Eigen::Vector2i findIntersectionOfTwoNums(int min1, int max1, int min2, int max2
 Eigen::Vector2d findIntersectionOfTwoNums(double min1, double max1, double min2, double max2);
 
  
+bool insideBoundingBox(Eigen::Vector3d pt, Eigen::Vector3d bbx_min, Eigen::Vector3d bbx_max);
+
 bool findIntersectionOfTwoVector3i(Eigen::Vector3i& minCoor1, Eigen::Vector3i& maxCoor1, Eigen::Vector3i& minCoor2, Eigen::Vector3i& maxCoor2, Eigen::Vector3i& intersectMin, Eigen::Vector3i& intersectMax);
 bool findIntersectionOfTwoVector3d(Eigen::Vector3d& minCoor1, Eigen::Vector3d& maxCoor1, Eigen::Vector3d& minCoor2, Eigen::Vector3d& maxCoor2, Eigen::Vector3d& intersectMin, Eigen::Vector3d& intersectMax);
 
