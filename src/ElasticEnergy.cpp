@@ -86,7 +86,7 @@ double ElasticEnergy::Val(Material& mat, std::string model, Eigen::Matrix3d& F, 
 	else if (model == "ARAP_linear")
 	{
 		double J = F.determinant();
-		energy = mat.mu / 2.0 * (13.0 / 8.0) * (13.0 / 8.0) * (F.transpose() - Eigen::Matrix3d::Identity()).squaredNorm();
+		energy = mat.mu / 2.0 * (0.5 * (F + F.transpose()) - Eigen::Matrix3d::Identity()).squaredNorm();
 	}
 	else if (model == "ACAP")
 	{
@@ -151,7 +151,7 @@ void ElasticEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int&
 	}
 	else if (model == "ARAP_linear")
 	{
-		Eigen::Matrix3d PK1 = mat.mu * (13.0 / 8.0) * (13.0 / 8.0) * (F - Eigen::Matrix3d::Identity());
+		Eigen::Matrix3d PK1 = mat.mu / 2 * (F + F.transpose() - 2 * Eigen::Matrix3d::Identity());
 		grad_tmp = flatenMatrix3d(PK1);
 	}
 	else if (model == "ACAP")
@@ -350,7 +350,7 @@ void ElasticEnergy::Hess(std::vector<Eigen::Triplet<double>>& hessian_triplet, i
 	else if (model == "ARAP_linear")
 	{
 		Eigen::Matrix<double, 9, 9> I9 = Eigen::Matrix<double, 9, 9>::Identity();
-		hessian = mat.mu * (13.0 / 8.0) * (13.0 / 8.0) * I9;
+		hessian = mat.mu * I9;
 	}
 	else if (model == "ACAP")
 	{

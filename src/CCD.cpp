@@ -492,6 +492,8 @@ double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vect
                                 int vert = *itP, tri = *itT;
                                 if (tetMesh.boundaryVertices[vert].find(tri) == tetMesh.boundaryVertices[vert].end()) // this triangle is not incident with the point
                                 {
+
+                                    
                                     Eigen::Vector3i triVerts = tetMesh.boundaryTriangles[tri];
                                     Eigen::Vector3d P = tetMesh.pos_node[vert];
                                     Eigen::Vector3d dP = direction[vert];
@@ -504,8 +506,15 @@ double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vect
 
                                     if (pointTriangleCCDBroadphase(P, dP, A, dA, B, dB, C, dC, dist_threshold))
                                     {
+
                                         double step_tmp = pointTriangleCCDNarrowphase(P, dP, A, dA, B, dB, C, dC, eta);
                                         step = std::min(step, step_tmp);
+
+
+
+                                        //std::cout << "Step VT: V = " << vert << "; T = " << tri << "; Z = " << A[2] <<"; Step = "<< step_tmp << std::endl;
+
+
                                     }
 
                                 }
@@ -538,6 +547,8 @@ double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vect
                                     int P1I = E1[0], P2I = E1[1], Q1I = E2[0], Q2I = E2[1];
                                     if (P1I != Q1I && P1I != Q2I && P2I != Q1I && P2I != Q2I) // not duplicated and incident edges
                                     {
+                                        
+
                                         Eigen::Vector3d P1 = tetMesh.pos_node[P1I];
                                         Eigen::Vector3d P2 = tetMesh.pos_node[P2I];
                                         Eigen::Vector3d Q1 = tetMesh.pos_node[Q1I];
@@ -549,8 +560,14 @@ double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vect
 
                                         if (edgeEdgeCCDBroadphase(P1, P2, dP1, dP2, Q1, Q2, dQ1, dQ2, dist_threshold))
                                         {
+
                                             double step_tmp = edgeEdgeCCDNarrowphase(P1, P2, dP1, dP2, Q1, Q2, dQ1, dQ2, eta);
                                             step = std::min(step, step_tmp);
+
+
+                                            //std::cout << "Step EE: E1 = " << *itE1 << "; E2 = " << *itE2 << "; Step = " << step_tmp << std::endl;
+
+
                                         }
                                     }
                                 }

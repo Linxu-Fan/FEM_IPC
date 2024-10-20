@@ -267,23 +267,6 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 
 void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector2i& D2Index, Vector6d& V6, Matrix6d& H6x6)
 {
-	for (int j = 0; j < 2; j++)
-	{
-		int pt = D2Index[j];
-
-		V6[j * 3] = 0;
-		V6[j * 3 + 1] = 0;
-		V6[j * 3 + 2] = 0;
-
-		H6x6.row(j * 3).setZero();
-		H6x6.row(j * 3 + 1).setZero();
-		H6x6.row(j * 3 + 2).setZero();
-		H6x6.col(j * 3).setZero();
-		H6x6.col(j * 3 + 1).setZero();
-		H6x6.col(j * 3 + 2).setZero();
-		
-	}
-
 
 
 	for (int j = 0; j < 2; j++)
@@ -314,22 +297,7 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 
 void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector3i& D3Index, Vector9d& V9, Matrix9d& H9x9)
 {
-	for (int j = 0; j < 3; j++)
-	{
-		int pt = D3Index[j];
 
-		V9[j * 3] = 0;
-		V9[j * 3 + 1] = 0;
-		V9[j * 3 + 2] = 0;
-
-		H9x9.row(j * 3).setZero();
-		H9x9.row(j * 3 + 1).setZero();
-		H9x9.row(j * 3 + 2).setZero();
-		H9x9.col(j * 3).setZero();
-		H9x9.col(j * 3 + 1).setZero();
-		H9x9.col(j * 3 + 2).setZero();
-		
-	}
 
 	for (int j = 0; j < 3; j++)
 	{
@@ -361,22 +329,6 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 
 void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector4i& D4Index, Vector12d& V12, Matrix12d& H12x12)
 {
-	for (int j = 0; j < 4; j++)
-	{
-		int pt = D4Index[j];
-
-		V12[j * 3] = 0;
-		V12[j * 3 + 1] = 0;
-		V12[j * 3 + 2] = 0;
-
-		H12x12.row(j * 3).setZero();
-		H12x12.row(j * 3 + 1).setZero();
-		H12x12.row(j * 3 + 2).setZero();
-		H12x12.col(j * 3).setZero();
-		H12x12.col(j * 3 + 1).setZero();
-		H12x12.col(j * 3 + 2).setZero();
-	
-	}
 
 	for (int j = 0; j < 4; j++)
 	{

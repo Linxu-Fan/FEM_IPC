@@ -9,6 +9,14 @@ double InertiaEnergy::Val(double nodeMass, double dt, Eigen::Vector3d& xt, Eigen
 	Eigen::Vector3d x_minus_xt = x - (xt + dt * v + dt * dt / nodeMass * (nodeMass * param.gravity + extForce));
 	energy += x_minus_xt.dot(x_minus_xt) * nodeMass / 2.0;
 
+	if (vertIndex == 7)
+	{
+		//Eigen::Vector3d po = xt + dt * v;
+		//std::cout << "x_minus_xt = " << x_minus_xt[0]<<"," << x_minus_xt[1] << "," << x_minus_xt[2]  << std::endl;
+		//std::cout << "x = " << x[0]<<"," << x[1] << "," << x[2]  << std::endl;
+		//std::cout << "po = " << po[0]<<"," << po[1] << "," << po[2]  << std::endl;
+	}
+
 	if (boundaryCondition_node[vertIndex].type == 1)
 	{
 		energy += param.IPC_B3Stiffness * nodeMass / 2.0 * (x - boundaryCondition_node[vertIndex].location[timestep]).dot(x - boundaryCondition_node[vertIndex].location[timestep]);
