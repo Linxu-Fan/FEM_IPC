@@ -66,13 +66,16 @@ struct FEMParamters
     bool enableGround = true;
 	double searchResidual = 1.0e-4;
 
-    bool rigidMode = false; // if rigidMode, IPC will only check contact pairs that belongs to two different objects
+    bool rigidMode = false; // if rigidMode, IPC will only check contact pairs that belongs to two different objects. It is suitable for small deformation
+    std::string simulation_Mode = "Normal"; // Normal: normal simulation; ABD: ABD simulation; Coupling: ABD and deformable
     std::vector<std::string> objectNames; // name of objects in the scene
 	double IPC_dis = 0.01; // the distance of IPC gap, i.e., barrier energy emerges if the distance is smaller than this threshold
 	double IPC_eta = 0.1; // the distance ratio that bring two edges or point-triangle to
 	double IPC_hashSize = 0.1; // the spatial hash's grid cell size
     double IPC_kStiffness = 1.0e14;
     double IPC_B3Stiffness = 200; // in order to move a point to the desired position, we define an energy
+
+    double ABD_Coeff = 1.0e10; // penalty coefficient for ABD
 
 };
 
@@ -173,6 +176,8 @@ struct boundaryCondition
     std::vector<Eigen::Vector3d> location;
     // for type2 particles, the applied force magnitude
     Eigen::Vector3d force = { 0,0,0 };
+    // for type1 and type2 particles, the minimum and maximum applied timesteps
+    Eigen::Vector2i appliedTime = {-99, 9999999};
 
 
 };

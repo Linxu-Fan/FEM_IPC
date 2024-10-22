@@ -72,6 +72,8 @@ void Mesh::readMesh(meshConfiguration& config)
 
 void Mesh::readMeshes(std::vector<meshConfiguration>& config)
 {
+	num_meshes = config.size();
+
 	int prevNodesNum = 0;
 	int currNodesNum = 0;
 	for (int ii = 0; ii < config.size(); ii++)
@@ -87,7 +89,6 @@ void Mesh::readMeshes(std::vector<meshConfiguration>& config)
 			.rotate(Eigen::AngleAxisd(config[ii].rotation_angle[1], Eigen::Vector3d::UnitY()))
 			.rotate(Eigen::AngleAxisd(config[ii].rotation_angle[2], Eigen::Vector3d::UnitZ()))
 			.translate(config[ii].rotation_point);
-
 
 
 		materialMesh.push_back(mat);
@@ -131,6 +132,8 @@ void Mesh::readMeshes(std::vector<meshConfiguration>& config)
 					{
 						Eigen::Vector3d nd_pos = { std::stod(vecCoor[1]) * scale[0] , std::stod(vecCoor[2]) * scale[1] , std::stod(vecCoor[3]) * scale[2] };
 						note_node.push_back(config[ii].note);
+						Eigen::Vector2i index_vert = {ii , 0};
+						index_node.push_back(index_vert);
 						pos_node.push_back(rotation * nd_pos + translation);
 						vel_node.push_back(config[ii].velocity);
 						
@@ -347,6 +350,7 @@ void Mesh::findBoundaryElements()
 	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin(); it != boundaryVertices.end(); it++)
 	{
 		boundaryVertices_vec.push_back(it->first);
+		index_node[it->first][1] = 1;
 	}
 
 }
@@ -483,7 +487,6 @@ double Mesh::calLargestEdgeLength()
 	return largestLength;
 }
 
-
 double Mesh::calBBXDiagSize()
 {
 	std::pair<Eigen::Vector3d, Eigen::Vector3d> BBX = calculateBoundingBox();
@@ -491,3 +494,46 @@ double Mesh::calBBXDiagSize()
 }
 
 
+// initialize the mesh after reading
+void Mesh_ABD::initializeMesh() // initialize the mesh 
+{
+	Mesh::initializeMesh();
+	initializeABD();
+}
+
+
+void Mesh_ABD::initializeABD()
+{
+	massMatrix_ABD.resize(num_meshes, Eigen::Matrix<double, 12, 12>::Zero());
+
+	translation_prev_ABD.resize(num_meshes, Eigen::Vector3d::Zero());
+	translation_ABD.resize(num_meshes, Eigen::Vector3d::Zero());
+	translation_vel_ABD.resize(num_meshes, Eigen::Vector3d::Zero());
+
+	deformation_prev_ABD.resize(num_meshes, Eigen::Matrix3d::Identity());
+	deformation_ABD.resize(num_meshes, Eigen::Matrix3d::Identity());
+	deformation_vel_ABD.resize(num_meshes, Eigen::Matrix3d::Zero());
+
+	for (int i = 0; i < pos_node.size(); i++)
+	{
+		Eigen::Matrix<double, 3, 12> Jx;
+		Jx.block(0, 0, 3, 3) = Eigen::Matrix3d::Identity();
+		Jx.block(0, 3, 1, 3) = pos_node[i].transpose();
+		Jx.block(1, 6, 1, 3) = pos_node[i].transpose();
+		Jx.block(2, 9, 1, 3) = pos_node[i].transpose();
+
+		int AB_index = index_node[i][0];
+		massMatrix_ABD[AB_index] += mass_node[i] * Jx.transpose() * Jx;
+	}
+
+
+	volume_ABD.resize(num_meshes, 0);
+	for (int i = 0; i < tetrahedrals.size(); i++)
+	{
+		int vtInd = tetrahedrals[i][0];
+		int ABInd = index_node[vtInd][0];
+		volume_ABD[ABInd] += tetra_vol[i];
+	}
+
+
+}

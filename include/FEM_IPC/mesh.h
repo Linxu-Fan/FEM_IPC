@@ -21,20 +21,25 @@ struct meshConfiguration
 };
 
 
-struct Mesh 
+
+class Mesh
 {
-    std::vector<std::string> note_node; // note of each node
-    std::vector<Eigen::Vector3d> pos_node; // position of each node
+public:
+	int num_meshes = 1; // number of independant tetrahedral meshes inputed into the simulator
+	std::vector<Eigen::Vector2i> index_node; // index of each node; 1st int: index of the tetrhedral mesh, 2nd int: 0(interior vertex), 1(surface vertex) 
+
+	std::vector<std::string> note_node; // note of each node
+	std::vector<Eigen::Vector3d> pos_node; // position of each node
 	std::vector<Eigen::Vector3d> vel_node; // velocity of each node
 	std::vector<Eigen::Vector3d> elastForce_node; // elastic force of each node
 	std::vector<boundaryCondition> boundaryCondition_node; // the respective boundary condition of each node
 	std::vector<double> mass_node; // mass of each node
-    std::vector<Eigen::Vector4i> tetrahedrals;
-    std::vector<double> tetra_vol; // volume of the tetrahedral
+	std::vector<Eigen::Vector4i> tetrahedrals;
+	std::vector<double> tetra_vol; // volume of the tetrahedral
 	std::vector<Eigen::Matrix3d> tetra_DM_inv; // inverse of matrix DM
 	std::vector<Eigen::Matrix3d> tetra_DS; // DS matrix
 	std::vector<Eigen::Matrix3d> tetra_F; // deformation gradient of each tetrahedral
-    std::vector<std::vector<int>> nodeSharedByElement; // indices of element that shares the node
+	std::vector<std::vector<int>> nodeSharedByElement; // indices of element that shares the node
 
 	std::vector<Eigen::Vector3d> pos_node_prev; // tetrahedral node's previous position
 	std::vector<Eigen::Vector3d> pos_node_Rest; // tetrahedral node's position at the rest configuration. Note it is different from pos_node_prev which is the position at timestep = n - 1
@@ -58,8 +63,8 @@ struct Mesh
 	std::vector<int> index_boundaryEdge_vec; // 1st int: index of this edge
 	std::vector<Eigen::Vector3i> boundaryTriangles;
 	std::vector<double> boundaryTriangles_area; // boundary triangle's area
-	
-	
+
+
 
 
 	////////////////////////////////////////////////////////////////////////
@@ -91,8 +96,34 @@ struct Mesh
 	double calLargestEdgeLength();
 	// calculate the boundingbox's diagonal size
 	double calBBXDiagSize();
-	
 
+
+};
+
+
+
+
+
+
+
+class Mesh_ABD : public Mesh
+{
+public: 
+	// data structure specialized for ABD
+	std::vector<Matrix12d> massMatrix_ABD; // the mass matrix of each mesh if in ABD mode
+	std::vector<Eigen::Vector3d> translation_prev_ABD; // translation of each mesh in previous timestep if in ABD mode
+	std::vector<Eigen::Vector3d> translation_ABD; // translation of each mesh if in ABD mode
+	std::vector<Eigen::Vector3d> translation_vel_ABD; // translation velocity
+	std::vector<Eigen::Matrix3d> deformation_prev_ABD; // deformation of each mesh in previous timestep if in ABD mode
+	std::vector<Eigen::Matrix3d> deformation_ABD; // deformation of each mesh if in ABD mode
+	std::vector<Eigen::Matrix3d> deformation_vel_ABD; // deformation velocity
+	std::vector<double> volume_ABD; // volume of each mesh if in ABD mode
+
+
+	
+	void initializeMesh(); // initialize the mesh 
+	void initializeABD();
+	
 };
 
 

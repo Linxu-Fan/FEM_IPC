@@ -9,8 +9,12 @@
 int main()
 {
 
-	if (0)
+	if (1)
 	{
+		
+
+
+
 		/*FEMParamters parameters;
 		parameters.IPC_dis = 0.01;
 		parameters.IPC_kStiffness = 1.0e16;
@@ -48,101 +52,101 @@ int main()
 
 
 
-		double pi = 3.141592653;
+		//double pi = 3.141592653;
 
-		Eigen::Matrix3d F = Eigen::Matrix3d::Identity();
-
-
-		// Rotate along x,y,z axis
-		Eigen::Matrix3d RX = Eigen::Matrix3d::Zero();
-		Eigen::Matrix3d RY = Eigen::Matrix3d::Zero();
-		Eigen::Matrix3d RZ = Eigen::Matrix3d::Zero();
-		double tx = 200, ty = 142, tz = 1450;
-		RX(0, 0) = 1.0;
-		RX(1, 1) = cos(tx);
-		RX(1, 2) = -sin(tx);
-		RX(2, 1) = sin(tx);
-		RX(2, 2) = cos(tx);
-
-		RY(1, 1) = 1.0;
-		RY(0, 0) = cos(ty);
-		RY(0, 2) = -sin(ty);
-		RY(2, 0) = sin(ty);
-		RY(2, 2) = cos(ty);
-
-		RZ(2, 2) = 1.0;
-		RZ(1, 1) = cos(tz);
-		RZ(0, 1) = -sin(tz);
-		RZ(1, 0) = sin(tz);
-		RZ(0, 0) = cos(tz);
-
-		F = F * RX * RY * RZ;
+		//Eigen::Matrix3d F = Eigen::Matrix3d::Identity();
 
 
-		// Rotate along arbitrary axis
-		double theta = 458;
-		double cosTheta = std::cos(theta);
-		double sinTheta = std::sin(theta);
-		Eigen::Vector3d axis = {1.5,1.9,74.4};
-		axis.normalize();
-		Eigen::Matrix3d outerProduct = axis * axis.transpose();
-		Eigen::Matrix3d K;
-		K << 0, -axis.z(), axis.y(),
-			 axis.z(), 0, -axis.x(),
-			 -axis.y(), axis.x(), 0;
-		Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
-		// Rodrigues' rotation formula
-		Eigen::Matrix3d R = cosTheta * I + (1 - cosTheta) * outerProduct + sinTheta * K;
+		//// Rotate along x,y,z axis
+		//Eigen::Matrix3d RX = Eigen::Matrix3d::Zero();
+		//Eigen::Matrix3d RY = Eigen::Matrix3d::Zero();
+		//Eigen::Matrix3d RZ = Eigen::Matrix3d::Zero();
+		//double tx = 200, ty = 142, tz = 1450;
+		//RX(0, 0) = 1.0;
+		//RX(1, 1) = cos(tx);
+		//RX(1, 2) = -sin(tx);
+		//RX(2, 1) = sin(tx);
+		//RX(2, 2) = cos(tx);
 
-		F = F * R;
+		//RY(1, 1) = 1.0;
+		//RY(0, 0) = cos(ty);
+		//RY(0, 2) = -sin(ty);
+		//RY(2, 0) = sin(ty);
+		//RY(2, 2) = cos(ty);
+
+		//RZ(2, 2) = 1.0;
+		//RZ(1, 1) = cos(tz);
+		//RZ(0, 1) = -sin(tz);
+		//RZ(1, 0) = sin(tz);
+		//RZ(0, 0) = cos(tz);
+
+		//F = F * RX * RY * RZ;
 
 
+		//// Rotate along arbitrary axis
+		//double theta = 458;
+		//double cosTheta = std::cos(theta);
+		//double sinTheta = std::sin(theta);
+		//Eigen::Vector3d axis = {1.5,1.9,74.4};
+		//axis.normalize();
+		//Eigen::Matrix3d outerProduct = axis * axis.transpose();
+		//Eigen::Matrix3d K;
+		//K << 0, -axis.z(), axis.y(),
+		//	 axis.z(), 0, -axis.x(),
+		//	 -axis.y(), axis.x(), 0;
+		//Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
+		//// Rodrigues' rotation formula
+		//Eigen::Matrix3d R = cosTheta * I + (1 - cosTheta) * outerProduct + sinTheta * K;
 
-		Eigen::HouseholderQR<Eigen::MatrixXd> qr(F);
-		Eigen::MatrixXd QW = qr.householderQ();
-		Eigen::MatrixXd RW = qr.matrixQR().triangularView<Eigen::Upper>();
-		Eigen::MatrixXd A_reconstructed = QW * RW;
-		std::cout << "Matrix F:\n" << F << "\n" << std::endl;
-		//std::cout << "Matrix Q:\n" << QW << "\n" << std::endl;
-		//std::cout << "Matrix R:\n" << RW << "\n" << std::endl;
-		//std::cout << "Q * R:\n" << A_reconstructed << "\n" << std::endl;
+		//F = F * R;
 
 
 
-		// Add stretch matrix
-		double s = 0.5;
-		Eigen::Matrix3d stretch = Eigen::Matrix3d::Zero();
-		stretch(0, 0) = s;
-		stretch(1, 1) = s;
-		stretch(2, 2) = s;
-		F = F * stretch;
+		//Eigen::HouseholderQR<Eigen::MatrixXd> qr(F);
+		//Eigen::MatrixXd QW = qr.householderQ();
+		//Eigen::MatrixXd RW = qr.matrixQR().triangularView<Eigen::Upper>();
+		//Eigen::MatrixXd A_reconstructed = QW * RW;
+		//std::cout << "Matrix F:\n" << F << "\n" << std::endl;
+		////std::cout << "Matrix Q:\n" << QW << "\n" << std::endl;
+		////std::cout << "Matrix R:\n" << RW << "\n" << std::endl;
+		////std::cout << "Q * R:\n" << A_reconstructed << "\n" << std::endl;
 
 
-		F = Eigen::Matrix3d::Zero();
-		F(1, 1) = sqrt(2);
-		F(0, 0) = sqrt(2);
 
-		double xv2 = F(0,0) * F(0, 0) * PI / 2.0 * PI + F(0, 1) * F(0, 1) * PI / 2.0 * PI + F(0, 2) * F(0, 2) * PI * PI + 2 * F(0, 0) * F(0, 2) * 2.0 * PI ;
-		double yv2 = F(1,0) * F(1, 0) * PI / 2.0 * PI + F(1, 1) * F(1, 1) * PI / 2.0 * PI + F(1, 2) * F(1, 2) * PI * PI + 2 * F(1, 0) * F(1, 2) * 2.0 * PI ;
-		double zv2 = F(2,0) * F(2, 0) * PI / 2.0 * PI + F(2, 1) * F(2, 1) * PI / 2.0 * PI + F(2, 2) * F(2, 2) * PI * PI + 2 * F(2, 0) * F(2, 2) * 2.0 * PI ;
+		//// Add stretch matrix
+		//double s = 0.5;
+		//Eigen::Matrix3d stretch = Eigen::Matrix3d::Zero();
+		//stretch(0, 0) = s;
+		//stretch(1, 1) = s;
+		//stretch(2, 2) = s;
+		//F = F * stretch;
 
-		std::cout << "f(phi) = " << (xv2 + yv2 + zv2) / 2 / PI / PI   << std::endl;
 
-		// Test axis change_y
-		double xv2_2 = F(0, 0) * F(0, 0) * PI / 2.0 * PI + F(0, 2) * F(0, 2) * PI / 2.0 * PI + F(0, 1) * F(0, 1) * PI * PI + 2 * F(0, 0) * F(0, 1) * 2.0 * PI;
-		double yv2_2 = F(1, 0) * F(1, 0) * PI / 2.0 * PI + F(1, 2) * F(1, 2) * PI / 2.0 * PI + F(1, 1) * F(1, 1) * PI * PI + 2 * F(1, 0) * F(1, 1) * 2.0 * PI;
-		double zv2_2 = F(2, 0) * F(2, 0) * PI / 2.0 * PI + F(2, 2) * F(2, 2) * PI / 2.0 * PI + F(2, 1) * F(2, 1) * PI * PI + 2 * F(2, 0) * F(2, 1) * 2.0 * PI;
+		//F = Eigen::Matrix3d::Zero();
+		//F(1, 1) = sqrt(2);
+		//F(0, 0) = sqrt(2);
 
-		std::cout << "f_2(phi) = " << (xv2_2 + yv2_2 + zv2_2) / 2 / PI / PI  << std::endl;
+		//double xv2 = F(0,0) * F(0, 0) * PI / 2.0 * PI + F(0, 1) * F(0, 1) * PI / 2.0 * PI + F(0, 2) * F(0, 2) * PI * PI + 2 * F(0, 0) * F(0, 2) * 2.0 * PI ;
+		//double yv2 = F(1,0) * F(1, 0) * PI / 2.0 * PI + F(1, 1) * F(1, 1) * PI / 2.0 * PI + F(1, 2) * F(1, 2) * PI * PI + 2 * F(1, 0) * F(1, 2) * 2.0 * PI ;
+		//double zv2 = F(2,0) * F(2, 0) * PI / 2.0 * PI + F(2, 1) * F(2, 1) * PI / 2.0 * PI + F(2, 2) * F(2, 2) * PI * PI + 2 * F(2, 0) * F(2, 2) * 2.0 * PI ;
 
-		// Test axis change_z
-		double xv2_3 = F(0, 1) * F(0, 1) * PI / 2.0 * PI + F(0, 2) * F(0, 2) * PI / 2.0 * PI + F(0, 0) * F(0, 0) * PI * PI / 2.0;
-		double yv2_3 = F(1, 1) * F(1, 1) * PI / 2.0 * PI + F(1, 2) * F(1, 2) * PI / 2.0 * PI + F(1, 0) * F(1, 0) * PI * PI / 2.0;
-		double zv2_3 = F(2, 1) * F(2, 1) * PI / 2.0 * PI + F(2, 2) * F(2, 2) * PI / 2.0 * PI + F(2, 0) * F(2, 0) * PI * PI / 2.0;
+		//std::cout << "f(phi) = " << (xv2 + yv2 + zv2) / 2 / PI / PI   << std::endl;
 
-		std::cout << "f_3(phi) = " << (xv2_3 + yv2_3 + zv2_3) / 2 / PI / PI  << std::endl;
+		//// Test axis change_y
+		//double xv2_2 = F(0, 0) * F(0, 0) * PI / 2.0 * PI + F(0, 2) * F(0, 2) * PI / 2.0 * PI + F(0, 1) * F(0, 1) * PI * PI + 2 * F(0, 0) * F(0, 1) * 2.0 * PI;
+		//double yv2_2 = F(1, 0) * F(1, 0) * PI / 2.0 * PI + F(1, 2) * F(1, 2) * PI / 2.0 * PI + F(1, 1) * F(1, 1) * PI * PI + 2 * F(1, 0) * F(1, 1) * 2.0 * PI;
+		//double zv2_2 = F(2, 0) * F(2, 0) * PI / 2.0 * PI + F(2, 2) * F(2, 2) * PI / 2.0 * PI + F(2, 1) * F(2, 1) * PI * PI + 2 * F(2, 0) * F(2, 1) * 2.0 * PI;
 
-		std::cout << "F_00 * F_02 + F_10 * F_12 + F_20 * F_22 = " << F(0, 0) * F(0, 2) + F(1, 0) * F(1, 2) + F(2, 0) * F(2, 2) << std::endl;
+		//std::cout << "f_2(phi) = " << (xv2_2 + yv2_2 + zv2_2) / 2 / PI / PI  << std::endl;
+
+		//// Test axis change_z
+		//double xv2_3 = F(0, 1) * F(0, 1) * PI / 2.0 * PI + F(0, 2) * F(0, 2) * PI / 2.0 * PI + F(0, 0) * F(0, 0) * PI * PI / 2.0;
+		//double yv2_3 = F(1, 1) * F(1, 1) * PI / 2.0 * PI + F(1, 2) * F(1, 2) * PI / 2.0 * PI + F(1, 0) * F(1, 0) * PI * PI / 2.0;
+		//double zv2_3 = F(2, 1) * F(2, 1) * PI / 2.0 * PI + F(2, 2) * F(2, 2) * PI / 2.0 * PI + F(2, 0) * F(2, 0) * PI * PI / 2.0;
+
+		//std::cout << "f_3(phi) = " << (xv2_3 + yv2_3 + zv2_3) / 2 / PI / PI  << std::endl;
+
+		//std::cout << "F_00 * F_02 + F_10 * F_12 + F_20 * F_22 = " << F(0, 0) * F(0, 2) + F(1, 0) * F(1, 2) + F(2, 0) * F(2, 2) << std::endl;
 	}
 	else
 	{
@@ -150,6 +154,7 @@ int main()
 		// 0: Three-point-bending beam test
 		// 1. Two tetrahedrals collision test to verify the correctness of the solver
 		// 2. Single tetrahedral test
+		// 3. ABD test
 		int caseNum = 0;
 		if (caseNum == 0)
 		{
@@ -231,7 +236,7 @@ int main()
 					for (int fra = 0; fra < parameters.num_timesteps; fra++)
 					{
 						double incre = 0.1 / (double)parameters.num_timesteps * (double)fra;
-						Eigen::Vector3d inc = {0,0,incre };
+						Eigen::Vector3d inc = {0,0,-incre };
 						Eigen::Vector3d desiredPos = inc + tetMesh.pos_node[p];
 
 						tetMesh.boundaryCondition_node[p].location.push_back(desiredPos);
@@ -497,6 +502,103 @@ int main()
 
 			}
 
+
+
+		}
+		else if (caseNum == 3)
+		{
+			Material mat1;
+			mat1.density = 2780;
+			mat1.E = 7.26e7;
+			mat1.updateDenpendecies();
+
+
+
+			std::vector<meshConfiguration> config;
+			meshConfiguration m1, m2, m3, m4;
+			m1.filePath = "../input/beam.msh";
+			m1.mesh_material = mat1;
+			m1.scale = { 1000, 1000, 1000 };
+			m1.note = "beam";
+			config.push_back(m1);
+
+			m4 = m1;
+			m4.filePath = "../input/impactor.msh";
+			m4.note = "impactor";
+			m4.translation = { 0, 0, 1.5e-2 };
+			config.push_back(m4);
+
+
+
+
+			Mesh tetMesh;
+			std::vector<std::string> objectNames;
+			for (int i = 0; i < config.size(); i++)
+			{
+				objectNames.push_back(config[i].note);
+			}
+			tetMesh.readMeshes(config);
+			tetMesh.initializeMesh();
+			tetMesh.surfaceMesh.outputFile("surfMesh");
+
+
+			std::cout << "tetMesh.pos_node.size() = " << tetMesh.pos_node.size() << std::endl;
+			std::cout << "tetMesh.tetrahedrals.size() = " << tetMesh.tetrahedrals.size() << std::endl;
+
+
+			FEMParamters parameters;
+			parameters.gravity = { 0, 0, 0 };
+			parameters.num_timesteps = 3000;
+			parameters.numOfThreads = 12;
+			parameters.dt = 5.0e-4;
+			parameters.outputFrequency = 20;
+			parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
+			parameters.enableGround = false;
+			parameters.searchResidual = 5.0;
+			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+			parameters.rigidMode = true;
+			parameters.objectNames = objectNames;
+			parameters.IPC_dis = 0.01;
+			parameters.IPC_eta = 0.05;
+			parameters.IPC_kStiffness = 1.0e14;
+			parameters.IPC_hashSize = tetMesh.calLargestEdgeLength() * 1.1;
+			parameters.IPC_B3Stiffness = 500;
+
+
+
+			for (int p = 0; p < tetMesh.pos_node.size(); p++)
+			{
+				if (tetMesh.note_node[p] == "impactor")
+				{
+					tetMesh.boundaryCondition_node[p].type = 1;
+					for (int fra = 0; fra < parameters.num_timesteps; fra++)
+					{
+						double incre = 0.1 / (double)parameters.num_timesteps * (double)fra;
+						Eigen::Vector3d inc = { 0,0,-incre };
+						Eigen::Vector3d desiredPos = inc + tetMesh.pos_node[p];
+
+						tetMesh.boundaryCondition_node[p].location.push_back(desiredPos);
+					}
+				}
+
+				if (tetMesh.note_node[p] == "beam")
+				{
+					if (tetMesh.pos_node[p][0] <= -22)
+					{
+						tetMesh.boundaryCondition_node[p].type = 1;
+						for (int fra = 0; fra < parameters.num_timesteps; fra++)
+						{
+							Eigen::Vector3d desiredPos = tetMesh.pos_node[p];
+							tetMesh.boundaryCondition_node[p].location.push_back(desiredPos);
+						}
+					}
+				}
+
+			}
+
+
+
+			implicitFEM(tetMesh, parameters);
 
 
 		}

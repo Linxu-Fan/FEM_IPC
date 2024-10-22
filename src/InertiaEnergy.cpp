@@ -10,7 +10,7 @@ double InertiaEnergy::Val(double nodeMass, double dt, Eigen::Vector3d& xt, Eigen
 	energy += x_minus_xt.dot(x_minus_xt) * nodeMass / 2.0;
 
 
-	if (boundaryCondition_node[vertIndex].type == 1)
+	if (boundaryCondition_node[vertIndex].type == 1  && timestep >= boundaryCondition_node[vertIndex].appliedTime[0] && timestep <= boundaryCondition_node[vertIndex].appliedTime[1])
 	{
 		energy += param.IPC_B3Stiffness * nodeMass / 2.0 * (x - boundaryCondition_node[vertIndex].location[timestep]).dot(x - boundaryCondition_node[vertIndex].location[timestep]);
 	}
@@ -27,7 +27,7 @@ void InertiaEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int&
 	Eigen::Vector3d x_minus_xt = x - (xt + dt * v + dt * dt / nodeMass * (nodeMass * param.gravity + extForce));
 	Eigen::Vector3d gradVec = nodeMass * x_minus_xt;
 
-	if (boundaryCondition_node[vertIndex].type == 1)
+	if (boundaryCondition_node[vertIndex].type == 1 && timestep >= boundaryCondition_node[vertIndex].appliedTime[0] && timestep <= boundaryCondition_node[vertIndex].appliedTime[1])
 	{
 		gradVec += param.IPC_B3Stiffness * nodeMass * (x - boundaryCondition_node[vertIndex].location[timestep]);
 	}
@@ -44,7 +44,7 @@ void InertiaEnergy::Hess(std::vector<Eigen::Triplet<double>>& hessian_triplet, i
 	double nodeMass, int& vertIndex, std::vector<boundaryCondition>& boundaryCondition_node, int timestep, FEMParamters& param)
 {
 	double hessVal = nodeMass;
-	if (boundaryCondition_node[vertIndex].type == 1)
+	if (boundaryCondition_node[vertIndex].type == 1 && timestep >= boundaryCondition_node[vertIndex].appliedTime[0] && timestep <= boundaryCondition_node[vertIndex].appliedTime[1])
 	{
 		hessVal += param.IPC_B3Stiffness * nodeMass;
 	}

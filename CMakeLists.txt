@@ -42,6 +42,7 @@ add_executable(
 	src/InertiaEnergy.cpp
 	src/ElasticEnergy.cpp
 	src/simulator.cpp
+	src/simulator_ABD.cpp
 	src/ExternalEnergy.cpp
 	src/BarrierEnergy.cpp
 	src/distance.cpp
