@@ -34,7 +34,7 @@ void implicitFEM(Mesh& tetMesh, FEMParamters& parameters)
 				break;
 			}
 			
-			std::cout << "			Calculate step size; Dir0 = ("<< direction[0][0]<<"," << direction[0][1] << "," << direction[0][2] << "); Dir7 = (" << direction[7][0] << "," << direction[7][1] << "," << direction[7][2] <<")"<< std::endl;
+			std::cout << "			Calculate step size;"<< std::endl;
 			double step = calMaxStepSize(tetMesh, parameters, timestep, direction);
 			//step = 1.0;
 			std::cout << "			Step forward = "<< step << std::endl;
@@ -111,6 +111,7 @@ double compute_IP_energy(Mesh& tetMesh, FEMParamters& parameters, int timestep)
 		// the inertia energy contribution
 		eng += InertiaEnergy::Val(nodeMass, parameters.dt, xt, v, x, extForce, parameters, vI, tetMesh.boundaryCondition_node, timestep);
 		node_ext_ine_energy_vec[vI] = eng;
+
 	}
 	energyVal = std::accumulate(node_ext_ine_energy_vec.begin(), node_ext_ine_energy_vec.end(), 0.0);
 
@@ -334,6 +335,9 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	tetMesh.update_F(parameters.numOfThreads);
 
 
+	//double startTime1, endTime1;
+	//startTime1 = omp_get_wtime();
+
 	std::vector<Vector5i> PG_PG, PT_PP, PT_PE, PT_PT, EE_EE;
 	calContactInfo(tetMesh, parameters, timestep, PG_PG, PT_PP, PT_PE, PT_PT, EE_EE);
 
@@ -341,6 +345,11 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	std::cout << "; PT_PE.size() = " << PT_PE.size();
 	std::cout << "; PT_PT.size() = " << PT_PT.size();
 	std::cout << "; EE_EE.size() = " << EE_EE.size() << std::endl;
+
+
+	//endTime1 = omp_get_wtime();
+	//std::cout << "	Cal contact Time is : " << endTime1 - startTime1 << "s" << std::endl;
+
 
 
 	int gradSize = tetMesh.pos_node.size() * 6 + tetMesh.tetrahedrals.size() * 12 + PG_PG.size() * 3
@@ -398,6 +407,10 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 		
 		
 	}
+
+
+	//double endTime2 = omp_get_wtime();
+	//std::cout << "	Element grad_hess Time is : " << endTime2 - endTime1 << "s" << std::endl;
 
 
 	if (gradSize > tetMesh.pos_node.size() * 6 + tetMesh.tetrahedrals.size() * 12)
@@ -543,6 +556,9 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	}
 
 
+	//double endTime3 = omp_get_wtime();
+	//std::cout << "	Cal grad_hess Time is : " << endTime3 - endTime2 << "s" << std::endl;
+
 	// assemable the left-hand side 
 	Eigen::SparseMatrix<double> leftHandSide(3 * tetMesh.pos_node.size(), 3 * tetMesh.pos_node.size());
 	leftHandSide.setFromTriplets(hessian_triplet.begin(), hessian_triplet.end());
@@ -556,7 +572,8 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 		rightHandSide[ele.first] += ele.second;
 	}
 
-	
+	//double endTime4 = omp_get_wtime();
+	//std::cout << "	Assemble grad_hess Time is : " << endTime4 - endTime3 << "s" << std::endl;
 
 	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> solver;	
 	solver.compute(leftHandSide);
@@ -565,6 +582,10 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetMesh, FEMParamters& pa
 	//std::cout << "leftHandSide = " << std::endl << leftHandSide << std::endl;
 	//std::cout << "rightHandSide = " << std::endl << rightHandSide << std::endl;
 	//std::cout << "rightHandSide!"  << std::endl;
+
+	//double endTime5 = omp_get_wtime();
+	//std::cout << "	Solve grad_hess Time is : " << endTime5 - endTime4 << "s" << std::endl;
+
 	
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 	for (int i = 0; i < tetMesh.pos_node.size(); i++)

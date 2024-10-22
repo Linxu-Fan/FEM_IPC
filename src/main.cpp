@@ -150,12 +150,12 @@ int main()
 		// 0: Three-point-bending beam test
 		// 1. Two tetrahedrals collision test to verify the correctness of the solver
 		// 2. Single tetrahedral test
-		int caseNum = 1;
+		int caseNum = 0;
 		if (caseNum == 0)
 		{
 			Material mat1;
 			mat1.density = 2780;
-			mat1.E = 7.26e10;
+			mat1.E = 7.26e7;
 			mat1.updateDenpendecies();
 
 
@@ -172,18 +172,18 @@ int main()
 			m2.filePath = "../input/left_support.msh";
 			m2.note = "left_support";
 			m2.translation = { 0, 0, 1.0e-4};
-			config.push_back(m2);
+			//config.push_back(m2);
 
 			m3 = m1;
 			m3.filePath = "../input/middle_support.msh";
 			m3.note = "middle_support";
 			m3.translation = { 0, 0, -1.0e-4 };
-			config.push_back(m3);
+			//config.push_back(m3);
 
 			m4 = m1;
 			m4.filePath = "../input/impactor.msh";
 			m4.note = "impactor";
-			m4.translation = { 0, 0, 1.0e-4 };
+			m4.translation = { 0, 0, 1.5e-2 };
 			config.push_back(m4);
 
 
@@ -207,12 +207,12 @@ int main()
 			FEMParamters parameters;
 			parameters.gravity = { 0, 0, 0 };
 			parameters.num_timesteps = 3000;
-			parameters.numOfThreads = 32;
-			parameters.dt = 5.0e-5;
+			parameters.numOfThreads = 12;
+			parameters.dt = 5.0e-4;
 			parameters.outputFrequency = 20;
 			parameters.enableGround = false;
 			parameters.searchResidual = 5.0;
-			parameters.model = "ARAP_linear"; // neoHookean ARAP ARAP_linear ACAP
+			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;
 			parameters.objectNames = objectNames;
 			parameters.IPC_dis = 0.01;
@@ -230,13 +230,27 @@ int main()
 					tetMesh.boundaryCondition_node[p].type = 1;
 					for (int fra = 0; fra < parameters.num_timesteps; fra++)
 					{
-						double incre = 2.0 / (double)parameters.num_timesteps * (double)fra;
+						double incre = 0.1 / (double)parameters.num_timesteps * (double)fra;
 						Eigen::Vector3d inc = {0,0,incre };
 						Eigen::Vector3d desiredPos = inc + tetMesh.pos_node[p];
 
 						tetMesh.boundaryCondition_node[p].location.push_back(desiredPos);
 					}
 				}
+
+				if (tetMesh.note_node[p] == "beam")
+				{
+					if (tetMesh.pos_node[p][0] <= -22)
+					{
+						tetMesh.boundaryCondition_node[p].type = 1;
+						for (int fra = 0; fra < parameters.num_timesteps; fra++)
+						{
+							Eigen::Vector3d desiredPos = tetMesh.pos_node[p];
+							tetMesh.boundaryCondition_node[p].location.push_back(desiredPos);
+						}
+					}
+				}
+
 			}
 
 
@@ -289,7 +303,7 @@ int main()
 
 			FEMParamters parameters;
 			parameters.gravity = { 0, 0, 0 };
-			parameters.num_timesteps = 2000;
+			parameters.num_timesteps = 3;
 			parameters.numOfThreads = 1;
 			parameters.dt = 1.0e-2;
 			parameters.outputFrequency = 10;

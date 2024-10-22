@@ -346,9 +346,6 @@ void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetMesh, std
                     
                     std::string ID = calculateID(index);
 
-
-
-
                     spatialHash[ID].bottomLeftCorner = index;
 
                     spatialHash[ID].vertIndices.insert(it->first);
@@ -377,19 +374,12 @@ void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetMesh, std
         {
             if (hashCellNames.find(itCell->first) != hashCellNames.end())
             {
+                //std::vector<int> edgeIndices_vec(itCell->second.edgeIndices.begin(), itCell->second.edgeIndices.end());
+                //itCell->second.edgeIndices_vec = edgeIndices_vec;
+
                 spatialHash_vec.push_back(itCell->second);
-                hashNameIndex[itCell->first] = indexStart;
-                
-                //if (itCell->second.bottomLeftCorner[0] == 27 )
-                //{
-                //    std::cout << "indexStart1 = " << indexStart << std::endl;
-                //}
-                //if (itCell->second.bottomLeftCorner[0] == 32 )
-                //{
-                //    std::cout << "indexStart2 = " << indexStart << std::endl;
-                //}
-                indexStart += 1;
-                
+                hashNameIndex[itCell->first] = indexStart;               
+                indexStart += 1;                
             }
         }
     }
@@ -398,6 +388,9 @@ void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetMesh, std
         int indexStart = 0;
         for (std::unordered_map<std::string, spatialHashCellData>::iterator itCell = spatialHash.begin(); itCell != spatialHash.end(); itCell++)
         {
+            //std::vector<int> edgeIndices_vec(itCell->second.edgeIndices.begin(), itCell->second.edgeIndices.end());
+            //itCell->second.edgeIndices_vec = edgeIndices_vec;
+
             spatialHash_vec.push_back(itCell->second);
             hashNameIndex[itCell->first] = indexStart;
             indexStart += 1;
@@ -408,49 +401,49 @@ void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetMesh, std
 
     {
 
-        std::ofstream outfile2("./output/hash.obj", std::ios::trunc);
-        for (int k = 0; k < spatialHash_vec.size(); k++)
-        {
-            Eigen::Vector3d P1 = (spatialHash_vec[k].bottomLeftCorner.cast<double>()) * cellSize + minFloor;
-            //if (k == 8)
-            //{
-            //    std::cout << "P1 = " << P1 << std::endl;
-            //    std::cout << "minFloor = " << minFloor << std::endl;
-            //}
+        //std::ofstream outfile2("./output/hash.obj", std::ios::trunc);
+        //for (int k = 0; k < spatialHash_vec.size(); k++)
+        //{
+        //    Eigen::Vector3d P1 = (spatialHash_vec[k].bottomLeftCorner.cast<double>()) * cellSize + minFloor;
+        //    //if (k == 8)
+        //    //{
+        //    //    std::cout << "P1 = " << P1 << std::endl;
+        //    //    std::cout << "minFloor = " << minFloor << std::endl;
+        //    //}
 
-            //if (k == 18)
-            //{
-            //    std::cout << "P2 = " << P1 << std::endl;
-            //    //std::cout << "P2 = " << P1 << std::endl;
-            //}
-            Eigen::Vector3d P2 = P1;
-            P2[0] += cellSize;
-            Eigen::Vector3d P3 = P1;
-            P3[1] += cellSize;
-            Eigen::Vector3d P4 = P1;
-            P4[0] += cellSize;
-            P4[1] += cellSize;
+        //    //if (k == 18)
+        //    //{
+        //    //    std::cout << "P2 = " << P1 << std::endl;
+        //    //    //std::cout << "P2 = " << P1 << std::endl;
+        //    //}
+        //    Eigen::Vector3d P2 = P1;
+        //    P2[0] += cellSize;
+        //    Eigen::Vector3d P3 = P1;
+        //    P3[1] += cellSize;
+        //    Eigen::Vector3d P4 = P1;
+        //    P4[0] += cellSize;
+        //    P4[1] += cellSize;
 
-            Eigen::Vector3d P1Q = P1;
-            P1Q[2] += cellSize;
-            Eigen::Vector3d P2Q = P2;
-            P2Q[2] += cellSize;
-            Eigen::Vector3d P3Q = P3;
-            P3Q[2] += cellSize;
-            Eigen::Vector3d P4Q = P4;
-            P4Q[2] += cellSize;
+        //    Eigen::Vector3d P1Q = P1;
+        //    P1Q[2] += cellSize;
+        //    Eigen::Vector3d P2Q = P2;
+        //    P2Q[2] += cellSize;
+        //    Eigen::Vector3d P3Q = P3;
+        //    P3Q[2] += cellSize;
+        //    Eigen::Vector3d P4Q = P4;
+        //    P4Q[2] += cellSize;
 
 
-            outfile2 << std::scientific << std::setprecision(8) << "v " << P1[0] << " " << P1[1] << " " << P1[2] << std::endl;
-            outfile2 << std::scientific << std::setprecision(8) << "v " << P2[0] << " " << P2[1] << " " << P2[2] << std::endl;
-            outfile2 << std::scientific << std::setprecision(8) << "v " << P3[0] << " " << P3[1] << " " << P3[2] << std::endl;
-            outfile2 << std::scientific << std::setprecision(8) << "v " << P4[0] << " " << P4[1] << " " << P4[2] << std::endl;
-            outfile2 << std::scientific << std::setprecision(8) << "v " << P1Q[0] << " " << P1Q[1] << " " << P1Q[2] << std::endl;
-            outfile2 << std::scientific << std::setprecision(8) << "v " << P2Q[0] << " " << P2Q[1] << " " << P2Q[2] << std::endl;
-            outfile2 << std::scientific << std::setprecision(8) << "v " << P3Q[0] << " " << P3Q[1] << " " << P3Q[2] << std::endl;
-            outfile2 << std::scientific << std::setprecision(8) << "v " << P4Q[0] << " " << P4Q[1] << " " << P4Q[2] << std::endl;
-        }
-        outfile2.close();
+        //    outfile2 << std::scientific << std::setprecision(8) << "v " << P1[0] << " " << P1[1] << " " << P1[2] << std::endl;
+        //    outfile2 << std::scientific << std::setprecision(8) << "v " << P2[0] << " " << P2[1] << " " << P2[2] << std::endl;
+        //    outfile2 << std::scientific << std::setprecision(8) << "v " << P3[0] << " " << P3[1] << " " << P3[2] << std::endl;
+        //    outfile2 << std::scientific << std::setprecision(8) << "v " << P4[0] << " " << P4[1] << " " << P4[2] << std::endl;
+        //    outfile2 << std::scientific << std::setprecision(8) << "v " << P1Q[0] << " " << P1Q[1] << " " << P1Q[2] << std::endl;
+        //    outfile2 << std::scientific << std::setprecision(8) << "v " << P2Q[0] << " " << P2Q[1] << " " << P2Q[2] << std::endl;
+        //    outfile2 << std::scientific << std::setprecision(8) << "v " << P3Q[0] << " " << P3Q[1] << " " << P3Q[2] << std::endl;
+        //    outfile2 << std::scientific << std::setprecision(8) << "v " << P4Q[0] << " " << P4Q[1] << " " << P4Q[2] << std::endl;
+        //}
+        //outfile2.close();
     }
 
 
@@ -461,10 +454,22 @@ void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetMesh, std
 
 double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, double dist_threshold, double eta)
 {
+
+
+    //double startTime1, endTime1;
+    //startTime1 = omp_get_wtime();
+
+
     // build and initialize a spatial hash
     std::vector<spatialHashCellData> spatialHash_vec;
     std::map<std::string, int> hashNameIndex;
     initSpatialHash(true, parameters, tetMesh, direction, cellSize, spatialHash_vec, hashNameIndex);
+
+
+    //endTime1 = omp_get_wtime();
+    //std::cout << "Initialization Time is : " << endTime1 - startTime1 << "s" << std::endl;
+
+
 
     //std::cout << "              spatialHash_vec.size() = " << spatialHash_vec.size() << std::endl;
 
@@ -491,9 +496,7 @@ double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vect
                             {
                                 int vert = *itP, tri = *itT;
                                 if (tetMesh.boundaryVertices[vert].find(tri) == tetMesh.boundaryVertices[vert].end()) // this triangle is not incident with the point
-                                {
-
-                                    
+                                {                                   
                                     Eigen::Vector3i triVerts = tetMesh.boundaryTriangles[tri];
                                     Eigen::Vector3d P = tetMesh.pos_node[vert];
                                     Eigen::Vector3d dP = direction[vert];
@@ -565,7 +568,7 @@ double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vect
                                             step = std::min(step, step_tmp);
 
 
-                                            //std::cout << "Step EE: E1 = " << *itE1 << "; E2 = " << *itE2 << "; Step = " << step_tmp << std::endl;
+                                            //std::cout<<"Hash index = "<< y << "; Step EE: E1 = " << *itE1 << "; E2 = " << *itE2 << "; Step = " << step_tmp << std::endl;
 
 
                                         }
@@ -586,6 +589,12 @@ double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vect
     {
         minStep = std::min(minStep, stepValue_perHash[h]);
     }
+
+    //double endTime2 = omp_get_wtime();
+    //std::cout << "Cal step Time is : " << endTime2 - endTime1 << "s" << std::endl;
+
+
+
 
     return minStep;
 

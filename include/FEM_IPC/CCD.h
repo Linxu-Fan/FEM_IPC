@@ -37,6 +37,7 @@ struct spatialHashCellData
 	std::set<std::string> hashObjects; // store the names of objects within this hash
 	std::set<int> vertIndices; // vertex whose boundingbox intersects with this cell
 	std::set<int> edgeIndices; // edge whose boundingbox intersects with this cell
+	std::vector<int> edgeIndices_vec; // edge whose boundingbox intersects with this cell but in vector form
 	std::set<int> triaIndices; // triangle whose boundingbox intersects with this cell
 };
 
