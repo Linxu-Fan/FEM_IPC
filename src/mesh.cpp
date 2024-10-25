@@ -5,68 +5,83 @@
 // Is it possible that node and element are not placed in order? If possible, then the reading code may crash.
 ////////////////////////////////////////////////////////////////////////
 // read .msh mesh file
-void Mesh::readMesh(meshConfiguration& config)
+
+
+void tetMesh::readMesh(meshConfiguration& config)
 {
-	// !!!!!!!!!!!!!!!!! This function if not fully implemented. DONOT USE IT.
+	materialTetMesh = config.mesh_material;
+	tetMeshNote = config.note;
+	Eigen::Vector3d scale = config.scale;
+	Eigen::Vector3d translation = config.translation;
+	// Create a transformation matrix
+	Eigen::Affine3d rotation = Eigen::Affine3d::Identity();
+	rotation.translate(-config.rotation_point)
+		.rotate(Eigen::AngleAxisd(config.rotation_angle[0], Eigen::Vector3d::UnitX()))
+		.rotate(Eigen::AngleAxisd(config.rotation_angle[1], Eigen::Vector3d::UnitY()))
+		.rotate(Eigen::AngleAxisd(config.rotation_angle[2], Eigen::Vector3d::UnitZ()))
+		.translate(config.rotation_point);
 
-	//std::ifstream in;
-	//in.open(config.filePath);
-	//std::string line;
-	//int nodeStart = 100000000000; // the line index where a node starts
-	//int numNodes = 100000000000; // number of nodes
-	//int elementStart = 100000000000; // the element index where an element starts
-	//int numElements = 100000000000; // number of elements
-	//int lineIndex = -1; // current line index
+	
+	{
+		std::ifstream in;
+		in.open(config.filePath);
+		std::string line;
+		int nodeStart = 100000000000; // the line index where a node starts
+		int numNodes = 100000000000; // number of nodes
+		int elementStart = 100000000000; // the element index where an element starts
+		int numElements = 100000000000; // number of elements
+		int lineIndex = -1; // current line index
 
-	//while (getline(in, line))
-	//{
-	//	if (line.size() > 0)
-	//	{
-	//		lineIndex += 1;
-	//		
-	//		std::vector<std::string> vecCoor = split(line, " ");
-	//		if (vecCoor[0] == "$Nodes")
-	//		{
-	//			nodeStart = lineIndex + 2;
-	//		}
-	//		if (lineIndex == nodeStart - 1)
-	//		{
-	//			numNodes = std::stoi(vecCoor[0]);
-	//		}
+		while (getline(in, line))
+		{
+			if (line.size() > 0)
+			{
+				lineIndex += 1;
 
-	//		if (vecCoor[0] == "$Elements")
-	//		{
-	//			elementStart = lineIndex + 2;
-	//		}
-	//		if (lineIndex == elementStart - 1)
-	//		{
-	//			numElements = std::stoi(vecCoor[0]);				
-	//		}
+				std::vector<std::string> vecCoor = split(line, " ");
+				if (vecCoor[0] == "$Nodes")
+				{
+					nodeStart = lineIndex + 2;
+				}
+				if (lineIndex == nodeStart - 1)
+				{
+					numNodes = std::stoi(vecCoor[0]);
+				}
+
+				if (vecCoor[0] == "$Elements")
+				{
+					elementStart = lineIndex + 2;
+				}
+				if (lineIndex == elementStart - 1)
+				{
+					numElements = std::stoi(vecCoor[0]);
+				}
 
 
-	//		if (lineIndex >= nodeStart && lineIndex <= nodeStart + numNodes - 1)
-	//		{
-	//			Eigen::Vector3d nd_pos = { std::stod(vecCoor[1]) , std::stod(vecCoor[2]) , std::stod(vecCoor[3])};
-	//			pos_node.push_back(nd_pos);
-	//			vel_node.push_back(config.velocity);
-	//		}
+				if (lineIndex >= nodeStart && lineIndex <= nodeStart + numNodes - 1)
+				{
+					Eigen::Vector3d nd_pos = { std::stod(vecCoor[1]) * scale[0] , std::stod(vecCoor[2]) * scale[1] , std::stod(vecCoor[3]) * scale[2] };
+					pos_node.push_back(rotation * nd_pos + translation);
+					pos_node_Rest.push_back(rotation * nd_pos + translation);
+					vel_node.push_back(config.velocity);
+				}
 
-	//		if (lineIndex >= elementStart && lineIndex <= elementStart + numElements - 1)
-	//		{
-	//			int numItemsLine = vecCoor.size(); // the number of items in a line
-	//			if (vecCoor[1] == "4")
-	//			{
-	//				Eigen::Vector4i ele = { std::stoi(vecCoor[numItemsLine - 4]) - 1 ,std::stoi(vecCoor[numItemsLine - 3]) - 1 ,std::stoi(vecCoor[numItemsLine - 2]) - 1,std::stoi(vecCoor[numItemsLine - 1]) - 1 };
-	//				tetrahedrals.push_back(ele);
-	//				materialInd.push_back(0);
-	//			}
-	//		}
-	//	}
-	//}
-	//in.close();
+				if (lineIndex >= elementStart && lineIndex <= elementStart + numElements - 1)
+				{
+					int numItemsLine = vecCoor.size(); // the number of items in a line
+					if (vecCoor[1] == "4")
+					{
+						Eigen::Vector4i ele = {std::stoi(vecCoor[numItemsLine - 4]) - 1 , std::stoi(vecCoor[numItemsLine - 3]) - 1 ,  std::stoi(vecCoor[numItemsLine - 2]) - 1 ,  std::stoi(vecCoor[numItemsLine - 1]) - 1 };
+						tetrahedrals.push_back(ele);
+					}
+				}
+			}
+		}
+		in.close();
 
-	//materialMesh.push_back(config.mesh_material);
+	}
 
+	
 }
 
 
@@ -170,19 +185,7 @@ void Mesh::initializeMesh() // initialize the mesh
 		boundaryCondition_node.push_back(BC);
 	}
 
-	std::vector<std::vector<int>> nodePerElement_tmp(pos_node.size());
-	nodeSharedByElement = nodePerElement_tmp;
 
-
-	// find all elements that share a node
-	for (int eleInd = 0; eleInd < tetrahedrals.size(); eleInd++)
-	{
-		for (int j = 0; j < 4; j++)
-		{
-			int nodeInd = tetrahedrals[eleInd][j];
-			nodeSharedByElement[nodeInd].push_back(eleInd);
-		}		
-	}
 
 	cal_DS_or_DM(false);
 	update_F(1);
@@ -437,6 +440,19 @@ void Mesh::update_F(int numOfThreads)
 // calculate the mass of each node
 void Mesh::calculateNodeMass()
 {
+	std::vector<std::vector<int>> nodeSharedByElement;
+	nodeSharedByElement.resize(pos_node.size());
+	// find all elements that share a node
+	for (int eleInd = 0; eleInd < tetrahedrals.size(); eleInd++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			int nodeInd = tetrahedrals[eleInd][j];
+			nodeSharedByElement[nodeInd].push_back(eleInd);
+		}
+	}
+
+
 	mass_node.clear(); // mass of a node
 	for (int nd = 0; nd < nodeSharedByElement.size(); nd++)
 	{

@@ -22,6 +22,62 @@ struct meshConfiguration
 
 
 
+// tetrahedral mesh class
+class tetMesh
+{
+public:
+	
+	std::string tetMeshNote = "";
+	std::vector<Eigen::Vector3d> pos_node; // position of each node
+	std::vector<Eigen::Vector3d> pos_node_Rest; // tetrahedral node's position at the rest configuration. Note it is different from pos_node_prev which is the position at timestep = n - 1
+	std::vector<Eigen::Vector3d> vel_node; // velocity of each node
+	std::vector<Eigen::Vector4i> tetrahedrals;
+	std::vector<boundaryCondition> boundaryCondition_node; // the respective boundary condition of each node
+	std::vector<double> mass_node; // mass of each node	
+	std::vector<double> tetra_vol; // volume of the tetrahedral
+	std::vector<Eigen::Matrix3d> tetra_DM_inv; // inverse of matrix DM
+	std::vector<Eigen::Matrix3d> tetra_DS; // DS matrix
+	std::vector<Eigen::Matrix3d> tetra_F; // deformation gradient of each tetrahedral
+
+	objMeshFormat surfaceMesh;
+
+	Material materialTetMesh;
+
+
+	////////////////////////////////////////////////////////////////////////
+	// Is it possible that node and element are not placed in order? If possible, then the reading code may crash.
+	////////////////////////////////////////////////////////////////////////
+	// read .msh mesh file
+	void readMesh(meshConfiguration& config);
+	// read multiple meshes at the same time
+	void readMeshes(std::vector<meshConfiguration>& config);
+	// initialize the mesh after reading
+	void initializeMesh(); // initialize the mesh 
+	// calculate the DM_inv or DS matrix
+	void cal_DS_or_DM(bool DS);
+	// output the mesh
+	void output(int timestep);
+	// export surface mesh
+	void exportSurfaceMesh(std::string fileName, int timestep = -99);
+	// update each tetrahedral's deformation gradient
+	void update_F(int numOfThreads);
+	// calculate the mass of each node
+	void calculateNodeMass();
+	// calculate the bounding box of the mesh
+	std::pair<Eigen::Vector3d, Eigen::Vector3d> calculateBoundingBox();
+	// find boundary elements including vertices, edges and triangles
+	void findBoundaryElements();
+	// update boundary elements' information: area
+	void updateBoundaryElementsInfo();
+	// check the largest edge length
+	double calLargestEdgeLength();
+	// calculate the boundingbox's diagonal size
+	double calBBXDiagSize();
+
+
+};
+
+
 class Mesh
 {
 public:
@@ -39,7 +95,6 @@ public:
 	std::vector<Eigen::Matrix3d> tetra_DM_inv; // inverse of matrix DM
 	std::vector<Eigen::Matrix3d> tetra_DS; // DS matrix
 	std::vector<Eigen::Matrix3d> tetra_F; // deformation gradient of each tetrahedral
-	std::vector<std::vector<int>> nodeSharedByElement; // indices of element that shares the node
 
 	std::vector<Eigen::Vector3d> pos_node_prev; // tetrahedral node's previous position
 	std::vector<Eigen::Vector3d> pos_node_Rest; // tetrahedral node's position at the rest configuration. Note it is different from pos_node_prev which is the position at timestep = n - 1
