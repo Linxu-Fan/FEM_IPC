@@ -68,7 +68,7 @@ struct FEMParamters
 
     bool rigidMode = false; // if rigidMode, IPC will only check contact pairs that belongs to two different objects. It is suitable for small deformation
     std::string simulation_Mode = "Normal"; // Normal: normal simulation; ABD: ABD simulation; Coupling: ABD and deformable
-    std::vector<std::string> objectNames; // name of objects in the scene
+    //std::vector<std::string> objectNames; // name of objects in the scene
 	double IPC_dis = 0.01; // the distance of IPC gap, i.e., barrier energy emerges if the distance is smaller than this threshold
 	double IPC_eta = 0.1; // the distance ratio that bring two edges or point-triangle to
 	double IPC_hashSize = 0.1; // the spatial hash's grid cell size
@@ -84,6 +84,7 @@ struct FEMParamters
 // Struct of material
 struct Material
 {
+    std::string name = "mat"; // material's name
 	double density = 1000; // particle density
 	double E = 1.0E4; // Young's modulus
 	double nu = 0.3; //Poisson ratio

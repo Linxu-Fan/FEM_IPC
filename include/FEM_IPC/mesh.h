@@ -4,8 +4,6 @@
 #include "utils.h"
 #include "objMesh.h"
 
-
-
 // store key information of simulating mesh like velocity, material etc.
 struct meshConfiguration
 {
@@ -19,7 +17,6 @@ struct meshConfiguration
 
 	std::string note = "";
 };
-
 
 
 // tetrahedral mesh class
@@ -36,11 +33,9 @@ public:
 	std::vector<double> mass_node; // mass of each node	
 	std::vector<double> tetra_vol; // volume of the tetrahedral
 	std::vector<Eigen::Matrix3d> tetra_DM_inv; // inverse of matrix DM
-	std::vector<Eigen::Matrix3d> tetra_DS; // DS matrix
 	std::vector<Eigen::Matrix3d> tetra_F; // deformation gradient of each tetrahedral
 
 	objMeshFormat surfaceMesh;
-
 	Material materialTetMesh;
 
 
@@ -49,61 +44,39 @@ public:
 	////////////////////////////////////////////////////////////////////////
 	// read .msh mesh file
 	void readMesh(meshConfiguration& config);
-	// read multiple meshes at the same time
-	void readMeshes(std::vector<meshConfiguration>& config);
 	// initialize the mesh after reading
-	void initializeMesh(); // initialize the mesh 
+	void initializeTetMesh(); // initialize the mesh 
 	// calculate the DM_inv or DS matrix
-	void cal_DS_or_DM(bool DS);
-	// output the mesh
-	void output(int timestep);
+	void cal_DM_inv();
 	// export surface mesh
 	void exportSurfaceMesh(std::string fileName, int timestep = -99);
 	// update each tetrahedral's deformation gradient
 	void update_F(int numOfThreads);
 	// calculate the mass of each node
 	void calculateNodeMass();
-	// calculate the bounding box of the mesh
-	std::pair<Eigen::Vector3d, Eigen::Vector3d> calculateBoundingBox();
 	// find boundary elements including vertices, edges and triangles
-	void findBoundaryElements();
-	// update boundary elements' information: area
-	void updateBoundaryElementsInfo();
-	// check the largest edge length
-	double calLargestEdgeLength();
-	// calculate the boundingbox's diagonal size
-	double calBBXDiagSize();
+	void findSurfaceMesh();
+	// output the mesh
+	void output(int timestep);
+
 
 
 };
 
 
-class Mesh
+class Mesh : public tetMesh
 {
 public:
+	std::map<std::string, tetMesh> objectsTetMesh; // store all objects' tetrahedral meshes in the scene
+
 	int num_meshes = 1; // number of independant tetrahedral meshes inputed into the simulator
 	std::vector<Eigen::Vector2i> index_node; // index of each node; 1st int: index of the tetrhedral mesh, 2nd int: 0(interior vertex), 1(surface vertex) 
 
 	std::vector<std::string> note_node; // note of each node
-	std::vector<Eigen::Vector3d> pos_node; // position of each node
-	std::vector<Eigen::Vector3d> vel_node; // velocity of each node
 	std::vector<Eigen::Vector3d> elastForce_node; // elastic force of each node
-	std::vector<boundaryCondition> boundaryCondition_node; // the respective boundary condition of each node
-	std::vector<double> mass_node; // mass of each node
-	std::vector<Eigen::Vector4i> tetrahedrals;
-	std::vector<double> tetra_vol; // volume of the tetrahedral
-	std::vector<Eigen::Matrix3d> tetra_DM_inv; // inverse of matrix DM
-	std::vector<Eigen::Matrix3d> tetra_DS; // DS matrix
-	std::vector<Eigen::Matrix3d> tetra_F; // deformation gradient of each tetrahedral
-
 	std::vector<Eigen::Vector3d> pos_node_prev; // tetrahedral node's previous position
-	std::vector<Eigen::Vector3d> pos_node_Rest; // tetrahedral node's position at the rest configuration. Note it is different from pos_node_prev which is the position at timestep = n - 1
-
 	std::vector<int> materialInd; // index of the materials(materialMesh) used in this tetrahedral
 	std::vector<Material> materialMesh; // all materials used in the simulation
-
-
-	objMeshFormat surfaceMesh;
 
 
 	//  data structure of boundary elements
@@ -120,27 +93,8 @@ public:
 	std::vector<double> boundaryTriangles_area; // boundary triangle's area
 
 
-
-
-	////////////////////////////////////////////////////////////////////////
-	// Is it possible that node and element are not placed in order? If possible, then the reading code may crash.
-	////////////////////////////////////////////////////////////////////////
-	// read .msh mesh file
-	void readMesh(meshConfiguration& config);
-	// read multiple meshes at the same time
-	void readMeshes(std::vector<meshConfiguration>& config);
-	// initialize the mesh after reading
-	void initializeMesh(); // initialize the mesh 
-	// calculate the DM_inv or DS matrix
-	void cal_DS_or_DM(bool DS);
-	// output the mesh
-	void output(int timestep);
-	// export surface mesh
-	void exportSurfaceMesh(std::string fileName, int timestep = -99);
-	// update each tetrahedral's deformation gradient
-	void update_F(int numOfThreads);
-	// calculate the mass of each node
-	void calculateNodeMass();
+	// create a global mesh that is suitable for simulation
+	void createGlobalSimulationMesh(); 
 	// calculate the bounding box of the mesh
 	std::pair<Eigen::Vector3d, Eigen::Vector3d> calculateBoundingBox();
 	// find boundary elements including vertices, edges and triangles
@@ -154,11 +108,6 @@ public:
 
 
 };
-
-
-
-
-
 
 
 class Mesh_ABD : public Mesh
@@ -175,10 +124,7 @@ public:
 	std::vector<double> volume_ABD; // volume of each mesh if in ABD mode
 
 
-	
-	void initializeMesh(); // initialize the mesh 
 	void initializeABD();
-	
 };
 
 

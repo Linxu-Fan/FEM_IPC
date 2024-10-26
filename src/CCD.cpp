@@ -173,32 +173,32 @@ double pointTriangleCCDNarrowphase(const Eigen::Vector3d& P, const Eigen::Vector
 
 // get the minimum and maximum corner of a vector of points
 // bool advected: if consider the advection of points. If not, direction is ZERO
-std::pair<Eigen::Vector3d, Eigen::Vector3d> getMinMaxCorner_boundaryVertices(bool advected, FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize)
+std::pair<Eigen::Vector3d, Eigen::Vector3d> getMinMaxCorner_boundaryVertices(bool advected, FEMParamters& parameters, Mesh& tetSimMesh, std::vector<Eigen::Vector3d>& direction, double cellSize)
 {
-    int numOfPts = tetMesh.boundaryVertices.size();
+    int numOfPts = tetSimMesh.boundaryVertices.size();
     if (advected)
     {
-        numOfPts = tetMesh.boundaryVertices.size() * 2;
+        numOfPts = tetSimMesh.boundaryVertices.size() * 2;
     }
 
     std::vector<Eigen::Vector3d> pos_node_current_and_next(numOfPts);
     if (advected)
     {
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-        for (int ft = 0; ft < tetMesh.boundaryVertices_vec.size(); ft++)
+        for (int ft = 0; ft < tetSimMesh.boundaryVertices_vec.size(); ft++)
         {
-            int ptInd = tetMesh.boundaryVertices_vec[ft];
-            pos_node_current_and_next[ft * 2] = tetMesh.pos_node[ptInd];
-            pos_node_current_and_next[ft * 2 + 1] = tetMesh.pos_node[ptInd] + direction[ptInd];
+            int ptInd = tetSimMesh.boundaryVertices_vec[ft];
+            pos_node_current_and_next[ft * 2] = tetSimMesh.pos_node[ptInd];
+            pos_node_current_and_next[ft * 2 + 1] = tetSimMesh.pos_node[ptInd] + direction[ptInd];
         }
     }
     else
     {
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-        for (int ft = 0; ft < tetMesh.boundaryVertices_vec.size(); ft++)
+        for (int ft = 0; ft < tetSimMesh.boundaryVertices_vec.size(); ft++)
         {
-            int ptInd = tetMesh.boundaryVertices_vec[ft];
-            pos_node_current_and_next[ft] = tetMesh.pos_node[ptInd];
+            int ptInd = tetSimMesh.boundaryVertices_vec[ft];
+            pos_node_current_and_next[ft] = tetSimMesh.pos_node[ptInd];
         }
     }
 
@@ -213,39 +213,41 @@ std::pair<Eigen::Vector3d, Eigen::Vector3d> getMinMaxCorner_boundaryVertices(boo
 // get the minimum and maximum corner of a vector of points of each object
 // bool advected: if consider the advection of points. If not, direction is ZERO
 // we add another layer of cells outside of the original cells
-std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> getMinMaxCorner_boundaryVertices_eachObject(bool advected, FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize)
+std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> getMinMaxCorner_boundaryVertices_eachObject(bool advected, FEMParamters& parameters, Mesh& tetSimMesh, std::vector<Eigen::Vector3d>& direction, double cellSize)
 {
     
-    int numOfPts = tetMesh.boundaryVertices.size();
+    int numOfPts = tetSimMesh.boundaryVertices.size();
     if (advected)
     {
-        numOfPts = tetMesh.boundaryVertices.size() * 2;
+        numOfPts = tetSimMesh.boundaryVertices.size() * 2;
     }
 
-    std::vector<std::vector<Eigen::Vector3d>> pos_node_current_and_next(parameters.objectNames.size());
+    std::vector<std::vector<Eigen::Vector3d>> pos_node_current_and_next(tetSimMesh.num_meshes);
     std::map<std::string, int> objectNameIndex;
-    for (int i = 0; i < parameters.objectNames.size(); i++)
+    int ni = 0;
+    for (std::map<std::string, tetMesh>::iterator it = tetSimMesh.objectsTetMesh.begin(); it != tetSimMesh.objectsTetMesh.end(); it++)
     {
-        objectNameIndex[parameters.objectNames[i]] = i;
+        objectNameIndex[it->first] = ni;
+        ni += 1;
     }
 
     if (advected)
     {
-        for (int ft = 0; ft < tetMesh.boundaryVertices_vec.size(); ft++)
+        for (int ft = 0; ft < tetSimMesh.boundaryVertices_vec.size(); ft++)
         {
-            int ptInd = tetMesh.boundaryVertices_vec[ft];
-            int indexPt = objectNameIndex[tetMesh.note_node[ptInd]];
-            pos_node_current_and_next[indexPt].push_back(tetMesh.pos_node[ptInd]);
-            pos_node_current_and_next[indexPt].push_back(tetMesh.pos_node[ptInd] + direction[ptInd]);
+            int ptInd = tetSimMesh.boundaryVertices_vec[ft];
+            int indexPt = objectNameIndex[tetSimMesh.note_node[ptInd]];
+            pos_node_current_and_next[indexPt].push_back(tetSimMesh.pos_node[ptInd]);
+            pos_node_current_and_next[indexPt].push_back(tetSimMesh.pos_node[ptInd] + direction[ptInd]);
         }
     }
     else
     {
-        for (int ft = 0; ft < tetMesh.boundaryVertices_vec.size(); ft++)
+        for (int ft = 0; ft < tetSimMesh.boundaryVertices_vec.size(); ft++)
         {
-            int ptInd = tetMesh.boundaryVertices_vec[ft];
-            int indexPt = objectNameIndex[tetMesh.note_node[ptInd]];
-            pos_node_current_and_next[indexPt].push_back(tetMesh.pos_node[ptInd]);
+            int ptInd = tetSimMesh.boundaryVertices_vec[ft];
+            int indexPt = objectNameIndex[tetSimMesh.note_node[ptInd]];
+            pos_node_current_and_next[indexPt].push_back(tetSimMesh.pos_node[ptInd]);
         }
     }
 
@@ -262,9 +264,9 @@ std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> getMinMaxCorner_boundar
 
 
 // find the intersection of objects' hash
-std::set<std::string> getTheIntersectedHash(bool advected, FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, Eigen::Vector3d& minFloorGlobal)
+std::set<std::string> getTheIntersectedHash(bool advected, FEMParamters& parameters, Mesh& tetSimMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, Eigen::Vector3d& minFloorGlobal)
 {
-    std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> intersectVec = getMinMaxCorner_boundaryVertices_eachObject(advected,parameters, tetMesh, direction, cellSize);
+    std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> intersectVec = getMinMaxCorner_boundaryVertices_eachObject(advected,parameters, tetSimMesh, direction, cellSize);
     std::set<std::string> hashCellNames;
     for (int i = 0; i < intersectVec.size(); i++)
     {
@@ -307,7 +309,7 @@ std::set<std::string> getTheIntersectedHash(bool advected, FEMParamters& paramet
 }
 
 
-void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, std::vector<spatialHashCellData>& spatialHash_vec, std::map<std::string, int>& hashNameIndex, int timestep = 0)
+void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetSimMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, std::vector<spatialHashCellData>& spatialHash_vec, std::map<std::string, int>& hashNameIndex, int timestep = 0)
 {
     spatialHash_vec.clear();
     hashNameIndex.clear();
@@ -315,20 +317,20 @@ void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetMesh, std
     std::unordered_map<std::string, spatialHashCellData> spatialHash;
 
 
-    std::pair<Eigen::Vector3d, Eigen::Vector3d> minmax = getMinMaxCorner_boundaryVertices(advected, parameters, tetMesh, direction, cellSize);
+    std::pair<Eigen::Vector3d, Eigen::Vector3d> minmax = getMinMaxCorner_boundaryVertices(advected, parameters, tetSimMesh, direction, cellSize);
     Eigen::Vector3d minFloor = minmax.first;
     Eigen::Vector3d maxFloor = minmax.second;
 
-    std::set<std::string> hashCellNames = getTheIntersectedHash(advected, parameters, tetMesh, direction, cellSize, minFloor);
+    std::set<std::string> hashCellNames = getTheIntersectedHash(advected, parameters, tetSimMesh, direction, cellSize, minFloor);
 
 
 
     // find spatial hash of boundary vertices
-    for (std::map<int, std::set<int>>::iterator it = tetMesh.boundaryVertices.begin(); it != tetMesh.boundaryVertices.end(); it++)
+    for (std::map<int, std::set<int>>::iterator it = tetSimMesh.boundaryVertices.begin(); it != tetSimMesh.boundaryVertices.end(); it++)
     {
         std::vector<Eigen::Vector3d> currNext;
-        currNext.push_back(tetMesh.pos_node[it->first]);
-        currNext.push_back(tetMesh.pos_node[it->first] + direction[it->first]);
+        currNext.push_back(tetSimMesh.pos_node[it->first]);
+        currNext.push_back(tetSimMesh.pos_node[it->first] + direction[it->first]);
 
 
         std::pair<Eigen::Vector3d, Eigen::Vector3d> bbx_cn = findBoundingBox_vec(currNext);
@@ -350,12 +352,12 @@ void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetMesh, std
 
                     spatialHash[ID].vertIndices.insert(it->first);
 
-                    for (std::set<int>::iterator ite = tetMesh.boundaryVertices_egde[it->first].begin(); ite != tetMesh.boundaryVertices_egde[it->first].end(); ite++)
+                    for (std::set<int>::iterator ite = tetSimMesh.boundaryVertices_egde[it->first].begin(); ite != tetSimMesh.boundaryVertices_egde[it->first].end(); ite++)
                     {
                         spatialHash[ID].edgeIndices.insert(*ite);
                     }
 
-                    for (std::set<int>::iterator itt = tetMesh.boundaryVertices[it->first].begin(); itt != tetMesh.boundaryVertices[it->first].end(); itt++)
+                    for (std::set<int>::iterator itt = tetSimMesh.boundaryVertices[it->first].begin(); itt != tetSimMesh.boundaryVertices[it->first].end(); itt++)
                     {
                         spatialHash[ID].triaIndices.insert(*itt);
                     }
@@ -452,7 +454,7 @@ void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetMesh, std
 }
 
 
-double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, double dist_threshold, double eta)
+double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetSimMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, double dist_threshold, double eta)
 {
 
 
@@ -463,7 +465,7 @@ double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vect
     // build and initialize a spatial hash
     std::vector<spatialHashCellData> spatialHash_vec;
     std::map<std::string, int> hashNameIndex;
-    initSpatialHash(true, parameters, tetMesh, direction, cellSize, spatialHash_vec, hashNameIndex);
+    initSpatialHash(true, parameters, tetSimMesh, direction, cellSize, spatialHash_vec, hashNameIndex);
 
 
     //endTime1 = omp_get_wtime();
@@ -495,14 +497,14 @@ double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vect
                             for (std::set<int>::iterator itT = spatialHash_vec[neigHashIndex].triaIndices.begin(); itT != spatialHash_vec[neigHashIndex].triaIndices.end(); itT++)
                             {
                                 int vert = *itP, tri = *itT;
-                                if (tetMesh.boundaryVertices[vert].find(tri) == tetMesh.boundaryVertices[vert].end()) // this triangle is not incident with the point
+                                if (tetSimMesh.boundaryVertices[vert].find(tri) == tetSimMesh.boundaryVertices[vert].end()) // this triangle is not incident with the point
                                 {                                   
-                                    Eigen::Vector3i triVerts = tetMesh.boundaryTriangles[tri];
-                                    Eigen::Vector3d P = tetMesh.pos_node[vert];
+                                    Eigen::Vector3i triVerts = tetSimMesh.boundaryTriangles[tri];
+                                    Eigen::Vector3d P = tetSimMesh.pos_node[vert];
                                     Eigen::Vector3d dP = direction[vert];
-                                    Eigen::Vector3d A = tetMesh.pos_node[triVerts[0]];
-                                    Eigen::Vector3d B = tetMesh.pos_node[triVerts[1]];
-                                    Eigen::Vector3d C = tetMesh.pos_node[triVerts[2]];
+                                    Eigen::Vector3d A = tetSimMesh.pos_node[triVerts[0]];
+                                    Eigen::Vector3d B = tetSimMesh.pos_node[triVerts[1]];
+                                    Eigen::Vector3d C = tetSimMesh.pos_node[triVerts[2]];
                                     Eigen::Vector3d dA = direction[triVerts[0]];
                                     Eigen::Vector3d dB = direction[triVerts[1]];
                                     Eigen::Vector3d dC = direction[triVerts[2]];
@@ -546,16 +548,16 @@ double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vect
                             {
                                 if (*itE1 != *itE2)
                                 {
-                                    Eigen::Vector2i E1 = tetMesh.index_boundaryEdge[*itE1], E2 = tetMesh.index_boundaryEdge[*itE2];
+                                    Eigen::Vector2i E1 = tetSimMesh.index_boundaryEdge[*itE1], E2 = tetSimMesh.index_boundaryEdge[*itE2];
                                     int P1I = E1[0], P2I = E1[1], Q1I = E2[0], Q2I = E2[1];
                                     if (P1I != Q1I && P1I != Q2I && P2I != Q1I && P2I != Q2I) // not duplicated and incident edges
                                     {
                                         
 
-                                        Eigen::Vector3d P1 = tetMesh.pos_node[P1I];
-                                        Eigen::Vector3d P2 = tetMesh.pos_node[P2I];
-                                        Eigen::Vector3d Q1 = tetMesh.pos_node[Q1I];
-                                        Eigen::Vector3d Q2 = tetMesh.pos_node[Q2I];
+                                        Eigen::Vector3d P1 = tetSimMesh.pos_node[P1I];
+                                        Eigen::Vector3d P2 = tetSimMesh.pos_node[P2I];
+                                        Eigen::Vector3d Q1 = tetSimMesh.pos_node[Q1I];
+                                        Eigen::Vector3d Q2 = tetSimMesh.pos_node[Q2I];
                                         Eigen::Vector3d dP1 = direction[P1I];
                                         Eigen::Vector3d dP2 = direction[P2I];
                                         Eigen::Vector3d dQ1 = direction[Q1I];
