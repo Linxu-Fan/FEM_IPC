@@ -141,10 +141,17 @@ namespace DIS {
     
 
      void computePointTriD(const Eigen::Vector3d& v0,
-                    const Eigen::Vector3d& v1,
-                    const Eigen::Vector3d& v2,
-                    const Eigen::Vector3d& v3,
-                    double& d);
+         const Eigen::Vector3d& v1,
+         const Eigen::Vector3d& v2,
+         const Eigen::Vector3d& v3,
+         double& d);
+
+     void computePointTriD(const Eigen::Vector3d& v0,
+         const Eigen::Vector3d& v1,
+         const Eigen::Vector3d& v2,
+         const Eigen::Vector3d& v3,
+         double& d,
+         int& type);
     
 
      void computeEdgeEdgeD(const Eigen::Vector3d& v0,
@@ -152,6 +159,13 @@ namespace DIS {
                     const Eigen::Vector3d& v2,
                     const Eigen::Vector3d& v3,
                     double& d);
+
+     void computeEdgeEdgeD(const Eigen::Vector3d& v0,
+         const Eigen::Vector3d& v1,
+         const Eigen::Vector3d& v2,
+         const Eigen::Vector3d& v3,
+         double& d,
+         int& type);
     
 
      void checkEdgeEdgeD(void);

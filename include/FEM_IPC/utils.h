@@ -176,7 +176,7 @@ struct boundaryCondition
     // for tyepe1 particles, the location of each timestep 
     std::vector<Eigen::Vector3d> location;
     // for type2 particles, the applied force magnitude
-    Eigen::Vector3d force = { 0,0,0 };
+    std::vector<Eigen::Vector3d> force;
     // for type1 and type2 particles, the minimum and maximum applied timesteps
     Eigen::Vector2i appliedTime = {-99, 9999999};
 

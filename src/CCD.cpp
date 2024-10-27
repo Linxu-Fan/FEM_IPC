@@ -223,13 +223,8 @@ std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> getMinMaxCorner_boundar
     }
 
     std::vector<std::vector<Eigen::Vector3d>> pos_node_current_and_next(tetSimMesh.num_meshes);
-    std::map<std::string, int> objectNameIndex;
-    int ni = 0;
-    for (std::map<std::string, tetMesh>::iterator it = tetSimMesh.objectsTetMesh.begin(); it != tetSimMesh.objectsTetMesh.end(); it++)
-    {
-        objectNameIndex[it->first] = ni;
-        ni += 1;
-    }
+    std::map<std::string, int> objectNameIndex = tetSimMesh.tetMeshIndex;
+
 
     if (advected)
     {

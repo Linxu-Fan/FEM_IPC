@@ -2182,6 +2182,56 @@ void DIS::computePointTriD(const Eigen::Vector3d& v0,
     }
 }
 
+void DIS::computePointTriD(const Eigen::Vector3d& v0,
+    const Eigen::Vector3d& v1,
+    const Eigen::Vector3d& v2,
+    const Eigen::Vector3d& v3,
+    double& d,
+    int& type)
+{
+    switch (type) {
+    case 0: {
+        d_PP(v0, v1, d);
+        break;
+    }
+
+    case 1: {
+        d_PP(v0, v2, d);
+        break;
+    }
+
+    case 2: {
+        d_PP(v0, v3, d);
+        break;
+    }
+
+    case 3: {
+        d_PE(v0, v1, v2, d);
+        break;
+    }
+
+    case 4: {
+        d_PE(v0, v2, v3, d);
+        break;
+    }
+
+    case 5: {
+        d_PE(v0, v3, v1, d);
+        break;
+    }
+
+    case 6: {
+        d_PT(v0, v1, v2, v3, d);
+        break;
+    }
+
+    default:
+        d = -1.0;
+        break;
+    }
+}
+
+
 void DIS::computeEdgeEdgeD(const Eigen::Vector3d& v0,
     const Eigen::Vector3d& v1,
     const Eigen::Vector3d& v2,
@@ -2239,6 +2289,67 @@ void DIS::computeEdgeEdgeD(const Eigen::Vector3d& v0,
         break;
     }
 }
+
+
+void DIS::computeEdgeEdgeD(const Eigen::Vector3d& v0,
+    const Eigen::Vector3d& v1,
+    const Eigen::Vector3d& v2,
+    const Eigen::Vector3d& v3,
+    double& d,
+    int& type)
+{
+    switch (type) {
+    case 0: {
+        d_PP(v0, v2, d);
+        break;
+    }
+
+    case 1: {
+        d_PP(v0, v3, d);
+        break;
+    }
+
+    case 2: {
+        d_PE(v0, v2, v3, d);
+        break;
+    }
+
+    case 3: {
+        d_PP(v1, v2, d);
+        break;
+    }
+
+    case 4: {
+        d_PP(v1, v3, d);
+        break;
+    }
+
+    case 5: {
+        d_PE(v1, v2, v3, d);
+        break;
+    }
+
+    case 6: {
+        d_PE(v2, v0, v1, d);
+        break;
+    }
+
+    case 7: {
+        d_PE(v3, v0, v1, d);
+        break;
+    }
+
+    case 8: {
+        d_EE(v0, v1, v2, v3, d);
+        break;
+    }
+
+    default:
+        d = -1.0;
+        break;
+    }
+}
+
 
 void DIS::checkEdgeEdgeD(void)
 {

@@ -70,6 +70,7 @@ public:
 	std::map<std::string, tetMesh> objectsTetMesh; // store all objects' tetrahedral meshes in the scene
 
 	int num_meshes = 1; // number of independant tetrahedral meshes inputed into the simulator
+	std::map<std::string, int> tetMeshIndex; // std::string: mesh name; int: mesh index
 	std::vector<Eigen::Vector2i> index_node; // index of each node; 1st int: index of the tetrhedral mesh, 2nd int: 0(interior vertex), 1(surface vertex) 
 
 	std::vector<std::string> note_node; // note of each node
@@ -124,7 +125,7 @@ public:
 	std::vector<double> volume_ABD; // volume of each mesh if in ABD mode
 
 
-	void initializeABD();
+	void createGlobalSimulationMesh_ABD();
 };
 
 

@@ -247,7 +247,7 @@ void Mesh::createGlobalSimulationMesh()
 
 	// assemble material vector
 	std::map<std::string, int> materialNameIndex; 
-	int matId = 0;
+	int matId = 0, meshId = 0;
 	for (std::map<std::string, tetMesh>::iterator it = objectsTetMesh.begin(); it != objectsTetMesh.end(); it++)
 	{
 		tetMesh obj_tet = it->second;
@@ -257,13 +257,16 @@ void Mesh::createGlobalSimulationMesh()
 			materialMesh.push_back(obj_tet.materialTetMesh);
 			matId += 1;
 		}
+
+		tetMeshIndex[obj_tet.tetMeshNote] = meshId;
+		meshId += 1;
 	}
 
 	// assemble node vectors
-	int meshID = 0;
 	for (std::map<std::string, tetMesh>::iterator it = objectsTetMesh.begin(); it != objectsTetMesh.end(); it++)
 	{
 		tetMesh obj_tet = it->second;
+		int currentMeshID = tetMeshIndex[obj_tet.tetMeshNote];
 		// per node 
 		for (int n = 0; n < obj_tet.pos_node.size(); n++)
 		{
@@ -275,10 +278,9 @@ void Mesh::createGlobalSimulationMesh()
 			boundaryCondition_node.push_back(obj_tet.boundaryCondition_node[n]);
 			note_node.push_back(obj_tet.tetMeshNote);
 
-			Eigen::Vector2i index_vert = { meshID , 0 };
+			Eigen::Vector2i index_vert = { currentMeshID , 0 };
 			index_node.push_back(index_vert);
 		}
-		meshID += 1;
 	}
 	elastForce_node.resize(pos_node.size());
 
@@ -537,7 +539,7 @@ double Mesh::calBBXDiagSize()
 
 
 
-void Mesh_ABD::initializeABD()
+void Mesh_ABD::createGlobalSimulationMesh_ABD()
 {
 	createGlobalSimulationMesh();
 
