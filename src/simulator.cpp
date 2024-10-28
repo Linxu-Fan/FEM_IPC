@@ -1,5 +1,91 @@
 ﻿#include "simulator.h"
 
+void explicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
+{
+	std::vector<Eigen::Vector3d> nodeForce;
+
+	// Simulation loop
+	for (int timestep = 0; timestep < parameters.num_timesteps; ++timestep)
+	{
+		std::cout << "timestep = " << timestep << std::endl;
+
+		if (timestep % parameters.outputFrequency == 0)
+		{
+			tetSimMesh.exportSurfaceMesh("surfMesh", timestep);
+		}
+
+
+		std::fill(tetSimMesh.elastForce_node.begin(), tetSimMesh.elastForce_node.end(), Eigen::Vector3d::Zero());
+
+
+		// Apply gravity
+//#pragma omp parallel for num_threads(parameters.numOfThreads)
+		for (int nf = 0; nf < tetSimMesh.elastForce_node.size(); nf++)
+		{
+			Eigen::Vector3d f_node = compute_external_force(tetSimMesh, nf, timestep);
+			f_node += tetSimMesh.mass_node[nf] * parameters.gravity;
+			tetSimMesh.elastForce_node[nf] += f_node;
+		}
+
+		// Compute deformation gradient F
+		tetSimMesh.update_F(parameters.numOfThreads);
+
+
+		// Compute forces from elements
+		for (int nf = 0; nf < tetSimMesh.tetrahedrals.size(); nf++)
+		{
+			int matInd = tetSimMesh.materialInd[nf];
+			Material mat = tetSimMesh.materialMesh[matInd];
+
+
+			// Compute First Piola-Kirchhoff stress tensor P
+			Eigen::Matrix3d F = tetSimMesh.tetra_F[nf];
+			double J = F.determinant();
+			Eigen::Matrix3d FinvT = F.inverse().transpose();
+			Eigen::Matrix3d PK1 = mat.mu * (F - FinvT) + mat.lambda * log(J) * FinvT;
+			Eigen::Matrix3d P = PK1;
+
+			// Compute forces on nodes
+			Eigen::Matrix3d H = -tetSimMesh.tetra_vol[nf] * P * tetSimMesh.tetra_DM_inv[nf].transpose();
+
+			// Distribute forces to nodes
+			Eigen::Vector3d f0 = H.col(0);
+			Eigen::Vector3d f1 = H.col(1);
+			Eigen::Vector3d f2 = H.col(2);
+			Eigen::Vector3d f3 = -f0 - f1 - f2;
+
+
+			Eigen::Vector4i tet = tetSimMesh.tetrahedrals[nf];
+			tetSimMesh.elastForce_node[tet[0]] += f3;
+			tetSimMesh.elastForce_node[tet[1]] += f0;
+			tetSimMesh.elastForce_node[tet[2]] += f1;
+			tetSimMesh.elastForce_node[tet[3]] += f2;
+
+
+		}
+
+		// Time integration (Explicit Euler)
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+		for (int nf = 0; nf < tetSimMesh.elastForce_node.size(); nf++)
+		{
+
+			//if (tetSimMesh.pos_node[nf][1] >= -8.0)
+			{
+				// Update velocity and position
+				Eigen::Vector3d acceleration = tetSimMesh.elastForce_node[nf] / tetSimMesh.mass_node[nf];
+				tetSimMesh.vel_node[nf] += acceleration * parameters.dt;
+				tetSimMesh.pos_node[nf] += tetSimMesh.vel_node[nf] * parameters.dt;
+
+			}
+
+		}
+
+
+
+	}
+
+
+}
 
 // implicit integration
 void implicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)

@@ -42,13 +42,9 @@ struct spatialHashCellData
 };
 
 // initialize spatial hash
-void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, std::vector<spatialHashCellData>& spatialHash_vec, std::map<std::string, int>& hashNameIndex, int timestep);
-
-// initialize spatial hash (no advection)
-void initSpatialHash(FEMParamters& parameters, Mesh& tetMesh, double cellSize, std::vector<spatialHashCellData>& spatialHash_vec, std::map<std::string, int>& hashNameIndex);
-
+void initSpatialHash(bool advected, FEMParamters& parameters, Mesh& tetSimMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, std::vector<spatialHashCellData>& spatialHash_vec, std::map<std::string, int>& hashNameIndex, int timestep);
 
 // use spatial hash to calculate the maximum feasible step
-double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, double dist_threshold, double eta);
+double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetSimMesh, std::vector<Eigen::Vector3d>& direction, double cellSize, double dist_threshold, double eta);
 
 #endif

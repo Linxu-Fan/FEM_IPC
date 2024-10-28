@@ -116,6 +116,7 @@ void tetMesh::update_F(int numOfThreads)
 #pragma omp parallel for num_threads(numOfThreads)
 	for (int i = 0; i < tetrahedrals.size(); i++)
 	{
+		tetra_F[i] = Eigen::Matrix3d::Identity();
 		Eigen::Vector3d x0 = pos_node[tetrahedrals[i][0]];
 		Eigen::Vector3d x1 = pos_node[tetrahedrals[i][1]];
 		Eigen::Vector3d x2 = pos_node[tetrahedrals[i][2]];
@@ -137,8 +138,7 @@ void tetMesh::update_F(int numOfThreads)
 // calculate the mass of each node
 void tetMesh::calculateNodeMass()
 {
-	std::vector<std::vector<int>> nodeSharedByElement;
-	nodeSharedByElement.resize(pos_node.size());
+	std::vector<std::vector<int>> nodeSharedByElement(pos_node.size());
 	// find all elements that share a node
 	for (int eleInd = 0; eleInd < tetrahedrals.size(); eleInd++)
 	{
@@ -282,7 +282,7 @@ void Mesh::createGlobalSimulationMesh()
 			index_node.push_back(index_vert);
 		}
 	}
-	elastForce_node.resize(pos_node.size());
+	elastForce_node.resize(pos_node.size(), Eigen::Vector3d::Zero());
 
 	// assemble tetrahedral vectors
 	for (std::map<std::string, tetMesh>::iterator it = objectsTetMesh.begin(); it != objectsTetMesh.end(); it++)

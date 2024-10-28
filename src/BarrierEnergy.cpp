@@ -9,7 +9,7 @@ double BarrierEnergy::val_PT(double contactArea, double dis2, double d_hat2, dou
 }
 
 // compute the energy gradient and hessian 
-double BarrierEnergy::val_EE(double contactArea, double dis2, Mesh& tetMesh, Eigen::Vector4i& ptIndices, double d_hat2, double k_stiff, double dt)
+double BarrierEnergy::val_EE(double contactArea, double dis2, Mesh& tetSimMesh, Eigen::Vector4i& ptIndices, double d_hat2, double k_stiff, double dt)
 {
     //contactArea = 1.0;
 
@@ -18,8 +18,8 @@ double BarrierEnergy::val_EE(double contactArea, double dis2, Mesh& tetMesh, Eig
 
     int P1 = ptIndices[0], P2 = ptIndices[1], Q1 = ptIndices[2], Q2 = ptIndices[3];
     int emin = std::min(P1, P2), emax = std::max(P1, P2);
-    Eigen::Vector3d P1Coor = tetMesh.pos_node[P1], P2Coor = tetMesh.pos_node[P2], Q1Coor = tetMesh.pos_node[Q1], Q2Coor = tetMesh.pos_node[Q2];
-    Eigen::Vector3d P1Coor_Rest = tetMesh.pos_node_Rest[P1], P2Coor_Rest = tetMesh.pos_node_Rest[P2], Q1Coor_Rest = tetMesh.pos_node_Rest[Q1], Q2Coor_Rest = tetMesh.pos_node_Rest[Q2];
+    Eigen::Vector3d P1Coor = tetSimMesh.pos_node[P1], P2Coor = tetSimMesh.pos_node[P2], Q1Coor = tetSimMesh.pos_node[Q1], Q2Coor = tetSimMesh.pos_node[Q2];
+    Eigen::Vector3d P1Coor_Rest = tetSimMesh.pos_node_Rest[P1], P2Coor_Rest = tetSimMesh.pos_node_Rest[P2], Q1Coor_Rest = tetSimMesh.pos_node_Rest[Q1], Q2Coor_Rest = tetSimMesh.pos_node_Rest[Q2];
 
     // the following codes calculate the mollifier-related value
     double eps_x = DIS::cal_EEM_eps_x(P1Coor_Rest, P2Coor_Rest, Q1Coor_Rest, Q2Coor_Rest);
@@ -30,16 +30,16 @@ double BarrierEnergy::val_EE(double contactArea, double dis2, Mesh& tetMesh, Eig
 
 
 // compute the energy gradient and hessian 
-void BarrierEnergy::gradAndHess_PT(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector4i& ptIndices, int type, double dis2, Mesh& tetMesh, double d_hat2, double k_stiff, double dt)
+void BarrierEnergy::gradAndHess_PT(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector4i& ptIndices, int type, double dis2, Mesh& tetSimMesh, double d_hat2, double k_stiff, double dt)
 {
     // the partial derivative of barrier energy b wrt distance d
     double g_bd = compute_g_b(dis2, d_hat2); // 3
     double h_bd = compute_H_b(dis2, d_hat2); // 1  
 
     int pt = ptIndices[0], t1 = ptIndices[1], t2 = ptIndices[2], t3 = ptIndices[3];
-    double contactArea = tetMesh.boundaryVertices_area[pt];
+    double contactArea = tetSimMesh.boundaryVertices_area[pt];
     //contactArea = 1.0;
-    Eigen::Vector3d P = tetMesh.pos_node[pt], A = tetMesh.pos_node[t1], B = tetMesh.pos_node[t2], C = tetMesh.pos_node[t3];
+    Eigen::Vector3d P = tetSimMesh.pos_node[pt], A = tetSimMesh.pos_node[t1], B = tetSimMesh.pos_node[t2], C = tetSimMesh.pos_node[t3];
 
     switch (type)
     {
@@ -162,7 +162,7 @@ void BarrierEnergy::gradAndHess_PT(std::vector<Eigen::Triplet<double>>& hessian_
 }
 
 // compute the energy gradient and hessian 
-void BarrierEnergy::gradAndHess_EE(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector4i& ptIndices, int type, double dis2, Mesh& tetMesh, double d_hat2, double k_stiff, double dt)
+void BarrierEnergy::gradAndHess_EE(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector4i& ptIndices, int type, double dis2, Mesh& tetSimMesh, double d_hat2, double k_stiff, double dt)
 {
     // the partial derivative of barrier energy b wrt distance d
     double g_bd = compute_g_b(dis2, d_hat2); // 3
@@ -170,10 +170,10 @@ void BarrierEnergy::gradAndHess_EE(std::vector<Eigen::Triplet<double>>& hessian_
 
     int P1 = ptIndices[0], P2 = ptIndices[1], Q1 = ptIndices[2], Q2 = ptIndices[3];
     int emin = std::min(P1, P2), emax = std::max(P1, P2);
-    Eigen::Vector3d P1Coor = tetMesh.pos_node[P1], P2Coor = tetMesh.pos_node[P2], Q1Coor = tetMesh.pos_node[Q1], Q2Coor = tetMesh.pos_node[Q2];
-    Eigen::Vector3d P1Coor_Rest = tetMesh.pos_node_Rest[P1], P2Coor_Rest = tetMesh.pos_node_Rest[P2], Q1Coor_Rest = tetMesh.pos_node_Rest[Q1], Q2Coor_Rest = tetMesh.pos_node_Rest[Q2];
+    Eigen::Vector3d P1Coor = tetSimMesh.pos_node[P1], P2Coor = tetSimMesh.pos_node[P2], Q1Coor = tetSimMesh.pos_node[Q1], Q2Coor = tetSimMesh.pos_node[Q2];
+    Eigen::Vector3d P1Coor_Rest = tetSimMesh.pos_node_Rest[P1], P2Coor_Rest = tetSimMesh.pos_node_Rest[P2], Q1Coor_Rest = tetSimMesh.pos_node_Rest[Q1], Q2Coor_Rest = tetSimMesh.pos_node_Rest[Q2];
 
-    double contactArea = tetMesh.boundaryEdges_area[emin][emax];
+    double contactArea = tetSimMesh.boundaryEdges_area[emin][emax];
     //contactArea = 1.0;
     double val_b = compute_b(dis2, d_hat2);
     Vector12d grad_b = Vector12d::Zero();

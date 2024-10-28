@@ -155,7 +155,8 @@ int main()
 		// 1. Two tetrahedrals collision test to verify the correctness of the solver
 		// 2. Single tetrahedral test
 		// 3. ABD test
-		int caseNum = 0;
+		// 4. Explicit test
+		int caseNum = 4;
 		if (caseNum == 0)
 		{
 			Material mat1;
@@ -605,7 +606,98 @@ int main()
 
 
 		}
+		else if (caseNum == 4)
+		{
+			Material mat1;
+			mat1.density = 1000;
+			mat1.E = 1.0e6;
+			mat1.nu = 0.3;
+			mat1.updateDenpendecies();
 
+
+
+			std::vector<meshConfiguration> config;
+			meshConfiguration m1, m2, m3, m4;
+			m1.filePath = "../input/impactor.msh";
+			m1.mesh_material = mat1;
+			m1.scale = { 1000, 1000, 1000 };
+			m1.note = "impactor";
+			config.push_back(m1);
+
+
+
+			Mesh tetSimMesh;
+			for (int i = 0; i < config.size(); i++)
+			{
+				tetMesh msh_tmp;
+				msh_tmp.readMesh(config[i]);
+				msh_tmp.initializeTetMesh();
+				tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
+			}
+			tetSimMesh.createGlobalSimulationMesh();
+
+
+			std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
+			std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
+
+
+			FEMParamters parameters;
+			parameters.gravity = { 0, 0, -9.8 };
+			parameters.num_timesteps = 100000;
+			parameters.numOfThreads = 12;
+			parameters.dt = 1.0e-4;
+			parameters.outputFrequency = 100;
+			parameters.enableGround = false;
+			parameters.searchResidual = 5.0;
+			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+			parameters.rigidMode = true;
+			parameters.IPC_dis = 0.01;
+			parameters.IPC_eta = 0.05;
+			parameters.IPC_kStiffness = 1.0e14;
+			parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
+			parameters.IPC_B3Stiffness = 500;
+
+
+
+			for (int p = 0; p < tetSimMesh.pos_node.size(); p++)
+			{
+				if (tetSimMesh.note_node[p] == "impactor")
+				{
+					if (tetSimMesh.pos_node[p][1] > 9.95)
+					{
+						tetSimMesh.boundaryCondition_node[p].type = 2;
+						for (int fra = 0; fra < parameters.num_timesteps; fra++)
+						{
+							Eigen::Vector3d inc = { 0,10,0 };
+							tetSimMesh.boundaryCondition_node[p].force.push_back(inc);
+						}
+					}
+
+					if (tetSimMesh.pos_node[p][1] < -9.95)
+					{
+						tetSimMesh.boundaryCondition_node[p].type = 2;
+						for (int fra = 0; fra < parameters.num_timesteps; fra++)
+						{
+							Eigen::Vector3d inc = { 0,-10,0 };
+							tetSimMesh.boundaryCondition_node[p].force.push_back(inc);
+						}
+					}
+
+				}
+
+				if (std::abs(tetSimMesh.elastForce_node[p].norm() - 0) > 0.0001)
+				{
+					//std::cout << "fsdjf" << std::endl;
+				}
+
+			}
+
+
+
+			explicitFEM(tetSimMesh, parameters);
+
+
+		}
 	}
 
 
