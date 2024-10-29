@@ -295,6 +295,7 @@ void Mesh::createGlobalSimulationMesh()
 			tetra_DM_inv.push_back(obj_tet.tetra_DM_inv[n]);
 			tetra_F.push_back(obj_tet.tetra_F[n]);
 			materialInd.push_back(materialNameIndex[obj_tet.materialTetMesh.name]);
+			Dp.push_back(0);
 		}
 	}
 

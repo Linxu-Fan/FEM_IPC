@@ -2,7 +2,19 @@
 
 void explicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 {
-	std::vector<Eigen::Vector3d> nodeForce;
+	// create a temporary vector for parallelization
+	std::vector<std::vector<Eigen::Vector2i>> nodeSharedByElement(tetSimMesh.pos_node.size()); // Eigen::Vector2i 1st int: tetrahedral index; 2nd int: index of this node in this tetrahedral
+	// find all elements that share a node
+	for (int eleInd = 0; eleInd < tetSimMesh.tetrahedrals.size(); eleInd++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			int nodeInd = tetSimMesh.tetrahedrals[eleInd][j];
+			Eigen::Vector2i indices = { eleInd , j};
+			nodeSharedByElement[nodeInd].push_back(indices);
+		}
+	}
+	std::vector<Eigen::Matrix3d> tetrahedralStress(tetSimMesh.tetrahedrals.size(), Eigen::Matrix3d::Zero());
 
 	// Simulation loop
 	for (int timestep = 0; timestep < parameters.num_timesteps; ++timestep)
@@ -12,6 +24,35 @@ void explicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 		if (timestep % parameters.outputFrequency == 0)
 		{
 			tetSimMesh.exportSurfaceMesh("surfMesh", timestep);
+
+			{
+				std::ofstream outfile9("./output/Stress_" + std::to_string(timestep) + ".txt", std::ios::trunc);
+				for (int nf = 0; nf < tetSimMesh.tetrahedrals.size(); nf++)
+				{
+					int matInd = tetSimMesh.materialInd[nf];
+					Material mat = tetSimMesh.materialMesh[matInd];
+
+					// Compute First Piola-Kirchhoff stress tensor P
+					Eigen::Matrix3d F = tetSimMesh.tetra_F[nf];
+					double J = F.determinant();
+					Eigen::Matrix3d FinvT = F.inverse().transpose();
+					Eigen::Matrix3d PK1 = mat.mu * (F - FinvT) + mat.lambda * log(J) * FinvT;
+					Eigen::Matrix3d cauchyStress = 1.0 / J * PK1 * F.transpose();
+
+					Eigen::EigenSolver<Eigen::MatrixXd> es2(cauchyStress);
+					Eigen::Vector3d eigenValues = { es2.eigenvalues()[0].real() ,  es2.eigenvalues()[1].real() ,  es2.eigenvalues()[2].real() };
+					Eigen::Matrix3d eigenVectors = es2.eigenvectors().real();
+					double maxEigenValue = std::max(std::max(eigenValues[0], eigenValues[1]), eigenValues[2]);
+
+					Eigen::Vector4i tet = tetSimMesh.tetrahedrals[nf];
+					Eigen::Vector3d pos = 0.25 * (tetSimMesh.pos_node[tet[0]] + tetSimMesh.pos_node[tet[1]] + tetSimMesh.pos_node[tet[2]] + tetSimMesh.pos_node[tet[3]]);
+
+					outfile9 << std::scientific << std::setprecision(8) << pos[0] << " " << pos[1] << " " << pos[2] << " " << maxEigenValue << " " << tetSimMesh.Dp[nf] << std::endl;
+				}				
+				outfile9.close();
+			}
+
+
 		}
 
 
@@ -19,7 +60,7 @@ void explicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 
 
 		// Apply gravity
-//#pragma omp parallel for num_threads(parameters.numOfThreads)
+#pragma omp parallel for num_threads(parameters.numOfThreads)
 		for (int nf = 0; nf < tetSimMesh.elastForce_node.size(); nf++)
 		{
 			Eigen::Vector3d f_node = compute_external_force(tetSimMesh, nf, timestep);
@@ -32,6 +73,7 @@ void explicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 
 
 		// Compute forces from elements
+#pragma omp parallel for num_threads(parameters.numOfThreads)
 		for (int nf = 0; nf < tetSimMesh.tetrahedrals.size(); nf++)
 		{
 			int matInd = tetSimMesh.materialInd[nf];
@@ -44,23 +86,83 @@ void explicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 			Eigen::Matrix3d FinvT = F.inverse().transpose();
 			Eigen::Matrix3d PK1 = mat.mu * (F - FinvT) + mat.lambda * log(J) * FinvT;
 			Eigen::Matrix3d P = PK1;
+			{
+				Eigen::Matrix3d cauchyStress = 1.0 / J * PK1 * F.transpose();
+				// compute eigenvalue and eigenvector
+				Eigen::EigenSolver<Eigen::MatrixXd> es(cauchyStress);
+				Eigen::Vector3d eigenValues = { es.eigenvalues()[0].real() ,  es.eigenvalues()[1].real() ,  es.eigenvalues()[2].real() };
+				Eigen::Matrix3d eigenVectors;
+				eigenVectors << es.eigenvectors().col(0)[0].real(), es.eigenvectors().col(1)[0].real(), es.eigenvectors().col(2)[0].real(),
+					es.eigenvectors().col(0)[1].real(), es.eigenvectors().col(1)[1].real(), es.eigenvectors().col(2)[1].real(),
+					es.eigenvectors().col(0)[2].real(), es.eigenvectors().col(1)[2].real(), es.eigenvectors().col(2)[2].real();
+				double maxEigenValue = std::max(std::max(eigenValues[0], eigenValues[1]), eigenValues[2]);
+
+
+				if (maxEigenValue > mat.thetaf)
+				{
+					double tempDp = (1 + mat.Hs) * (1 - mat.thetaf / maxEigenValue);
+					if (maxEigenValue > (1 + 1 / mat.Hs) * mat.thetaf)
+					{
+						tetSimMesh.Dp[nf] = 1.0;
+					}
+					else
+					{
+						if (tempDp > tetSimMesh.Dp[nf])
+						{
+							tetSimMesh.Dp[nf] = tempDp;
+						};
+					};
+				};
+
+				Eigen::Vector3d sigmaPlus = { 0 , 0 , 0 };
+				for (int i = 0; i < 3; i++)
+				{
+					if (eigenValues[i] > 0)
+					{
+						if (tetSimMesh.Dp[nf] >= 1.0)
+						{
+							sigmaPlus[i] = 0;
+						}
+						else
+						{
+							sigmaPlus[i] = (1 - tetSimMesh.Dp[nf]) * eigenValues[i];
+						};
+					}
+					else
+					{
+						sigmaPlus[i] = eigenValues[i];
+					};
+				};
+
+				Eigen::Matrix3d sigma = Eigen::Matrix3d::Zero();
+				for (int i = 0; i < 3; i++)
+				{
+					sigma = sigma + sigmaPlus[i] * eigenVectors.col(i) * (eigenVectors.col(i).transpose());
+				};
+
+				cauchyStress = sigma;
+
+				P = J * cauchyStress * F.transpose().inverse();
+			}
+
 
 			// Compute forces on nodes
 			Eigen::Matrix3d H = -tetSimMesh.tetra_vol[nf] * P * tetSimMesh.tetra_DM_inv[nf].transpose();
-
-			// Distribute forces to nodes
-			Eigen::Vector3d f0 = H.col(0);
-			Eigen::Vector3d f1 = H.col(1);
-			Eigen::Vector3d f2 = H.col(2);
-			Eigen::Vector3d f3 = -f0 - f1 - f2;
+			tetrahedralStress[nf] = H;
 
 
-			Eigen::Vector4i tet = tetSimMesh.tetrahedrals[nf];
-			tetSimMesh.elastForce_node[tet[0]] += f3;
-			tetSimMesh.elastForce_node[tet[1]] += f0;
-			tetSimMesh.elastForce_node[tet[2]] += f1;
-			tetSimMesh.elastForce_node[tet[3]] += f2;
+			//// Distribute forces to nodes
+			//Eigen::Vector3d f0 = H.col(0);
+			//Eigen::Vector3d f1 = H.col(1);
+			//Eigen::Vector3d f2 = H.col(2);
+			//Eigen::Vector3d f3 = -f0 - f1 - f2;
 
+
+			//Eigen::Vector4i tet = tetSimMesh.tetrahedrals[nf];
+			//tetSimMesh.elastForce_node[tet[0]] += f3;
+			//tetSimMesh.elastForce_node[tet[1]] += f0;
+			//tetSimMesh.elastForce_node[tet[2]] += f1;
+			//tetSimMesh.elastForce_node[tet[3]] += f2;
 
 		}
 
@@ -68,8 +170,23 @@ void explicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 		for (int nf = 0; nf < tetSimMesh.elastForce_node.size(); nf++)
 		{
+			// Calcualte the elastic force contribution
+			for (int k = 0; k < nodeSharedByElement[nf].size(); k++)
+			{
+				Eigen::Vector2i indices = nodeSharedByElement[nf][k];
+				int tetIndex = indices[0], nodeIndex = indices[1];
+				if (nodeIndex == 0)
+				{
+					tetSimMesh.elastForce_node[nf] += -(tetrahedralStress[tetIndex].col(0)+ tetrahedralStress[tetIndex].col(1)+ tetrahedralStress[tetIndex].col(2));
+				}
+				else
+				{
+					tetSimMesh.elastForce_node[nf] += tetrahedralStress[tetIndex].col(nodeIndex - 1);
+				}
+			}
 
-			//if (tetSimMesh.pos_node[nf][1] >= -8.0)
+
+			if (tetSimMesh.pos_node[nf][1] >= -9.0)
 			{
 				// Update velocity and position
 				Eigen::Vector3d acceleration = tetSimMesh.elastForce_node[nf] / tetSimMesh.mass_node[nf];

@@ -73,6 +73,7 @@ public:
 	std::map<std::string, int> tetMeshIndex; // std::string: mesh name; int: mesh index
 	std::vector<Eigen::Vector2i> index_node; // index of each node; 1st int: index of the tetrhedral mesh, 2nd int: 0(interior vertex), 1(surface vertex) 
 
+	std::vector<double> Dp; // damage value of the tetrahedral!!!!!!!
 	std::vector<std::string> note_node; // note of each node
 	std::vector<Eigen::Vector3d> elastForce_node; // elastic force of each node
 	std::vector<Eigen::Vector3d> pos_node_prev; // tetrahedral node's previous position

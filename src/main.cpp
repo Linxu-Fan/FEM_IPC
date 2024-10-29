@@ -609,10 +609,19 @@ int main()
 		else if (caseNum == 4)
 		{
 			Material mat1;
-			mat1.density = 1000;
-			mat1.E = 1.0e6;
+			mat1.density = 2700;
+			mat1.E = 1.0e12;
 			mat1.nu = 0.3;
+
+			mat1.thetaf = 6.0E5;
+			mat1.Gf = 300;
+			double hsTarget = 0.45;
+			//mat1.lch = hsTarget / (1 + hsTarget) / mat1.calHsBar() * 2;
+			mat1.lch = 1.0;
 			mat1.updateDenpendecies();
+			std::cout << "material1.lch = " << mat1.lch << std::endl;
+			std::cout << "material1.Hs = " << mat1.Hs << std::endl;
+
 
 
 
@@ -642,10 +651,10 @@ int main()
 
 
 			FEMParamters parameters;
-			parameters.gravity = { 0, 0, -9.8 };
+			parameters.gravity = { 0, 0, 0 };
 			parameters.num_timesteps = 100000;
 			parameters.numOfThreads = 12;
-			parameters.dt = 1.0e-4;
+			parameters.dt = 1.0e-6;
 			parameters.outputFrequency = 100;
 			parameters.enableGround = false;
 			parameters.searchResidual = 5.0;
@@ -663,25 +672,25 @@ int main()
 			{
 				if (tetSimMesh.note_node[p] == "impactor")
 				{
-					if (tetSimMesh.pos_node[p][1] > 9.95)
+					if (tetSimMesh.pos_node[p][1] >= 9.0)
 					{
 						tetSimMesh.boundaryCondition_node[p].type = 2;
 						for (int fra = 0; fra < parameters.num_timesteps; fra++)
 						{
-							Eigen::Vector3d inc = { 0,10,0 };
+							Eigen::Vector3d inc = { 0,1000,0 };
 							tetSimMesh.boundaryCondition_node[p].force.push_back(inc);
 						}
 					}
 
-					if (tetSimMesh.pos_node[p][1] < -9.95)
+					/*if (tetSimMesh.pos_node[p][1] < -9.95)
 					{
 						tetSimMesh.boundaryCondition_node[p].type = 2;
 						for (int fra = 0; fra < parameters.num_timesteps; fra++)
 						{
-							Eigen::Vector3d inc = { 0,-10,0 };
+							Eigen::Vector3d inc = { 0,-500,0 };
 							tetSimMesh.boundaryCondition_node[p].force.push_back(inc);
 						}
-					}
+					}*/
 
 				}
 
