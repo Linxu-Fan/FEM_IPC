@@ -156,7 +156,8 @@ int main()
 		// 2. Single tetrahedral test
 		// 3. ABD test
 		// 4. Explicit test
-		int caseNum = 4;
+		// 5. Object hanging test to verify element sampling algorithm
+		int caseNum = 5;
 		if (caseNum == 0)
 		{
 			Material mat1;
@@ -707,7 +708,89 @@ int main()
 
 
 		}
-	}
+		else if (caseNum == 5)
+		{
+			Material mat1;
+			mat1.density = 2700;
+			mat1.E = 1.0e5;
+			mat1.nu = 0.3;
+
+			mat1.thetaf = 6.0E5;
+			mat1.Gf = 300;
+			double hsTarget = 0.45;
+			mat1.lch = 1.0;
+			mat1.updateDenpendecies();
+
+
+
+			std::vector<meshConfiguration> config;
+			meshConfiguration m1, m2, m3, m4;
+			m1.filePath = "../input/cube.msh";
+			m1.mesh_material = mat1;
+			m1.note = "cube";
+			m1.translation = { 0,0,0.3 };
+			config.push_back(m1);
+
+
+
+			Mesh tetSimMesh;
+			for (int i = 0; i < config.size(); i++)
+			{
+				tetMesh msh_tmp;
+				msh_tmp.readMesh(config[i]);
+				msh_tmp.initializeTetMesh();
+				tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
+			}
+			tetSimMesh.createGlobalSimulationMesh();
+
+
+			std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
+			std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
+
+
+			FEMParamters parameters;
+			parameters.gravity = { 0, 0, -9.8 };
+			parameters.num_timesteps = 100000;
+			parameters.numOfThreads = 12;
+			parameters.dt = 1.0e-2;
+			parameters.outputFrequency = 100;
+			parameters.enableGround = true;
+			parameters.searchResidual = 5.0;
+			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+			parameters.rigidMode = true;
+			parameters.IPC_dis = 0.01;
+			parameters.IPC_eta = 0.05;
+			parameters.IPC_kStiffness = 1.0e12;
+			parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
+			parameters.IPC_B3Stiffness = 500;
+
+
+
+			for (int p = 0; p < tetSimMesh.pos_node.size(); p++)
+			{
+				if (tetSimMesh.note_node[p] == "cube")
+				{
+					if (tetSimMesh.pos_node[p][2] >= 1.2)
+					{
+						tetSimMesh.boundaryCondition_node[p].type = 1;
+						for (int fra = 0; fra < parameters.num_timesteps; fra++)
+						{
+							tetSimMesh.boundaryCondition_node[p].location.push_back(tetSimMesh.pos_node[p]);
+						}
+					}
+
+
+				}
+
+
+			}
+
+
+
+			implicitFEM(tetSimMesh, parameters);
+		}
+
+}
 
 
 	return 0;
