@@ -458,6 +458,26 @@ double compute_Barrier_energy(Mesh& tetSimMesh, FEMParamters& parameters, int ti
 	return barrierEnergy;
 }
 
+std::pair<std::vector<Eigen::Vector2i>, int> cal_temporary_MLS_tet_vector(Mesh& tetSimMesh)
+{
+	std::vector<Eigen::Vector2i> temp_MLS_tet_vector(tetSimMesh.MLSPoints_tet_map.size(), Eigen::Vector2i::Zero());
+
+	int num_MLS_tet = 0;
+	int totalNodes_tets = 0;
+
+	for (std::map<int, std::vector<MLSPoints>>::iterator it = tetSimMesh.MLSPoints_tet_map.begin(); it != tetSimMesh.MLSPoints_tet_map.end(); it++) // each tetrahedral that is replaced by MLS points
+	{
+		temp_MLS_tet_vector[num_MLS_tet][0] = it->first;
+		temp_MLS_tet_vector[num_MLS_tet][1] = totalNodes_tets;
+		for (int j = 0; j < it->second.size(); j++)
+		{
+			totalNodes_tets += it->second[j].index_node.size();
+		}
+		num_MLS_tet += 1;
+	}
+
+	return std::make_pair(temp_MLS_tet_vector, totalNodes_tets);
+}
 
 // compute energy gradient and hessian of the linear system and solve the syetem
 std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters& parameters, int timestep)
@@ -487,10 +507,14 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 	// !!!!!!!!!!!!!!!!!!!!!!
 	// Some tetrahedrals (a small part ) are replaced by MLS points, so the energy and gradient of these tetrahedrals are not calculated
 	// But in order to facilitate parallelization, the energy and gradient of these tetrahedrals are set as 0, but the results are not used
-	int gradSize = tetSimMesh.pos_node.size() * 6 + tetSimMesh.tetrahedrals.size() * 12 + PG_PG.size() * 3
+	int gradSize_beforeMLS = tetSimMesh.pos_node.size() * 6 + tetSimMesh.tetrahedrals.size() * 12 + PG_PG.size() * 3
 		+ PT_PP.size() * 6 + PT_PE.size() * 9 + PT_PT.size() * 12 + EE_EE.size() * 12;
-	int hessSize = tetSimMesh.pos_node.size() * 3 + tetSimMesh.tetrahedrals.size() * 144 + PG_PG.size() * 9
+	int hessSize_beforeMLS = tetSimMesh.pos_node.size() * 3 + tetSimMesh.tetrahedrals.size() * 144 + PG_PG.size() * 9
 		+ PT_PP.size() * 36 + PT_PE.size() * 81 + PT_PT.size() * 144 + EE_EE.size() * 144;
+	// adding those nodes by MLS points
+	std::pair<std::vector<Eigen::Vector2i>, int> temp_MLS_tet_vector_and_numNodes = cal_temporary_MLS_tet_vector(tetSimMesh);
+	int gradSize = gradSize_beforeMLS + temp_MLS_tet_vector_and_numNodes.second * 3;
+	int hessSize = hessSize_beforeMLS + temp_MLS_tet_vector_and_numNodes.second * 9;
 	std::vector<std::pair<int, double>> grad_triplet(gradSize);
 	std::vector<Eigen::Triplet<double>> hessian_triplet(hessSize);
 
@@ -669,13 +693,48 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 
 
 	// now add energy gradient and hessian contributions from MLS points
-	for (std::map<int, std::vector<MLSPoints>>::iterator it = tetSimMesh.MLSPoints_tet_map.begin(); it != tetSimMesh.MLSPoints_tet_map.end(); it++) // each tetrahedral that is replaced by MLS points
+	std::vector<Eigen::Vector2i> temp_MLS_tet_vector = temp_MLS_tet_vector_and_numNodes.first;
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+	for (int it = 0; it < temp_MLS_tet_vector.size(); it++) // each tetrahedral that is replaced by MLS points
 	{
-		int tetInd = it->first;
-		for (int j = 0; j < it->second.size(); j++)
+		int tetInd = temp_MLS_tet_vector[it][0];
+		int matInd = tetSimMesh.materialInd[tetInd];
+		int relativeIndex = temp_MLS_tet_vector[it][1];
+
+		int totalNodes_per_tet = 0;
+		for (int j = 0; j < tetSimMesh.MLSPoints_tet_map[tetInd].size(); j++)
 		{
+			MLSPoints mp = tetSimMesh.MLSPoints_tet_map[tetInd][j];
+			
+			Eigen::Matrix3d PK1 = ElasticEnergy::calPK1(tetSimMesh.materialMesh[matInd], parameters.model, mp.F);
+			Vector9d grad_tmp = flatenMatrix3d(PK1);
+			Eigen::Matrix<double, 9, 9> hess_tmp = ElasticEnergy::calPK1_wrt_F(tetSimMesh.materialMesh[matInd], parameters.model, mp.F);
+
+			// calculate gradient & hessian
+			for (int k = 0; k < mp.index_node.size(); k++)
+			{
+				int nodeInd = mp.index_node[k];
+				Eigen::Vector3d grad_MLS_node = mp.dFdx[k].transpose() * grad_tmp;
+				Eigen::Matrix3d hess_MLS_node = mp.dFdx[k].transpose() * hess_tmp * mp.dFdx[k];
+
+				for (int xd = 0; xd < 3; xd++)
+				{
+					int currentNode_grad_Index = gradSize_beforeMLS + relativeIndex * 3 + totalNodes_per_tet * 3;
+					grad_triplet[currentNode_grad_Index + xd] = { nodeInd * 3 + xd, grad_MLS_node[xd]};
+
+					int currentNode_hess_Index = hessSize_beforeMLS + relativeIndex * 9 + totalNodes_per_tet * 9 + xd * 3;
+					for (int yd = 0; yd < 3; yd++)
+					{						
+						Eigen::Triplet<double> pa = { nodeInd * 3 + xd, nodeInd * 3 + yd, hess_MLS_node(xd, yd)};
+						hessian_triplet[currentNode_hess_Index + yd] = pa;
+					}
+				}
+
+				totalNodes_per_tet += 1;
+			}
 
 		}
+
 	}
 
 

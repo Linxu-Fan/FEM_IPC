@@ -21,6 +21,9 @@ Eigen::Vector3d compute_external_force(Mesh& tetSimMesh, int vertInd, int timest
 // compute the incremental potential energy
 double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timestep);
 
+// calculate a temporary vector for parallel computing MLS gradient and hessian
+std::pair<std::vector<Eigen::Vector2i>, int> cal_temporary_MLS_tet_vector(Mesh& tetSimMesh); // Eigen::Vector2i (first int: index of the tetrahedral; second int: accumulative number of the MLS points in the tetrahedral); int: total number of nodes influenced by MLS points
+
 // compute energy gradient and hessian of the linear system and solve the syetem
 std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters& parameters, int timestep);
 

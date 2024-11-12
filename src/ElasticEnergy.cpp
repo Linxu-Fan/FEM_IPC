@@ -98,10 +98,9 @@ double ElasticEnergy::Val(Material& mat, std::string model, Eigen::Matrix3d& F, 
 
 }
 
-// compute the energy gradient dPHI/dF (PK1 stress). Return a vectorized gradient which is a 9x1 matrix
-void ElasticEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_grad, Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd, Eigen::Vector4i& tetVertInd_BC)
+Eigen::Matrix3d ElasticEnergy::calPK1(Material& mat, std::string model, Eigen::Matrix3d& F)
 {
-	Vector9d grad_tmp;
+	Eigen::Matrix3d PK1 = Eigen::Matrix3d::Zero();
 	if (model == "neoHookean")
 	{
 		double J = F.determinant();
@@ -112,9 +111,7 @@ void ElasticEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int&
 		pJpF.col(1) = F.col(2).cross(F.col(0));
 		pJpF.col(2) = F.col(0).cross(F.col(1));
 
-		Eigen::Matrix3d PK1 = mat.mu * (F - 1.0 / J * pJpF) + mat.lambda * log(J) / J * pJpF;
-		grad_tmp = flatenMatrix3d(PK1);
-		
+		PK1 = mat.mu * (F - 1.0 / J * pJpF) + mat.lambda * log(J) / J * pJpF;
 	}
 	else if (model == "ARAP")
 	{
@@ -147,19 +144,27 @@ void ElasticEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int&
 		double f2 = -2 / (4 * pow(f, 3) - 4 * i1 * f - 8 * J);
 		double fJ = (8 * f) / (4 * pow(f, 3) - 4 * i1 * f - 8 * J);
 		delete[] solutions;
-		grad_tmp = mat.mu * 0.5 * (g1 - 2 * (f1 * g1 + f2 * g2 + fJ * gJ));
+		Vector9d grad_tmp = mat.mu * 0.5 * (g1 - 2 * (f1 * g1 + f2 * g2 + fJ * gJ));
+		PK1 = Eigen::Map<Eigen::Matrix3d>(grad_tmp.data());
 	}
 	else if (model == "ARAP_linear")
 	{
-		Eigen::Matrix3d PK1 = mat.mu / 2 * (F + F.transpose() - 2 * Eigen::Matrix3d::Identity());
-		grad_tmp = flatenMatrix3d(PK1);
+		PK1 = mat.mu / 2 * (F + F.transpose() - 2 * Eigen::Matrix3d::Identity());
 	}
 	else if (model == "ACAP")
 	{
-		Eigen::Matrix3d PK1 = mat.mu * (F - Eigen::Matrix3d::Identity());
-		grad_tmp = flatenMatrix3d(PK1);
+		PK1 = mat.mu * (F - Eigen::Matrix3d::Identity());
 	}
 
+	return PK1;
+}
+
+// compute the energy gradient dPHI/dF (PK1 stress). Return a vectorized gradient which is a 9x1 matrix
+void ElasticEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_grad, Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd, Eigen::Vector4i& tetVertInd_BC)
+{
+	Eigen::Matrix3d PK1 = calPK1(mat, model, F);
+	Vector9d grad_tmp = flatenMatrix3d(PK1);
+	
 	Eigen::Matrix<double, 12, 1> engGrad = dt * dt * vol * dFdx.transpose() * grad_tmp;
 	for (int m = 0; m < 4; m++)
 	{
@@ -172,10 +177,8 @@ void ElasticEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int&
 
 }
 
-// compute the energy hessian dPHI2/d2F. Return a vectorized gradient which is a 9x9 matrix
-void ElasticEnergy::Hess(std::vector<Eigen::Triplet<double>>& hessian_triplet, int& startIndex_hess, Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd, Eigen::Vector4i& tetVertInd_BC)
+Eigen::Matrix<double, 9, 9> ElasticEnergy::calPK1_wrt_F(Material& mat, std::string model, Eigen::Matrix3d& F)
 {
-
 	Eigen::Matrix<double, 9, 9> hessian = Eigen::Matrix<double, 9, 9>::Zero();
 	if (model == "neoHookean")
 	{
@@ -358,8 +361,18 @@ void ElasticEnergy::Hess(std::vector<Eigen::Triplet<double>>& hessian_triplet, i
 		hessian = mat.mu * I9;
 	}
 
+	return hessian;
+}
+
+// compute the energy hessian dPHI2/d2F. Return a vectorized gradient which is a 9x9 matrix
+void ElasticEnergy::Hess(std::vector<Eigen::Triplet<double>>& hessian_triplet, int& startIndex_hess, Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd, Eigen::Vector4i& tetVertInd_BC)
+{
+
+	Eigen::Matrix<double, 9, 9> hessian = calPK1_wrt_F(mat, model, F);
 	Eigen::Matrix<double, 12, 12> engHess = dt * dt * vol * dFdx.transpose() * hessian * dFdx;
 	makePD<double, 12>(engHess);
+
+
 	//for (int m = 0; m < 4; m++)
 	//{
 	//	engHess.col(m * 3).setZero();

@@ -26,7 +26,14 @@ public:
 	Eigen::Vector3d pos = { 0,0,0 }; // position of the MLS point
 	Eigen::Matrix3d F = Eigen::Matrix3d::Identity(); // deformation gradient of the MLS point
 	std::vector<int> index_node; // index of the nodes in the MLS point's support domain; Index is the index of the node in the original simulation mesh
+	std::vector<double> weight; // weight of each node in the MLS point's support domain
+	std::vector<Eigen::Matrix<double, 9, 3>> dFdx; // the partial derivative of deformation gradient wrt the node position of the tetrahedral
 
+	// start index of the global gradient vector and hessian matrix
+	int startIndex_grad = 0;
+	int startIndex_hess = 0;
+
+	
 
 };
 

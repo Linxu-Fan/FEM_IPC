@@ -11,8 +11,9 @@ int main()
 
 	if (0)
 	{
-		
-
+		Vector9d grad_tmp = {1,2,3,4,5,6,7,8,9};
+		Eigen::Matrix3d PK1 = Eigen::Map<Eigen::Matrix3d>(grad_tmp.data());
+		std::cout << PK1 << std::endl;
 
 
 		/*FEMParamters parameters;
