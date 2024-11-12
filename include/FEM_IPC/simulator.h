@@ -18,6 +18,9 @@ void implicitFEM(Mesh& tetSimMesh, FEMParamters& parameters);
 // compute external force excluding gravity
 Eigen::Vector3d compute_external_force(Mesh& tetSimMesh, int vertInd, int timestep);
 
+// update the MLS points' information after advection
+void updateMLS_after_advection(Mesh& tetSimMesh, FEMParamters& parameters);
+
 // compute the incremental potential energy
 double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timestep);
 

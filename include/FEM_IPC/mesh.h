@@ -29,9 +29,8 @@ public:
 	std::vector<double> weight; // weight of each node in the MLS point's support domain
 	std::vector<Eigen::Matrix<double, 9, 3>> dFdx; // the partial derivative of deformation gradient wrt the node position of the tetrahedral
 
-	// start index of the global gradient vector and hessian matrix
-	int startIndex_grad = 0;
-	int startIndex_hess = 0;
+
+	void update_MLS(std::vector<Eigen::Vector3d>& pos_node); // update the MLS point's information after advection
 
 	
 
@@ -96,6 +95,7 @@ public:
 	std::vector<std::string> note_node; // note of each node
 	std::vector<Eigen::Vector3d> elastForce_node; // elastic force of each node
 	std::vector<Eigen::Vector3d> pos_node_prev; // tetrahedral node's previous position
+	std::vector<std::vector<int>> tetrahedrals_node; // tetrahedrals that contains this node
 	std::vector<int> materialInd; // index of the materials(materialMesh) used in this tetrahedral
 	std::vector<Material> materialMesh; // all materials used in the simulation
 
@@ -127,6 +127,12 @@ public:
 	double calLargestEdgeLength();
 	// calculate the boundingbox's diagonal size
 	double calBBXDiagSize();
+
+	// sample MLS points inside a tetrahedral
+	void sample_MLS_points_inside_tetrahedral(int tetIndex, int num_points);
+	// using BSF to find neighbouring nodes of a tetrahedron
+	std::vector<int> find_Neighbour_Nodes_tetrahedral(int tetIndex, int maxLayers); // maxLayers: the maximum number of layers to search
+
 
 
 };

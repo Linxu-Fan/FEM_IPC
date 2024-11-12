@@ -292,6 +292,18 @@ Eigen::Vector3d compute_external_force(Mesh& tetSimMesh, int vertInd, int timest
 	return extForce;
 }
 
+void updateMLS_after_advection(Mesh& tetSimMesh, FEMParamters& parameters)
+{
+	for (std::map<int, std::vector<MLSPoints>>::iterator it = tetSimMesh.MLSPoints_tet_map.begin(); it != tetSimMesh.MLSPoints_tet_map.end(); it++) // each tetrahedral that is replaced by MLS points
+	{
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+		for (int j = 0; j < it->second.size(); j++)
+		{
+			it->second[j].update_MLS(tetSimMesh.pos_node);
+		}
+	}
+}
+
 // compute the incremental potential energy
 double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timestep)
 {
@@ -786,6 +798,8 @@ void step_forward(FEMParamters& parameters, Mesh& tetSimMesh, std::vector<Eigen:
 	{
 		tetSimMesh.pos_node[vI] = currentPosition[vI] + step * direction[vI];
 	}
+
+	updateMLS_after_advection(tetSimMesh, parameters);
 }
 
 

@@ -1,6 +1,19 @@
 #include "mesh.h"
 
 
+void MLSPoints::update_MLS(std::vector<Eigen::Vector3d>& pos_node)
+{
+	pos = { 0, 0, 0 };
+	for (int i = 0; i < index_node.size(); i++)
+	{
+		pos += weight[i] * pos_node[index_node[i]];
+		// !!!!!!!!!!
+		// also need to update the deformation gradient
+	}
+
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 // Is it possible that node and element are not placed in order? If possible, then the reading code may crash.
 ////////////////////////////////////////////////////////////////////////
@@ -314,6 +327,17 @@ void Mesh::createGlobalSimulationMesh()
 		currNodesNum += obj_tet.pos_node.size();
 	}
 
+	// find tetrahedrons that share a node
+	tetrahedrals_node.resize(pos_node.size());
+	for (int i = 0; i < tetrahedrals.size(); i++)
+	{
+		Eigen::Vector4i tet = tetrahedrals[i];
+		for (int j = 0; j < 4; j++)
+		{
+			tetrahedrals_node[tet[j]].push_back(i);
+		}
+
+	}
 
 	// find boundary
 	findBoundaryElements();
@@ -537,6 +561,66 @@ double Mesh::calBBXDiagSize()
 }
 
 
+void Mesh::sample_MLS_points_inside_tetrahedral(int tetIndex, int num_points)
+{
+	Eigen::Vector4i tet = tetrahedrals[tetIndex];
+	Eigen::Vector3d V1 = pos_node_Rest[tet[0]], V2 = pos_node_Rest[tet[1]], V3 = pos_node_Rest[tet[2]], V4 = pos_node_Rest[tet[3]];
+
+
+
+	for (int i = 0; i < num_points; i++)
+	{
+		Eigen::Vector3d pt = randomPointInTetrahedron(V1, V2, V3, V4);
+	}
+	
+
+
+
+}
+
+
+std::vector<int> Mesh::find_Neighbour_Nodes_tetrahedral(int tetIndex, int maxLayers)
+{
+	std::set<int> visitedNodes;
+	std::queue<std::pair<int, int>> nodeQueue; // pair of node index and current layer
+
+	// Initialize the queue with the nodes of the given tetrahedral
+	for (int i = 0; i < 4; ++i) 
+	{
+		int nodeIndex = tetrahedrals[tetIndex][i];
+		nodeQueue.push({ nodeIndex, 0 });
+		visitedNodes.insert(nodeIndex);
+	}
+
+	while (!nodeQueue.empty()) 
+	{
+		std::pair<int, int> node_and_layer = nodeQueue.front();
+		int currentNode = node_and_layer.first, currentLayer = node_and_layer.second;
+		nodeQueue.pop();
+
+		if (currentLayer < maxLayers) 
+		{
+			// Find all tetrahedrals that share the current node
+			for (int h = 0; h < tetrahedrals_node[currentNode].size(); h++) 
+			{
+				int tetIndex = tetrahedrals_node[currentNode][h];
+				for (int i = 0; i < 4; ++i) 
+				{
+					int neighborNode = tetrahedrals[tetIndex][i];
+					if (visitedNodes.find(neighborNode) == visitedNodes.end()) 
+					{
+						nodeQueue.push({ neighborNode, currentLayer + 1 });
+						visitedNodes.insert(neighborNode);
+					}
+				}
+			}
+		}
+	}
+
+	return std::vector<int>(visitedNodes.begin(), visitedNodes.end());
+
+
+}
 
 
 

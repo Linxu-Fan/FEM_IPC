@@ -208,6 +208,11 @@ int main()
 			tetSimMesh.createGlobalSimulationMesh();
 
 
+
+			
+
+
+
 			std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
 			std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
 
