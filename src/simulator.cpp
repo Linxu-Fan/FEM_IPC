@@ -320,15 +320,6 @@ double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timeste
 	}
 	energyVal = std::accumulate(node_ext_ine_energy_vec.begin(), node_ext_ine_energy_vec.end(), 0.0);
 
-	//double tmpv = energyVal;
-	//std::cout << "energyVal = " << energyVal << std::endl;
-
-	//std::cout << "node_ext_ine_energy_vec = " << node_ext_ine_energy_vec[0] << " , " << node_ext_ine_energy_vec[1] << " , ";
-	//std::cout << node_ext_ine_energy_vec[2] << " , " << node_ext_ine_energy_vec[3] << " , ";
-	//std::cout << node_ext_ine_energy_vec[4] << " , " << node_ext_ine_energy_vec[5] << " , ";
-	//std::cout << node_ext_ine_energy_vec[6] << " , " << node_ext_ine_energy_vec[7] << " , ";
-	//std::cout << node_ext_ine_energy_vec[8] << " , " << node_ext_ine_energy_vec[9] << " , ";
-	//std::cout << node_ext_ine_energy_vec[10] << " , " << node_ext_ine_energy_vec[11] << std::endl;;
 
 	// energy contribution per element
 	std::vector<double> tex_est_energy_vec(tetSimMesh.tetra_F.size());
@@ -337,19 +328,26 @@ double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timeste
 	{
 		// the internal elastic energy contribution
 		int matInd = tetSimMesh.materialInd[eI];
-		tex_est_energy_vec[eI] = ElasticEnergy::Val(tetSimMesh.materialMesh[matInd], parameters.model, tetSimMesh.tetra_F[eI], parameters.dt, tetSimMesh.tetra_vol[eI]);
+		if (tetSimMesh.MLSPoints_tet_map.find(eI) == tetSimMesh.MLSPoints_tet_map.end()) // if this tetrahedral is not replaced by MLS points
+		{
+			tex_est_energy_vec[eI] = ElasticEnergy::Val(tetSimMesh.materialMesh[matInd], parameters.model, tetSimMesh.tetra_F[eI], parameters.dt, tetSimMesh.tetra_vol[eI]);
+		}
+		else
+		{
+			double energyMLS_tmp = 0;
+			for (int m = 0; m < tetSimMesh.MLSPoints_tet_map[eI].size(); m++)
+			{
+				energyMLS_tmp += ElasticEnergy::Val(tetSimMesh.materialMesh[matInd], parameters.model, tetSimMesh.MLSPoints_tet_map[eI][m].F, parameters.dt, tetSimMesh.MLSPoints_tet_map[eI][m].volume);
+			}
+			tex_est_energy_vec[eI] = energyMLS_tmp;
+		}
+		
 	}
 	energyVal += std::accumulate(tex_est_energy_vec.begin(), tex_est_energy_vec.end(), 0.0);
 
 
-
 	// energy contribution from barrier
 	energyVal += compute_Barrier_energy(tetSimMesh, parameters, timestep);
-
-	//if (std::abs(energyVal - tmpv) >= 0.001)
-	//{
-	//	std::cout <<"iner = "<< tmpv << "; Barrier = "<< std::abs(energyVal - tmpv) << std::endl;
-	//}
 
 
 	return energyVal;
@@ -486,7 +484,9 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 	//std::cout << "	Cal contact Time is : " << endTime1 - startTime1 << "s" << std::endl;
 
 
-
+	// !!!!!!!!!!!!!!!!!!!!!!
+	// Some tetrahedrals (a small part ) are replaced by MLS points, so the energy and gradient of these tetrahedrals are not calculated
+	// But in order to facilitate parallelization, the energy and gradient of these tetrahedrals are set as 0, but the results are not used
 	int gradSize = tetSimMesh.pos_node.size() * 6 + tetSimMesh.tetrahedrals.size() * 12 + PG_PG.size() * 3
 		+ PT_PP.size() * 6 + PT_PE.size() * 9 + PT_PT.size() * 12 + EE_EE.size() * 12;
 	int hessSize = tetSimMesh.pos_node.size() * 3 + tetSimMesh.tetrahedrals.size() * 144 + PG_PG.size() * 9
@@ -526,19 +526,35 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 	for (int eI = 0; eI < tetSimMesh.tetrahedrals.size(); eI++)
 	{
 
-		Eigen::Vector4i tetVertInd_BC;
-		for (int hg = 0; hg < 4; hg++)
+		if (tetSimMesh.MLSPoints_tet_map.find(eI) == tetSimMesh.MLSPoints_tet_map.end()) // if this tetrahedral is not replaced by MLS points
 		{
-			int vertInd = tetSimMesh.tetrahedrals[eI][hg];
-			tetVertInd_BC[hg] = tetSimMesh.boundaryCondition_node[vertInd].type;
-		}
+			Eigen::Vector4i tetVertInd_BC;
+			for (int hg = 0; hg < 4; hg++)
+			{
+				int vertInd = tetSimMesh.tetrahedrals[eI][hg];
+				tetVertInd_BC[hg] = tetSimMesh.boundaryCondition_node[vertInd].type;
+			}
 
-		// the internal elastic energy contribution
-		int matInd = tetSimMesh.materialInd[eI];
-		Eigen::Matrix<double, 9, 12> dFdx = ElasticEnergy::dF_wrt_dx(tetSimMesh.tetra_DM_inv[eI]);
-		int actualStartIndex_hess = startIndex_hess + eI * 144, actualStartIndex_grad = startIndex_grad + eI * 12;
-		ElasticEnergy::Grad(grad_triplet, actualStartIndex_grad, tetSimMesh.materialMesh[matInd], parameters.model, tetSimMesh.tetra_F[eI], parameters.dt, tetSimMesh.tetra_vol[eI], dFdx, tetSimMesh.tetrahedrals[eI], tetVertInd_BC);
-		ElasticEnergy::Hess(hessian_triplet, actualStartIndex_hess, tetSimMesh.materialMesh[matInd], parameters.model, tetSimMesh.tetra_F[eI], parameters.dt, tetSimMesh.tetra_vol[eI], dFdx, tetSimMesh.tetrahedrals[eI], tetVertInd_BC);
+			// the internal elastic energy contribution
+			int matInd = tetSimMesh.materialInd[eI];
+			Eigen::Matrix<double, 9, 12> dFdx = ElasticEnergy::dF_wrt_dx(tetSimMesh.tetra_DM_inv[eI]);
+			int actualStartIndex_hess = startIndex_hess + eI * 144, actualStartIndex_grad = startIndex_grad + eI * 12;
+			ElasticEnergy::Grad(grad_triplet, actualStartIndex_grad, tetSimMesh.materialMesh[matInd], parameters.model, tetSimMesh.tetra_F[eI], parameters.dt, tetSimMesh.tetra_vol[eI], dFdx, tetSimMesh.tetrahedrals[eI], tetVertInd_BC);
+			ElasticEnergy::Hess(hessian_triplet, actualStartIndex_hess, tetSimMesh.materialMesh[matInd], parameters.model, tetSimMesh.tetra_F[eI], parameters.dt, tetSimMesh.tetra_vol[eI], dFdx, tetSimMesh.tetrahedrals[eI], tetVertInd_BC);
+
+		}
+		else // placeholder in order to facilitate parallelization
+		{
+			Eigen::Triplet<double> pa = { 0, 0, 0.0 };
+			for (int empi = 0; empi < 12; empi++)
+			{
+				grad_triplet[startIndex_grad + empi] = {0, 0.0 };
+				for (int empj = 0; empj < 12; empj++)
+				{
+					hessian_triplet[startIndex_hess + empi * 12 + empj] = pa;
+				}
+			}
+		}
 
 
 	}
@@ -547,45 +563,6 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 	//double endTime2 = omp_get_wtime();
 	//std::cout << "	Element grad_hess Time is : " << endTime2 - endTime1 << "s" << std::endl;
 
-
-	if (gradSize > tetSimMesh.pos_node.size() * 6 + tetSimMesh.tetrahedrals.size() * 12)
-	{
-		//std::cout << "			PT_PP.size() = " << PT_PP.size();
-		//std::cout << "; PT_PE.size() = " << PT_PE.size();
-		//std::cout << "; PT_PT.size() = " << PT_PT.size();
-		//std::cout << "; EE_EE.size() = " << EE_EE.size() << std::endl;
-
-		/*std::ofstream outfile2("./output/EE_PAIR.obj", std::ios::trunc);
-		for (int i = 0; i < EE_EE.size(); i++)
-		{
-			Vector5i cont_EE = EE_EE[i];
-			int E1 = cont_EE[1], E2 = cont_EE[2];
-			int e1p1 = tetSimMesh.index_boundaryEdge[E1][0], e1p2 = tetSimMesh.index_boundaryEdge[E1][1], e2p1 = tetSimMesh.index_boundaryEdge[E2][0], e2p2 = tetSimMesh.index_boundaryEdge[E2][1];
-
-			Eigen::Vector3d P1 = tetSimMesh.pos_node[e1p1];
-			Eigen::Vector3d P2 = tetSimMesh.pos_node[e1p2];
-			Eigen::Vector3d Q1 = tetSimMesh.pos_node[e2p1];
-			Eigen::Vector3d Q2 = tetSimMesh.pos_node[e2p2];
-
-			outfile2 << std::scientific << std::setprecision(8) << "v " << P1[0] << " " << P1[1] << " " << P1[2] << std::endl;
-			outfile2 << std::scientific << std::setprecision(8) << "v " << P2[0] << " " << P2[1] << " " << P2[2] << std::endl;
-			outfile2 << std::scientific << std::setprecision(8) << "v " << Q1[0] << " " << Q1[1] << " " << Q1[2] << std::endl;
-			outfile2 << std::scientific << std::setprecision(8) << "v " << Q2[0] << " " << Q2[1] << " " << Q2[2] << std::endl;
-
-		}
-
-
-		for (int i = 0; i < EE_EE.size(); i++)
-		{
-			outfile2 << std::scientific << std::setprecision(8) << "l " << std::to_string(i * 4 + 1) << " " << std::to_string(i * 4 + 2) << std::endl;
-			outfile2 << std::scientific << std::setprecision(8) << "l " << std::to_string(i * 4 + 3) << " " << std::to_string(i * 4 + 4) << std::endl;
-
-		}
-		outfile2.close();
-
-		std::cout <<  std::endl;*/
-
-	}
 
 
 	// calculate the barrier gradient and hessian
@@ -691,6 +668,18 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 	}
 
 
+	// now add energy gradient and hessian contributions from MLS points
+	for (std::map<int, std::vector<MLSPoints>>::iterator it = tetSimMesh.MLSPoints_tet_map.begin(); it != tetSimMesh.MLSPoints_tet_map.end(); it++) // each tetrahedral that is replaced by MLS points
+	{
+		int tetInd = it->first;
+		for (int j = 0; j < it->second.size(); j++)
+		{
+
+		}
+	}
+
+
+
 	//double endTime3 = omp_get_wtime();
 	//std::cout << "	Cal grad_hess Time is : " << endTime3 - endTime2 << "s" << std::endl;
 
@@ -714,9 +703,6 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 	solver.compute(leftHandSide);
 	Eigen::VectorXd result = solver.solve(-rightHandSide);
 
-	//std::cout << "leftHandSide = " << std::endl << leftHandSide << std::endl;
-	//std::cout << "rightHandSide = " << std::endl << rightHandSide << std::endl;
-	//std::cout << "rightHandSide!"  << std::endl;
 
 	//double endTime5 = omp_get_wtime();
 	//std::cout << "	Solve grad_hess Time is : " << endTime5 - endTime4 << "s" << std::endl;
@@ -740,11 +726,6 @@ void step_forward(FEMParamters& parameters, Mesh& tetSimMesh, std::vector<Eigen:
 	for (int vI = 0; vI < tetSimMesh.pos_node.size(); vI++)
 	{
 		tetSimMesh.pos_node[vI] = currentPosition[vI] + step * direction[vI];
-		if (vI == 7)
-		{
-			//std::cout << "currentPosition = " << currentPosition[7][0] << "," << currentPosition[7][1] << "," << currentPosition[7][2] ;
-			//std::cout << "; nextPosition = " << tetSimMesh.pos_node[7][0] << "," << tetSimMesh.pos_node[7][1] << "," << tetSimMesh.pos_node[7][2] << std::endl;
-		}
 	}
 }
 

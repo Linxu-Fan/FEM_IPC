@@ -19,6 +19,18 @@ struct meshConfiguration
 };
 
 
+class MLSPoints
+{
+public:
+	double volume = 0; // volume of the MLS point
+	Eigen::Vector3d pos = { 0,0,0 }; // position of the MLS point
+	Eigen::Matrix3d F = Eigen::Matrix3d::Identity(); // deformation gradient of the MLS point
+	std::vector<int> index_node; // index of the nodes in the MLS point's support domain; Index is the index of the node in the original simulation mesh
+
+
+};
+
+
 // tetrahedral mesh class
 class tetMesh
 {
@@ -80,6 +92,7 @@ public:
 	std::vector<int> materialInd; // index of the materials(materialMesh) used in this tetrahedral
 	std::vector<Material> materialMesh; // all materials used in the simulation
 
+	std::map<int, std::vector<MLSPoints>> MLSPoints_tet_map; // int: index of the tetrahedral; std::vector<MLSPoints>: MLS points in this tetrahedral
 
 	//  data structure of boundary elements
 	std::map<int, std::set<int>> boundaryVertices; // int: vertex's index in the original mesh; set<int>: neighbour triangles of this vertex	

@@ -360,16 +360,16 @@ void ElasticEnergy::Hess(std::vector<Eigen::Triplet<double>>& hessian_triplet, i
 
 	Eigen::Matrix<double, 12, 12> engHess = dt * dt * vol * dFdx.transpose() * hessian * dFdx;
 	makePD<double, 12>(engHess);
-	for (int m = 0; m < 4; m++)
-	{
-		engHess.col(m * 3).setZero();
-		engHess.col(m * 3 + 1).setZero();
-		engHess.col(m * 3 + 2).setZero();
+	//for (int m = 0; m < 4; m++)
+	//{
+	//	engHess.col(m * 3).setZero();
+	//	engHess.col(m * 3 + 1).setZero();
+	//	engHess.col(m * 3 + 2).setZero();
 
-		engHess.row(m * 3).setZero();
-		engHess.row(m * 3 + 1).setZero();
-		engHess.row(m * 3 + 2).setZero();
-	}
+	//	engHess.row(m * 3).setZero();
+	//	engHess.row(m * 3 + 1).setZero();
+	//	engHess.row(m * 3 + 2).setZero();
+	//}
 
 	int ac = 0;
 	for (int m = 0; m < 4; m++)
