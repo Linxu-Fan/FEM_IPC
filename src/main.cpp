@@ -158,7 +158,7 @@ int main()
 		// 3. ABD test
 		// 4. Explicit test
 		// 5. Object hanging test to verify element sampling algorithm
-		int caseNum = 0;
+		int caseNum = 5;
 		if (caseNum == 0)
 		{
 			Material mat1;

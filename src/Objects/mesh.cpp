@@ -1,19 +1,6 @@
 #include "mesh.h"
 
 
-void MLSPoints::update_MLS(std::vector<Eigen::Vector3d>& pos_node)
-{
-	pos = { 0, 0, 0 };
-	for (int i = 0; i < index_node.size(); i++)
-	{
-		pos += weight[i] * pos_node[index_node[i]];
-		// !!!!!!!!!!
-		// also need to update the deformation gradient
-	}
-
-}
-
-
 ////////////////////////////////////////////////////////////////////////
 // Is it possible that node and element are not placed in order? If possible, then the reading code may crash.
 ////////////////////////////////////////////////////////////////////////
@@ -560,13 +547,13 @@ double Mesh::calBBXDiagSize()
 	return (BBX.first - BBX.second).norm();
 }
 
-
 void Mesh::sample_MLS_points_inside_tetrahedral(int tetIndex, int num_points)
 {
 	Eigen::Vector4i tet = tetrahedrals[tetIndex];
 	Eigen::Vector3d V1 = pos_node_Rest[tet[0]], V2 = pos_node_Rest[tet[1]], V3 = pos_node_Rest[tet[2]], V4 = pos_node_Rest[tet[3]];
 
-
+	int maxLayers = 5;
+	std::vector<int> neigNodes_tet = find_Neighbour_Nodes_tetrahedral(tetIndex, maxLayers);
 
 	for (int i = 0; i < num_points; i++)
 	{

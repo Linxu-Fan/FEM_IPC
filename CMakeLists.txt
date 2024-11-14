@@ -23,11 +23,15 @@ set(EXTERN_PROJECTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern)
 
 add_subdirectory(${EXTERN_PROJECTS_DIR})
 
-if(WIN32)
-    list (APPEND EXTRA_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME} ${EXTERN_PROJECTS_DIR}/eigen)
-else()
-    list (APPEND EXTRA_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME} ${EXTERN_PROJECTS_DIR}/eigen)
-endif()
+
+list (APPEND EXTRA_INCLUDES ${EXTERN_PROJECTS_DIR}/eigen)
+list (APPEND EXTRA_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include/Energy)
+list (APPEND EXTRA_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include/FormatMesh)
+list (APPEND EXTRA_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include/IPC)
+list (APPEND EXTRA_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include/Objects)
+list (APPEND EXTRA_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include/Simulator)
+list (APPEND EXTRA_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include/MLS)
+list (APPEND EXTRA_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include/Utils)
 
 
 
@@ -37,30 +41,63 @@ endif()
 add_executable(
     ${PROJECT_NAME} 
     src/main.cpp
-	src/utils.cpp
-	src/mesh.cpp
-	src/InertiaEnergy.cpp
-	src/ElasticEnergy.cpp
-	src/simulator.cpp
-	src/simulator_ABD.cpp
-	src/ExternalEnergy.cpp
-	src/BarrierEnergy.cpp
-	src/distance.cpp
-	src/CCD.cpp
-	src/objMesh.cpp
-	src/tools.cpp
-	include/FEM_IPC/tools.h
-	include/FEM_IPC/objMesh.h
-	include/FEM_IPC/distance.h
-	include/FEM_IPC/CCD.h
-	include/FEM_IPC/BarrierEnergy.h
-	include/FEM_IPC/ExternalEnergy.h
-	include/FEM_IPC/simulator.h
-	include/FEM_IPC/ElasticEnergy.h
-	include/FEM_IPC/InertiaEnergy.h
-	include/FEM_IPC/utils.h
-	include/FEM_IPC/mesh.h)
+	src/Utils/utils.cpp
+	src/Utils/tools.cpp
+	src/Objects/mesh.cpp
+	src/Energy/InertiaEnergy.cpp
+	src/Energy/ElasticEnergy.cpp
+	src/Simulator/simulator.cpp
+	src/Simulator/simulator_ABD.cpp
+	src/Energy/ExternalEnergy.cpp
+	src/Energy/BarrierEnergy.cpp
+	src/IPC/distance.cpp
+	src/IPC/CCD.cpp
+	src/FormatMesh/objMesh.cpp
+	src/MLS/MLS.cpp
+	include/MLS/MLS.h
+	include/Utils/tools.h
+	include/Utils/utils.h
+	include/FormatMesh/objMesh.h
+	include/Simulator/simulator.h
+	include/IPC/distance.h
+	include/IPC/CCD.h
+	include/Energy/BarrierEnergy.h
+	include/Energy/ExternalEnergy.h
+	include/Energy/ElasticEnergy.h
+	include/Energy/InertiaEnergy.h	
+	include/Objects/materials.h
+	include/Objects/mesh.h)
     
+	
+# Organize source files into groups
+source_group("Source Files\\Utils" FILES src/Utils/utils.cpp src/Utils/tools.cpp)
+source_group("Source Files\\Objects" FILES src/Objects/mesh.cpp)
+source_group("Source Files\\Energy" FILES 
+    src/Energy/InertiaEnergy.cpp 
+    src/Energy/ElasticEnergy.cpp
+    src/Energy/ExternalEnergy.cpp
+    src/Energy/BarrierEnergy.cpp)
+source_group("Source Files\\Simulator" FILES 
+    src/Simulator/simulator.cpp 
+    src/Simulator/simulator_ABD.cpp)
+source_group("Source Files\\IPC" FILES src/IPC/distance.cpp src/IPC/CCD.cpp)
+source_group("Source Files\\FormatMesh" FILES src/FormatMesh/objMesh.cpp)
+source_group("Source Files\\MLS" FILES src/MLS/MLS.cpp)
+
+	
+
+# Organize headers into groups
+source_group("Header Files\\Utils" FILES include/Utils/tools.h include/Utils/utils.h)
+source_group("Header Files\\FormatMesh" FILES include/FormatMesh/objMesh.h)
+source_group("Header Files\\Simulator" FILES include/Simulator/simulator.h)
+source_group("Header Files\\IPC" FILES include/IPC/distance.h include/IPC/CCD.h)
+source_group("Header Files\\Energy" FILES 
+    include/Energy/BarrierEnergy.h 
+    include/Energy/ExternalEnergy.h 
+    include/Energy/ElasticEnergy.h 
+    include/Energy/InertiaEnergy.h)
+source_group("Header Files\\Objects" FILES include/Objects/materials.h include/Objects/mesh.h)
+source_group("Header Files\\MLS" FILES include/MLS/MLS.h)
     
 
 if(WIN32)
