@@ -9,11 +9,93 @@
 int main()
 {
 
-	if (0)
+	if (1)
 	{
-		Vector9d grad_tmp = {1,2,3,4,5,6,7,8,9};
-		Eigen::Matrix3d PK1 = Eigen::Map<Eigen::Matrix3d>(grad_tmp.data());
-		std::cout << PK1 << std::endl;
+
+		//const int dim = 3; // 3D 空间
+
+		//// 定义节点位置 x_i（固定值）
+		//Eigen::Vector3d x_i;
+		//x_i << 1.0, 2.0, 3.0; // 示例坐标
+
+		//// 定义影响半径 d_i
+		//double d_i = 1.0;
+
+		//// 定义独立变量 x_s（AD 类型）
+		//std::vector<AD<double> > x_s_vec(dim); // x_s 的向量表示
+
+		//// 为 x_s_vec 赋初值（例如 [0.0, 0.0, 0.0]）
+		//for (int i = 0; i < dim; ++i) {
+		//	x_s_vec[i] = 0.0;
+		//}
+
+		//// 将 x_s_vec 声明为独立变量
+		//CppAD::Independent(x_s_vec);
+
+		//// 将 x_s_vec 转换为 Eigen 向量 x_s（AD 类型）
+		//Eigen::Matrix< AD<double>, Eigen::Dynamic, 1 > x_s(dim);
+		//for (int i = 0; i < dim; ++i) {
+		//	x_s(i) = x_s_vec[i];
+		//}
+
+		//// 计算差值向量 diff = x_s - x_i
+		//Eigen::Matrix< AD<double>, Eigen::Dynamic, 1 > diff(dim);
+		//for (int i = 0; i < dim; ++i) {
+		//	diff(i) = x_s(i) - x_i(i);
+		//}
+
+		//// 计算距离 r_i = || diff ||
+		//AD<double> r_i = CppAD::sqrt(diff.dot(diff)); // 或者使用 diff.norm()
+
+		//// 计算权重函数 w_i
+		//AD<double> w_i = CppAD::exp(-CppAD::pow(r_i / d_i, 2.0));
+
+		//// 定义依赖变量向量 w_vec
+		//std::vector< AD<double> > w_vec(1);
+		//w_vec[0] = w_i;
+
+		//// 创建函数 f：x_s_vec -> w_vec
+		//CppAD::ADFun<double> f(x_s_vec, w_vec);
+
+		//// 选择一个特定的 x_s 值来评估函数和导数
+		//std::vector<double> x_s_val(dim);
+		//x_s_val[0] = 0.5;
+		//x_s_val[1] = 1.0;
+		//x_s_val[2] = 1.5;
+
+		//// 计算函数值 w_i
+		//std::vector<double> w_val = f.Forward(0, x_s_val);
+
+		//// 计算导数 dw_i/dx_s
+		//std::vector<double> dw_dx_s = f.Jacobian(x_s_val);
+
+		//// 输出结果
+		//std::cout << "At x_s = [";
+		//for (int i = 0; i < dim; ++i) {
+		//	std::cout << x_s_val[i] << (i < dim - 1 ? ", " : "");
+		//}
+		//std::cout << "], the weight w_i = " << w_val[0] << std::endl;
+
+		//std::cout << "Derivative dw_i/dx_s = [";
+		//for (int i = 0; i < dim; ++i) {
+		//	std::cout << dw_dx_s[i] << (i < dim - 1 ? ", " : "");
+		//}
+		//std::cout << "]" << std::endl;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 		/*FEMParamters parameters;

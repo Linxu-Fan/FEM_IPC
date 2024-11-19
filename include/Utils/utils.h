@@ -20,6 +20,7 @@
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
 #include <unsupported/Eigen/CXX11/Tensor>
+#include <unsupported/Eigen/AutoDiff>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <sstream>
@@ -29,6 +30,8 @@
 #include <cstring>
 #include <cfloat>
 #include <complex>
+
+#include <cppad/cppad.hpp>
 
 #define PI_Value 3.14159265358979323846 
 

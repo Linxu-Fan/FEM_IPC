@@ -1,3 +1,6 @@
 [submodule "extern/eigen"]
 	path = extern/eigen
 	url = https://gitlab.com/libeigen/eigen
+[submodule "extern/cppAD"]
+	path = extern/cppAD
+	url = https://github.com/coin-or/CppAD.git

@@ -20,18 +20,13 @@ public:
 	// initialize the MLS point
 	void init_MLS(Eigen::Vector3d& pos_Rest_, double volume_, std::vector<int>& index_node_, std::vector<Eigen::Vector3d>& pos_node_Rest, std::string kernel, double kernelSize);
 
-	// calculate the weight of each point
-	void cal_MLS_weights(std::vector<Eigen::Vector3d>& pos_node_Rest, std::string kernel, double kernelSize);
-
-	Eigen::Vector3d cal_MLS_point_pos(const std::vector<Eigen::Vector3d>& pos_node);
-
 	void update_MLS(std::vector<Eigen::Vector3d>& pos_node); // update the MLS point's information after advection
 
-	double ComputeGaussianWeight(double distance_squared, double kernelSize);
+	Eigen::Vector4d computeP(const Eigen::Vector3d& x);
 
-	Eigen::Vector3d ComputeWeightedCentroid(const std::vector<Eigen::Vector3d>& pos_node);
+	double computeWeight(const Eigen::Vector3d& x_s, const Eigen::Vector3d& x_i, double d_i);
 
-	Eigen::Matrix3d ComputeDeformationGradient(const std::vector<Eigen::Vector3d>& pos_node);
+	Eigen::Vector3d computeWeightDerivative(const Eigen::Vector3d& x_s, const Eigen::Vector3d& x_i, double d_i);
 
 };
 
