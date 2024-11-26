@@ -124,7 +124,7 @@ void MLSPoints::MLS_approximation(const std::vector<Vector3d>& pos_node_Rest, co
 
 }
 
-void MLSPoints::init_MLS(Eigen::Vector3d& pos_Rest_, double volume_, std::vector<int>& index_node_, std::vector<Eigen::Vector3d>& pos_node_Rest, std::string kernel, double h)
+void MLSPoints::init_MLS(Eigen::Vector3d& pos_Rest_, double volume_, std::vector<int>& index_node_, std::string kernel, double h)
 {
     pos_Rest = pos_Rest_;
     pos = pos_Rest_;

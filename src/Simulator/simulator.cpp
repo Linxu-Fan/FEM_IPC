@@ -299,7 +299,7 @@ void updateMLS_after_advection(Mesh& tetSimMesh, FEMParamters& parameters)
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 		for (int j = 0; j < it->second.size(); j++)
 		{
-			it->second[j].update_MLS(tetSimMesh.pos_node);
+			it->second[j].MLS_approximation(tetSimMesh.pos_node_Rest, tetSimMesh.pos_node, 1.5);
 		}
 	}
 }

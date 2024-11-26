@@ -552,12 +552,58 @@ void Mesh::sample_MLS_points_inside_tetrahedral(int tetIndex, int num_points)
 	Eigen::Vector4i tet = tetrahedrals[tetIndex];
 	Eigen::Vector3d V1 = pos_node_Rest[tet[0]], V2 = pos_node_Rest[tet[1]], V3 = pos_node_Rest[tet[2]], V4 = pos_node_Rest[tet[3]];
 
-	int maxLayers = 5;
+	int maxLayers = 1;
 	std::vector<int> neigNodes_tet = find_Neighbour_Nodes_tetrahedral(tetIndex, maxLayers);
 
 	for (int i = 0; i < num_points; i++)
 	{
 		Eigen::Vector3d pt = randomPointInTetrahedron(V1, V2, V3, V4);
+
+		/*if (i == 0)
+		{
+			pt = 0.1 * V1 + 0.2 * V2 + 0.3 * V3 + 0.4 * V4;
+		}
+		else if (i == 1)
+		{
+			pt = 0.2 * V1 + 0.3 * V2 + 0.4 * V3 + 0.1 * V4;
+		}
+		else if (i == 2)
+		{
+			pt = 0.3 * V1 + 0.4 * V2 + 0.1 * V3 + 0.2 * V4;
+		}
+		else if (i == 3)
+		{
+			pt = 0.4 * V1 + 0.1 * V2 + 0.2 * V3 + 0.3 * V4;
+		}
+		else if (i == 4)
+		{
+			pt = 0.4 * V1 + 0.3 * V2 + 0.2 * V3 + 0.1 * V4;
+		}
+		else if (i == 5)
+		{
+			pt = 0.2 * V1 + 0.2 * V2 + 0.2 * V3 + 0.4 * V4;
+		}*/
+
+		std::vector<int> validNodes;
+		for (int h = 0; h < neigNodes_tet.size(); h++)
+		{
+			int ni = neigNodes_tet[h];
+			if (pt[2] < 15 && pos_node[ni][2] < 15)
+			{
+				validNodes.push_back(ni);
+			}
+
+			if (pt[2] > 15 && pos_node[ni][2] > 15)
+			{
+				validNodes.push_back(ni);
+			}
+		}
+
+		MLSPoints mpt;
+		mpt.init_MLS(pt, tetra_vol[tetIndex] / (double)num_points, validNodes, "Gaussian", 1.5);
+
+		MLSPoints_tet_map[tetIndex].push_back(mpt);
+
 	}
 	
 

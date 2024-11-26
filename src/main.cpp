@@ -10,7 +10,7 @@
 int main()
 {
 
-	if (1)
+	if (0)
 	{
 
 		const int dim = 3; // 3D ¿Õ¼ä
@@ -801,7 +801,7 @@ int main()
 		{
 			Material mat1;
 			mat1.density = 2700;
-			mat1.E = 1.0e5;
+			mat1.E = 1.0e7;
 			mat1.nu = 0.3;
 
 			mat1.thetaf = 6.0E5;
@@ -814,10 +814,12 @@ int main()
 
 			std::vector<meshConfiguration> config;
 			meshConfiguration m1, m2, m3, m4;
-			m1.filePath = "../input/cube.msh";
+			m1.filePath = "../input/Right_top_move.msh";
 			m1.mesh_material = mat1;
 			m1.note = "cube";
-			m1.translation = { 0,0,0.3 };
+			m1.scale = {1000,1000,1000};
+			m1.rotation_angle = {PI_Value / 2.0,0,0};
+			m1.translation = { -48,4,5.3 };
 			config.push_back(m1);
 
 
@@ -833,16 +835,45 @@ int main()
 			tetSimMesh.createGlobalSimulationMesh();
 
 
+			int numMLSPoints = 6;
+			for (int t = 0; t < tetSimMesh.tetrahedrals.size(); t++)
+			{
+				Eigen::Vector4i tet = tetSimMesh.tetrahedrals[t];
+
+				bool larger = false, smaller = false;
+				for (int i = 0; i < 4; i++)
+				{
+					double posz = tetSimMesh.pos_node[tet[i]][2];
+					if (posz > 15)
+					{
+						larger = true;
+					}
+					if (posz < 15)
+					{
+						smaller = true;
+					}
+				}
+
+				if (larger && smaller)
+				{
+					tetSimMesh.sample_MLS_points_inside_tetrahedral(t , numMLSPoints);
+				}
+
+
+
+			}
+
+
 			std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
 			std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
 
 
 			FEMParamters parameters;
-			parameters.gravity = { 0, 0, -9.8 };
+			parameters.gravity = { 0, 0, 0 };
 			parameters.num_timesteps = 100000;
 			parameters.numOfThreads = 12;
-			parameters.dt = 1.0e-2;
-			parameters.outputFrequency = 100;
+			parameters.dt = 1.0e-3;
+			parameters.outputFrequency = 1;
 			parameters.enableGround = true;
 			parameters.searchResidual = 5.0;
 			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
@@ -853,18 +884,29 @@ int main()
 			parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
 			parameters.IPC_B3Stiffness = 500;
 
+			std::cout << "parameters.IPC_hashSize = " << parameters.IPC_hashSize << std::endl;
 
 
 			for (int p = 0; p < tetSimMesh.pos_node.size(); p++)
 			{
 				if (tetSimMesh.note_node[p] == "cube")
 				{
-					if (tetSimMesh.pos_node[p][2] >= 1.2)
+					if (tetSimMesh.pos_node[p][2] >= 25)
 					{
 						tetSimMesh.boundaryCondition_node[p].type = 1;
 						for (int fra = 0; fra < parameters.num_timesteps; fra++)
 						{
 							tetSimMesh.boundaryCondition_node[p].location.push_back(tetSimMesh.pos_node[p]);
+						}
+					}
+
+					if (tetSimMesh.pos_node[p][2] <= 6)
+					{
+						tetSimMesh.boundaryCondition_node[p].type = 1;
+						Eigen::Vector3d vel = { 0,0,-1.0 };
+						for (int fra = 0; fra < parameters.num_timesteps; fra++)
+						{				
+							tetSimMesh.boundaryCondition_node[p].location.push_back(tetSimMesh.pos_node[p] + vel * parameters.dt * (double)fra);
 						}
 					}
 
