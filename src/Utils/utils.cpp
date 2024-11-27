@@ -169,7 +169,9 @@ Eigen::Vector2i findIntersectionOfTwoNums(int min1, int max1, int min2, int max2
 	return res;
 }
 
-bool findIntersectionOfTwoVector3i(Eigen::Vector3i& minCoor1, Eigen::Vector3i& maxCoor1, Eigen::Vector3i& minCoor2, Eigen::Vector3i& maxCoor2, Eigen::Vector3i& intersectMin, Eigen::Vector3i& intersectMax)
+bool findIntersectionOfTwoVector3i(Eigen::Vector3i& minCoor1, Eigen::Vector3i& maxCoor1, 
+	Eigen::Vector3i& minCoor2, Eigen::Vector3i& maxCoor2, Eigen::Vector3i& intersectMin, 
+	Eigen::Vector3i& intersectMax)
 {
 	bool success = true;
 	for (int i = 0; i < 3; i++)
@@ -188,7 +190,9 @@ bool findIntersectionOfTwoVector3i(Eigen::Vector3i& minCoor1, Eigen::Vector3i& m
 }
 
 
-bool findIntersectionOfTwoVector3d(Eigen::Vector3d& minCoor1, Eigen::Vector3d& maxCoor1, Eigen::Vector3d& minCoor2, Eigen::Vector3d& maxCoor2, Eigen::Vector3d& intersectMin, Eigen::Vector3d& intersectMax)
+bool findIntersectionOfTwoVector3d(Eigen::Vector3d& minCoor1, Eigen::Vector3d& maxCoor1, 
+	Eigen::Vector3d& minCoor2, Eigen::Vector3d& maxCoor2, Eigen::Vector3d& intersectMin,
+	Eigen::Vector3d& intersectMax)
 {
 	bool success = true;
 	for (int i = 0; i < 3; i++)
@@ -251,7 +255,10 @@ std::pair<Eigen::Vector3d, Eigen::Vector3d> findBoundingBox_vec(std::vector<Eige
 
 
 
-void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, int& D1Index, Vector3d& V3, Matrix3d& H3x3)
+void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, 
+	std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, 
+	int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, 
+	int& D1Index, Vector3d& V3, Matrix3d& H3x3)
 {
 	for (int xd = 0; xd < 3; xd++)
 	{
@@ -265,7 +272,10 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 }
 
 
-void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector2i& D2Index, Vector6d& V6, Matrix6d& H6x6)
+void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, 
+	std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, 
+	int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, 
+	Eigen::Vector2i& D2Index, Vector6d& V6, Matrix6d& H6x6)
 {
 
 
@@ -295,7 +305,10 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 }
 
 
-void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector3i& D3Index, Vector9d& V9, Matrix9d& H9x9)
+void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, 
+	std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, 
+	int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, 
+	Eigen::Vector3i& D3Index, Vector9d& V9, Matrix9d& H9x9)
 {
 
 
@@ -327,7 +340,10 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 }
 
 
-void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node, Eigen::Vector4i& D4Index, Vector12d& V12, Matrix12d& H12x12)
+void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, 
+	std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess,
+	int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node,
+	Eigen::Vector4i& D4Index, Vector12d& V12, Matrix12d& H12x12)
 {
 
 	for (int j = 0; j < 4; j++)
@@ -358,34 +374,6 @@ void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::ve
 }
 
 
-void BarrierEnergyRes::clear()
-{
-	hessian_triplet_vec.clear();
-	grad_triplet_vec.clear();
-}
-
-Matrix3d projToSPD(Matrix3d& top)
-{
-	Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double, 3, 3>> eigenSolver(top);
-	if (eigenSolver.eigenvalues()[0] >= 0.0) 
-	{
-		return top;
-	}
-	Eigen::DiagonalMatrix<double, 3> D(eigenSolver.eigenvalues());
-	int rows = ((3 == Eigen::Dynamic) ? top.rows() : 3);
-	for (int i = 0; i < rows; i++) {
-		if (D.diagonal()[i] < 0.0) {
-			D.diagonal()[i] = 0.0;
-		}
-		else {
-			break;
-		}
-	}
-	return eigenSolver.eigenvectors() * D * eigenSolver.eigenvectors().transpose();
-
-
-}
-
 
 
 bool insideBoundingBox(Eigen::Vector3d pt, Eigen::Vector3d bbx_min, Eigen::Vector3d bbx_max)
@@ -407,7 +395,8 @@ bool insideBoundingBox(Eigen::Vector3d pt, Eigen::Vector3d bbx_min, Eigen::Vecto
 
 
 
-Eigen::Vector3d randomPointInTetrahedron(const Eigen::Vector3d& V1, const Eigen::Vector3d& V2, const Eigen::Vector3d& V3, const Eigen::Vector3d& V4)
+Eigen::Vector3d randomPointInTetrahedron(const Eigen::Vector3d& V1, const Eigen::Vector3d& V2, 
+	const Eigen::Vector3d& V3, const Eigen::Vector3d& V4)
 {
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -434,7 +423,8 @@ Eigen::Vector3d randomPointInTetrahedron(const Eigen::Vector3d& V1, const Eigen:
 
 
 // The following code is generated by Huancheng
-void ComputeEigenvector0(double a00, double a01, double a02, double a11, double a12, double a22, double eval0, Eigen::Vector3d& evec0)
+void ComputeEigenvector0(double a00, double a01, double a02, double a11, 
+	double a12, double a22, double eval0, Eigen::Vector3d& evec0)
 {
 	Eigen::Vector3d row0 = { a00 - eval0, a01, a02 };
 	Eigen::Vector3d row1 = { a01, a11 - eval0, a12 };
@@ -483,7 +473,8 @@ void ComputeOrthogonalComplement(Eigen::Vector3d const& W, Eigen::Vector3d& U, E
 }
 
 
-void ComputeEigenvector1(double a00, double a01, double a02, double a11, double a12, double a22, Eigen::Vector3d const& evec0, double eval1, Eigen::Vector3d& evec1)
+void ComputeEigenvector1(double a00, double a01, double a02, double a11, 
+	double a12, double a22, Eigen::Vector3d const& evec0, double eval1, Eigen::Vector3d& evec1)
 {
 	Eigen::Vector3d U, V;
 	ComputeOrthogonalComplement(evec0, U, V);

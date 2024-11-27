@@ -59,7 +59,8 @@ Eigen::Matrix<double, 9, 12> ElasticEnergy::dF_wrt_dx(Eigen::Matrix3d& DmInv)
 }
 
 // compute the elastic energy
-double ElasticEnergy::Val(Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol)
+double ElasticEnergy::Val(Material& mat, std::string model, 
+	Eigen::Matrix3d& F, double dt, double vol)
 {
 	double energy = 0;
 	if (model == "neoHookean")
@@ -160,7 +161,10 @@ Eigen::Matrix3d ElasticEnergy::calPK1(Material& mat, std::string model, Eigen::M
 }
 
 // compute the energy gradient dPHI/dF (PK1 stress). Return a vectorized gradient which is a 9x1 matrix
-void ElasticEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_grad, Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd, Eigen::Vector4i& tetVertInd_BC)
+void ElasticEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, 
+	int& startIndex_grad, Material& mat, std::string model, Eigen::Matrix3d& F, 
+	double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, 
+	Eigen::Vector4i& tetVertInd, Eigen::Vector4i& tetVertInd_BC)
 {
 	Eigen::Matrix3d PK1 = calPK1(mat, model, F);
 	Vector9d grad_tmp = flatenMatrix3d(PK1);
@@ -365,7 +369,10 @@ Eigen::Matrix<double, 9, 9> ElasticEnergy::calPK1_wrt_F(Material& mat, std::stri
 }
 
 // compute the energy hessian dPHI2/d2F. Return a vectorized gradient which is a 9x9 matrix
-void ElasticEnergy::Hess(std::vector<Eigen::Triplet<double>>& hessian_triplet, int& startIndex_hess, Material& mat, std::string model, Eigen::Matrix3d& F, double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, Eigen::Vector4i& tetVertInd, Eigen::Vector4i& tetVertInd_BC)
+void ElasticEnergy::Hess(std::vector<Eigen::Triplet<double>>& hessian_triplet, 
+	int& startIndex_hess, Material& mat, std::string model, Eigen::Matrix3d& F, 
+	double dt, double vol, Eigen::Matrix<double, 9, 12>& dFdx, 
+	Eigen::Vector4i& tetVertInd, Eigen::Vector4i& tetVertInd_BC)
 {
 
 	Eigen::Matrix<double, 9, 9> hessian = calPK1_wrt_F(mat, model, F);

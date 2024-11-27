@@ -2,8 +2,10 @@
 
 
 // compute the elastic energy
-double InertiaEnergy::Val(double nodeMass, double dt, Eigen::Vector3d& xt, Eigen::Vector3d& v, Eigen::Vector3d& x, 
-	Eigen::Vector3d& extForce, FEMParamters& param, int& vertIndex, std::vector<boundaryCondition>& boundaryCondition_node, int timestep)
+double InertiaEnergy::Val(double nodeMass, double dt, Eigen::Vector3d& xt, 
+	Eigen::Vector3d& v, Eigen::Vector3d& x, Eigen::Vector3d& extForce, 
+	FEMParamters& param, int& vertIndex, std::vector<boundaryCondition>& boundaryCondition_node, 
+	int timestep)
 {
 	double energy = 0;
 	Eigen::Vector3d x_minus_xt = x - (xt + dt * v + dt * dt / nodeMass * (nodeMass * param.gravity + extForce));
@@ -22,7 +24,8 @@ double InertiaEnergy::Val(double nodeMass, double dt, Eigen::Vector3d& xt, Eigen
 // compute the energy gradient wrt vertex's position.
 void InertiaEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_grad, 
 	double nodeMass, double dt, Eigen::Vector3d& xt, Eigen::Vector3d& v, Eigen::Vector3d& x, 
-	Eigen::Vector3d& extForce, int& vertIndex, FEMParamters& param, std::vector<boundaryCondition>& boundaryCondition_node, int timestep)
+	Eigen::Vector3d& extForce, int& vertIndex, FEMParamters& param, 
+	std::vector<boundaryCondition>& boundaryCondition_node, int timestep)
 {
 	Eigen::Vector3d x_minus_xt = x - (xt + dt * v + dt * dt / nodeMass * (nodeMass * param.gravity + extForce));
 	Eigen::Vector3d gradVec = nodeMass * x_minus_xt;
@@ -41,7 +44,8 @@ void InertiaEnergy::Grad(std::vector<std::pair<int, double>>& grad_triplet, int&
 
 // the hessian is just an Identity matrix
 void InertiaEnergy::Hess(std::vector<Eigen::Triplet<double>>& hessian_triplet, int& startIndex_hess, 
-	double nodeMass, int& vertIndex, std::vector<boundaryCondition>& boundaryCondition_node, int timestep, FEMParamters& param)
+	double nodeMass, int& vertIndex, std::vector<boundaryCondition>& boundaryCondition_node, 
+	int timestep, FEMParamters& param)
 {
 	double hessVal = nodeMass;
 	if (boundaryCondition_node[vertIndex].type == 1 && timestep >= boundaryCondition_node[vertIndex].appliedTime[0] && timestep <= boundaryCondition_node[vertIndex].appliedTime[1])

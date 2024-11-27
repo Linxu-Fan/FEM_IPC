@@ -1,13 +1,15 @@
 #include "mesh.h"
 
 
-double MLSPoints::computeWeight(const Eigen::Vector3d& x_s, const Eigen::Vector3d& x_i, double h)
+double MLSPoints::computeWeight(const Eigen::Vector3d& x_s, 
+    const Eigen::Vector3d& x_i, double h)
 {
     double r = (x_s - x_i).norm();
     return exp(-(r / h) * (r / h));
 }
 
-Eigen::Vector3d MLSPoints::computeWeightDerivative(const Eigen::Vector3d& x_s, const Eigen::Vector3d& x_i, double h)
+Eigen::Vector3d MLSPoints::computeWeightDerivative(const Eigen::Vector3d& x_s, 
+    const Eigen::Vector3d& x_i, double h)
 {
     Eigen::Vector3d diff = x_s - x_i;
     double r = diff.norm();
@@ -20,7 +22,8 @@ Eigen::Vector3d MLSPoints::computeWeightDerivative(const Eigen::Vector3d& x_s, c
     return w_prime * diff;
 }
 
-void MLSPoints::MLS_approximation(const std::vector<Vector3d>& pos_node_Rest, const std::vector<Vector3d>& pos_node, double h)
+void MLSPoints::MLS_approximation(const std::vector<Vector3d>& pos_node_Rest, 
+    const std::vector<Vector3d>& pos_node, double h)
 {
 
     const size_t N = index_node.size();
@@ -124,7 +127,8 @@ void MLSPoints::MLS_approximation(const std::vector<Vector3d>& pos_node_Rest, co
 
 }
 
-void MLSPoints::init_MLS(Eigen::Vector3d& pos_Rest_, double volume_, std::vector<int>& index_node_, std::string kernel, double h)
+void MLSPoints::init_MLS(Eigen::Vector3d& pos_Rest_, double volume_, 
+    std::vector<int>& index_node_, std::string kernel, double h)
 {
     pos_Rest = pos_Rest_;
     pos = pos_Rest_;

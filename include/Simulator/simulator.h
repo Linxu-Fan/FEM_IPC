@@ -31,15 +31,19 @@ std::pair<std::vector<Eigen::Vector2i>, int> cal_temporary_MLS_tet_vector(Mesh& 
 std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters& parameters, int timestep);
 
 // move points' position according to the direction; Note this is a trial movement
-void step_forward(FEMParamters& parameters, Mesh& tetSimMesh, std::vector<Eigen::Vector3d>& currentPosition, std::vector<Eigen::Vector3d>& direction, double step);
+void step_forward(FEMParamters& parameters, Mesh& tetSimMesh, 
+	std::vector<Eigen::Vector3d>& currentPosition, std::vector<Eigen::Vector3d>& direction, double step);
 
 // calculate the barrier energy of contact
 double compute_Barrier_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timestep);
 
 // calculate the contact info: a) contact or not; b) contact type; 3) contact energy, derivative and hessian; 
-void calContactInfo(Mesh& tetSimMesh, FEMParamters& parameters, int timestep, std::vector<Vector5i>& PG_PG, std::vector<Vector5i>& PT_PP, std::vector<Vector5i>& PT_PE, std::vector<Vector5i>& PT_PT, std::vector<Vector5i>& EE_EE);
+void calContactInfo(Mesh& tetSimMesh, FEMParamters& parameters, int timestep, 
+	std::vector<Vector5i>& PG_PG, std::vector<Vector5i>& PT_PP, 
+	std::vector<Vector5i>& PT_PE, std::vector<Vector5i>& PT_PT, std::vector<Vector5i>& EE_EE);
 
 // calculate the maximum feasible step size
-double calMaxStepSize(Mesh& tetSimMesh, FEMParamters& parameters, int timestep,  std::vector<Eigen::Vector3d>& direction);
+double calMaxStepSize(Mesh& tetSimMesh, FEMParamters& parameters, int timestep,  
+	std::vector<Eigen::Vector3d>& direction);
 
 #endif

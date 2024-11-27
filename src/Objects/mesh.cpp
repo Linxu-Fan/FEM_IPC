@@ -58,7 +58,8 @@ void tetMesh::readMesh(meshConfiguration& config)
 
 				if (lineIndex >= nodeStart && lineIndex <= nodeStart + numNodes - 1)
 				{
-					Eigen::Vector3d nd_pos = { std::stod(vecCoor[1]) * scale[0] , std::stod(vecCoor[2]) * scale[1] , std::stod(vecCoor[3]) * scale[2] };
+					Eigen::Vector3d nd_pos = { std::stod(vecCoor[1]) * scale[0] ,
+						std::stod(vecCoor[2]) * scale[1] , std::stod(vecCoor[3]) * scale[2] };
 					pos_node.push_back(rotation * nd_pos + translation);
 					pos_node_Rest.push_back(rotation * nd_pos + translation);
 					vel_node.push_back(config.velocity);
@@ -69,7 +70,9 @@ void tetMesh::readMesh(meshConfiguration& config)
 					int numItemsLine = vecCoor.size(); // the number of items in a line
 					if (vecCoor[1] == "4")
 					{
-						Eigen::Vector4i ele = {std::stoi(vecCoor[numItemsLine - 4]) - 1 , std::stoi(vecCoor[numItemsLine - 3]) - 1 ,  std::stoi(vecCoor[numItemsLine - 2]) - 1 ,  std::stoi(vecCoor[numItemsLine - 1]) - 1 };
+						Eigen::Vector4i ele = {std::stoi(vecCoor[numItemsLine - 4]) - 1 , 
+							std::stoi(vecCoor[numItemsLine - 3]) - 1 ,  std::stoi(vecCoor[numItemsLine - 2]) - 1 ,  
+							std::stoi(vecCoor[numItemsLine - 1]) - 1 };
 						tetrahedrals.push_back(ele);
 					}
 				}
@@ -99,7 +102,8 @@ void tetMesh::cal_DM_inv()
 {
 	for (int eleInd = 0; eleInd < tetrahedrals.size(); eleInd++)
 	{
-		int si = tetrahedrals[eleInd][0], ai = tetrahedrals[eleInd][1], bi = tetrahedrals[eleInd][2], ci = tetrahedrals[eleInd][3];
+		int si = tetrahedrals[eleInd][0], ai = tetrahedrals[eleInd][1],
+			bi = tetrahedrals[eleInd][2], ci = tetrahedrals[eleInd][3];
 		Eigen::Matrix3d DMS = Eigen::Matrix3d::Zero();
 		DMS << pos_node[ai] - pos_node[si], pos_node[bi] - pos_node[si], pos_node[ci] - pos_node[si];
 
@@ -231,7 +235,9 @@ void tetMesh::output(int timestep)
 	std::ofstream outfile2("./output/" + std::to_string(timestep) + ".obj", std::ios::trunc);
 	for (int vert = 0; vert < pos_node.size(); ++vert)
 	{
-		outfile2 << std::scientific << std::setprecision(8) << "v " << pos_node[vert][0] << " " << pos_node[vert][1] << " " << pos_node[vert][2] << " " << std::endl;
+		outfile2 << std::scientific << std::setprecision(8) << "v " 
+			<< pos_node[vert][0] << " " << pos_node[vert][1] << " " 
+			<< pos_node[vert][2] << " " << std::endl;
 	}
 	outfile2.close();
 }
@@ -248,7 +254,8 @@ void Mesh::createGlobalSimulationMesh()
 	// assemble material vector
 	std::map<std::string, int> materialNameIndex; 
 	int matId = 0, meshId = 0;
-	for (std::map<std::string, tetMesh>::iterator it = objectsTetMesh.begin(); it != objectsTetMesh.end(); it++)
+	for (std::map<std::string, tetMesh>::iterator it = objectsTetMesh.begin(); 
+		it != objectsTetMesh.end(); it++)
 	{
 		tetMesh obj_tet = it->second;
 		if (materialNameIndex.find(obj_tet.materialTetMesh.name) == materialNameIndex.end())
@@ -263,7 +270,8 @@ void Mesh::createGlobalSimulationMesh()
 	}
 
 	// assemble node vectors
-	for (std::map<std::string, tetMesh>::iterator it = objectsTetMesh.begin(); it != objectsTetMesh.end(); it++)
+	for (std::map<std::string, tetMesh>::iterator it = objectsTetMesh.begin(); 
+		it != objectsTetMesh.end(); it++)
 	{
 		tetMesh obj_tet = it->second;
 		int currentMeshID = tetMeshIndex[obj_tet.tetMeshNote];
@@ -285,7 +293,8 @@ void Mesh::createGlobalSimulationMesh()
 	elastForce_node.resize(pos_node.size(), Eigen::Vector3d::Zero());
 
 	// assemble tetrahedral vectors
-	for (std::map<std::string, tetMesh>::iterator it = objectsTetMesh.begin(); it != objectsTetMesh.end(); it++)
+	for (std::map<std::string, tetMesh>::iterator it = objectsTetMesh.begin(); 
+		it != objectsTetMesh.end(); it++)
 	{
 		tetMesh obj_tet = it->second;
 		// per node 
@@ -301,7 +310,8 @@ void Mesh::createGlobalSimulationMesh()
 
 	// modify tetrahedral elements 
 	int currNodesNum = 0;
-	for (std::map<std::string, tetMesh>::iterator it = objectsTetMesh.begin(); it != objectsTetMesh.end(); it++)
+	for (std::map<std::string, tetMesh>::iterator it = objectsTetMesh.begin(); 
+		it != objectsTetMesh.end(); it++)
 	{
 		tetMesh obj_tet = it->second;
 		// per node 
@@ -330,7 +340,8 @@ void Mesh::createGlobalSimulationMesh()
 	findBoundaryElements();
 	updateBoundaryElementsInfo();
 	findSurfaceMesh();
-	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin(); it != boundaryVertices.end(); it++)
+	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin(); 
+		it != boundaryVertices.end(); it++)
 	{
 		index_node[it->first][1] = 1;
 	}
@@ -405,9 +416,12 @@ void Mesh::findBoundaryElements()
 
 
 		// find all edges
-		std::string edge1 = std::to_string(std::min(tri[0], tri[1])) + "#" + std::to_string(std::max(tri[0], tri[1]));
-		std::string edge2 = std::to_string(std::min(tri[1], tri[2])) + "#" + std::to_string(std::max(tri[1], tri[2]));
-		std::string edge3 = std::to_string(std::min(tri[2], tri[0])) + "#" + std::to_string(std::max(tri[2], tri[0]));
+		std::string edge1 = std::to_string(std::min(tri[0], tri[1])) + "#" 
+			+ std::to_string(std::max(tri[0], tri[1]));
+		std::string edge2 = std::to_string(std::min(tri[1], tri[2])) + "#" 
+			+ std::to_string(std::max(tri[1], tri[2]));
+		std::string edge3 = std::to_string(std::min(tri[2], tri[0])) + "#" 
+			+ std::to_string(std::max(tri[2], tri[0]));
 		allEdges.insert(edge1);
 		allEdges.insert(edge2);
 		allEdges.insert(edge3);
@@ -427,7 +441,8 @@ void Mesh::findBoundaryElements()
 
 		std::set<int> v1Tris = boundaryVertices[v1], v2Tris = boundaryVertices[v2];
 		std::vector<int> edgeTris;
-		std::set_intersection(v1Tris.begin(), v1Tris.end(), v2Tris.begin(), v2Tris.end(),std::back_inserter(edgeTris));
+		std::set_intersection(v1Tris.begin(), v1Tris.end(), v2Tris.begin(), 
+			v2Tris.end(),std::back_inserter(edgeTris));
 		Eigen::Vector2i tris = { edgeTris[0], edgeTris[1]};
 
 
@@ -439,9 +454,11 @@ void Mesh::findBoundaryElements()
 		edgeIndex += 1;
 	}
 	// reverse index
-	for (std::map<int, std::map<int, int>>::iterator it1 = boundaryEdge_index.begin(); it1 != boundaryEdge_index.end(); it1++)
+	for (std::map<int, std::map<int, int>>::iterator it1 = boundaryEdge_index.begin(); 
+		it1 != boundaryEdge_index.end(); it1++)
 	{
-		for (std::map<int, int>::iterator it2 = it1->second.begin(); it2 != it1->second.end(); it2++)
+		for (std::map<int, int>::iterator it2 = it1->second.begin(); 
+			it2 != it1->second.end(); it2++)
 		{
 			Eigen::Vector2i ed = {it1->first, it2->first};
 			int index = it2->second;
@@ -451,7 +468,8 @@ void Mesh::findBoundaryElements()
 	}
 
 
-	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin(); it != boundaryVertices.end(); it++)
+	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin(); 
+		it != boundaryVertices.end(); it++)
 	{
 		boundaryVertices_vec.push_back(it->first);
 		index_node[it->first][1] = 1;
@@ -470,18 +488,21 @@ void Mesh::updateBoundaryElementsInfo()
 	for (int i = 0; i < boundaryTriangles.size(); i++)
 	{
 		Eigen::Vector3i triangle = boundaryTriangles[i];
-		Eigen::Vector3d t1Coor = pos_node[triangle[0]], t2Coor = pos_node[triangle[1]], t3Coor = pos_node[triangle[2]];
+		Eigen::Vector3d t1Coor = pos_node[triangle[0]], t2Coor = pos_node[triangle[1]], 
+			t3Coor = pos_node[triangle[2]];
 		Eigen::Vector3d t1t2 = t2Coor - t1Coor, t1t3 = t3Coor - t1Coor;
 		double triArea = 1.0 / 2.0 * (t1t2.cross(t1t3)).norm();
 		boundaryTriangles_area.push_back(triArea);
 	}
 
 	// calculate the distributed area of each vertex
-	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin(); it != boundaryVertices.end(); it++)
+	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin();
+		it != boundaryVertices.end(); it++)
 	{
 		std::set<int> incidentTriangles = it->second;
 		double vertArea = 0;
-		for (std::set<int>::iterator it = incidentTriangles.begin(); it != incidentTriangles.end(); it++)
+		for (std::set<int>::iterator it = incidentTriangles.begin(); 
+			it != incidentTriangles.end(); it++)
 		{
 			vertArea += boundaryTriangles_area[*it];
 		}
@@ -489,7 +510,8 @@ void Mesh::updateBoundaryElementsInfo()
 	}
 
 	// calculate the distributed area of each edge
-	for (std::map<int, std::map<int, Eigen::Vector2i>>::iterator it1 = boundaryEdges.begin(); it1 != boundaryEdges.end(); it1++)
+	for (std::map<int, std::map<int, Eigen::Vector2i>>::iterator it1 = boundaryEdges.begin(); 
+		it1 != boundaryEdges.end(); it1++)
 	{
 		int v1 = it1->first;
 		std::map<int, Eigen::Vector2i> trisInd = it1->second;	
@@ -528,7 +550,8 @@ std::pair<Eigen::Vector3d, Eigen::Vector3d> Mesh::calculateBoundingBox()
 double Mesh::calLargestEdgeLength()
 {
 	double largestLength = -1.0E9;
-	for (std::map<int, Eigen::Vector2i>::iterator it = index_boundaryEdge.begin(); it != index_boundaryEdge.end(); it++)
+	for (std::map<int, Eigen::Vector2i>::iterator it = index_boundaryEdge.begin(); 
+		it != index_boundaryEdge.end(); it++)
 	{
 		int v1_index = it->second[0], v2_index = it->second[1];
 		Eigen::Vector3d v1 = pos_node[v1_index], v2 = pos_node[v2_index];
@@ -550,7 +573,8 @@ double Mesh::calBBXDiagSize()
 void Mesh::sample_MLS_points_inside_tetrahedral(int tetIndex, int num_points)
 {
 	Eigen::Vector4i tet = tetrahedrals[tetIndex];
-	Eigen::Vector3d V1 = pos_node_Rest[tet[0]], V2 = pos_node_Rest[tet[1]], V3 = pos_node_Rest[tet[2]], V4 = pos_node_Rest[tet[3]];
+	Eigen::Vector3d V1 = pos_node_Rest[tet[0]], V2 = pos_node_Rest[tet[1]], 
+		V3 = pos_node_Rest[tet[2]], V4 = pos_node_Rest[tet[3]];
 
 	int maxLayers = 1;
 	std::vector<int> neigNodes_tet = find_Neighbour_Nodes_tetrahedral(tetIndex, maxLayers);
@@ -611,7 +635,6 @@ void Mesh::sample_MLS_points_inside_tetrahedral(int tetIndex, int num_points)
 
 }
 
-
 std::vector<int> Mesh::find_Neighbour_Nodes_tetrahedral(int tetIndex, int maxLayers)
 {
 	std::set<int> visitedNodes;
@@ -654,6 +677,7 @@ std::vector<int> Mesh::find_Neighbour_Nodes_tetrahedral(int tetIndex, int maxLay
 
 
 }
+
 
 
 

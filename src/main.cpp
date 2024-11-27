@@ -872,10 +872,10 @@ int main()
 			parameters.gravity = { 0, 0, 0 };
 			parameters.num_timesteps = 100000;
 			parameters.numOfThreads = 12;
-			parameters.dt = 1.0e-3;
-			parameters.outputFrequency = 1;
+			parameters.dt = 2.0e-3;
+			parameters.outputFrequency = 10;
 			parameters.enableGround = true;
-			parameters.searchResidual = 5.0;
+			parameters.searchResidual = 7.0;
 			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;
 			parameters.IPC_dis = 0.01;

@@ -24,7 +24,8 @@ struct TriangleFace
 	}
 };
 
-void depthFirstSearch(int v, const std::vector<std::set<int>>& adjList, std::vector<bool>& visited, std::vector<int>& component);
+void depthFirstSearch(int v, const std::vector<std::set<int>>& adjList, 
+	std::vector<bool>& visited, std::vector<int>& component);
 
 struct objMeshFormat
 {

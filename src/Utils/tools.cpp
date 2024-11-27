@@ -3,7 +3,8 @@
 
 // This cpp file contains a few useful tools
 
-Eigen::Vector3d compute_contact_force(objMeshFormat& obj1, objMeshFormat& obj2, Eigen::Vector3d& bbx_min, Eigen::Vector3d& bbx_max, FEMParamters& parameters)
+Eigen::Vector3d compute_contact_force(objMeshFormat& obj1, objMeshFormat& obj2, 
+    Eigen::Vector3d& bbx_min, Eigen::Vector3d& bbx_max, FEMParamters& parameters)
 {
     std::vector<Eigen::Vector3d> forceObj2(obj2.vertices.size(), Eigen::Vector3d::Zero());
     
@@ -19,7 +20,9 @@ Eigen::Vector3d compute_contact_force(objMeshFormat& obj1, objMeshFormat& obj2, 
 				Eigen::Vector3d A = obj2.vertices[tri[0]];
 				Eigen::Vector3d B = obj2.vertices[tri[1]];
 				Eigen::Vector3d C = obj2.vertices[tri[2]];
-				if (insideBoundingBox(A, bbx_min, bbx_max) && insideBoundingBox(B, bbx_min, bbx_max) && insideBoundingBox(C, bbx_min, bbx_max))
+				if (insideBoundingBox(A, bbx_min, bbx_max) 
+                    && insideBoundingBox(B, bbx_min, bbx_max) 
+                    && insideBoundingBox(C, bbx_min, bbx_max))
 				{
 					if (pointTriangleCCDBroadphase(P, A, B, C, parameters.IPC_dis))
 					{
@@ -144,7 +147,9 @@ Eigen::Vector3d compute_contact_force(objMeshFormat& obj1, objMeshFormat& obj2, 
                 Eigen::Vector3d A = obj1.vertices[tri[0]];
                 Eigen::Vector3d B = obj1.vertices[tri[1]];
                 Eigen::Vector3d C = obj1.vertices[tri[2]];
-                if (insideBoundingBox(A, bbx_min, bbx_max) && insideBoundingBox(B, bbx_min, bbx_max) && insideBoundingBox(C, bbx_min, bbx_max))
+                if (insideBoundingBox(A, bbx_min, bbx_max) 
+                    && insideBoundingBox(B, bbx_min, bbx_max) 
+                    && insideBoundingBox(C, bbx_min, bbx_max))
                 {
                     if (pointTriangleCCDBroadphase(P, A, B, C, parameters.IPC_dis))
                     {

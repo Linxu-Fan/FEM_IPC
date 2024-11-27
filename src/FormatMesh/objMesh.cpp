@@ -82,7 +82,8 @@ void objMeshFormat::findVertFaces_Edges()
 
 }
 
-void depthFirstSearch(int v, const std::vector<std::set<int>>& adjList, std::vector<bool>& visited, std::vector<int>& component) 
+void depthFirstSearch(int v, const std::vector<std::set<int>>& adjList, 
+	std::vector<bool>& visited, std::vector<int>& component) 
 {
 	visited[v] = true;
 	component.push_back(v);
