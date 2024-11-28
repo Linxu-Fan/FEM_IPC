@@ -13,75 +13,75 @@ int main()
 	if (0)
 	{
 
-		const int dim = 3; // 3D 空间
+		//const int dim = 3; // 3D 空间
 
-		// 定义节点位置 x_i（固定值）
-		Eigen::Vector3d x_i;
-		x_i << 1.0, 2.0, 3.0; // 示例坐标
+		//// 定义节点位置 x_i（固定值）
+		//Eigen::Vector3d x_i;
+		//x_i << 1.0, 2.0, 3.0; // 示例坐标
 
-		// 定义影响半径 d_i
-		double d_i = 1.0;
+		//// 定义影响半径 d_i
+		//double d_i = 1.0;
 
-		// 定义独立变量 x_s（AD 类型）
-		std::vector<CppAD::AD<double> > x_s_vec(dim); // x_s 的向量表示
+		//// 定义独立变量 x_s（AD 类型）
+		//std::vector<CppAD::AD<double> > x_s_vec(dim); // x_s 的向量表示
 
-		// 为 x_s_vec 赋初值（例如 [0.0, 0.0, 0.0]）
-		for (int i = 0; i < dim; ++i) {
-			x_s_vec[i] = 0.0;
-		}
+		//// 为 x_s_vec 赋初值（例如 [0.0, 0.0, 0.0]）
+		//for (int i = 0; i < dim; ++i) {
+		//	x_s_vec[i] = 0.0;
+		//}
 
-		// 将 x_s_vec 声明为独立变量
-		CppAD::Independent(x_s_vec);
+		//// 将 x_s_vec 声明为独立变量
+		//CppAD::Independent(x_s_vec);
 
-		// 将 x_s_vec 转换为 Eigen 向量 x_s（AD 类型）
-		Eigen::Matrix< CppAD::AD<double>, Eigen::Dynamic, 1 > x_s(dim);
-		for (int i = 0; i < dim; ++i) {
-			x_s(i) = x_s_vec[i];
-		}
+		//// 将 x_s_vec 转换为 Eigen 向量 x_s（AD 类型）
+		//Eigen::Matrix< CppAD::AD<double>, Eigen::Dynamic, 1 > x_s(dim);
+		//for (int i = 0; i < dim; ++i) {
+		//	x_s(i) = x_s_vec[i];
+		//}
 
-		// 计算差值向量 diff = x_s - x_i
-		Eigen::Matrix< CppAD::AD<double>, Eigen::Dynamic, 1 > diff(dim);
-		for (int i = 0; i < dim; ++i) {
-			diff(i) = x_s(i) - x_i(i);
-		}
+		//// 计算差值向量 diff = x_s - x_i
+		//Eigen::Matrix< CppAD::AD<double>, Eigen::Dynamic, 1 > diff(dim);
+		//for (int i = 0; i < dim; ++i) {
+		//	diff(i) = x_s(i) - x_i(i);
+		//}
 
-		// 计算距离 r_i = || diff ||
-		CppAD::AD<double> r_i = CppAD::sqrt(diff.dot(diff)); // 或者使用 diff.norm()
+		//// 计算距离 r_i = || diff ||
+		//CppAD::AD<double> r_i = CppAD::sqrt(diff.dot(diff)); // 或者使用 diff.norm()
 
-		// 计算权重函数 w_i
-		CppAD::AD<double> w_i = CppAD::exp(-CppAD::pow(r_i / d_i, 2.0));
+		//// 计算权重函数 w_i
+		//CppAD::AD<double> w_i = CppAD::exp(-CppAD::pow(r_i / d_i, 2.0));
 
-		// 定义依赖变量向量 w_vec
-		std::vector< CppAD::AD<double> > w_vec(1);
-		w_vec[0] = w_i;
+		//// 定义依赖变量向量 w_vec
+		//std::vector< CppAD::AD<double> > w_vec(1);
+		//w_vec[0] = w_i;
 
-		// 创建函数 f：x_s_vec -> w_vec
-		CppAD::ADFun<double> f(x_s_vec, w_vec);
+		//// 创建函数 f：x_s_vec -> w_vec
+		//CppAD::ADFun<double> f(x_s_vec, w_vec);
 
-		// 选择一个特定的 x_s 值来评估函数和导数
-		std::vector<double> x_s_val(dim);
-		x_s_val[0] = 0.5;
-		x_s_val[1] = 1.0;
-		x_s_val[2] = 1.5;
+		//// 选择一个特定的 x_s 值来评估函数和导数
+		//std::vector<double> x_s_val(dim);
+		//x_s_val[0] = 0.5;
+		//x_s_val[1] = 1.0;
+		//x_s_val[2] = 1.5;
 
-		// 计算函数值 w_i
-		std::vector<double> w_val = f.Forward(0, x_s_val);
+		//// 计算函数值 w_i
+		//std::vector<double> w_val = f.Forward(0, x_s_val);
 
-		// 计算导数 dw_i/dx_s
-		std::vector<double> dw_dx_s = f.Jacobian(x_s_val);
+		//// 计算导数 dw_i/dx_s
+		//std::vector<double> dw_dx_s = f.Jacobian(x_s_val);
 
-		// 输出结果
-		std::cout << "At x_s = [";
-		for (int i = 0; i < dim; ++i) {
-			std::cout << x_s_val[i] << (i < dim - 1 ? ", " : "");
-		}
-		std::cout << "], the weight w_i = " << w_val[0] << std::endl;
+		//// 输出结果
+		//std::cout << "At x_s = [";
+		//for (int i = 0; i < dim; ++i) {
+		//	std::cout << x_s_val[i] << (i < dim - 1 ? ", " : "");
+		//}
+		//std::cout << "], the weight w_i = " << w_val[0] << std::endl;
 
-		std::cout << "Derivative dw_i/dx_s = [";
-		for (int i = 0; i < dim; ++i) {
-			std::cout << dw_dx_s[i] << (i < dim - 1 ? ", " : "");
-		}
-		std::cout << "]" << std::endl;
+		//std::cout << "Derivative dw_i/dx_s = [";
+		//for (int i = 0; i < dim; ++i) {
+		//	std::cout << dw_dx_s[i] << (i < dim - 1 ? ", " : "");
+		//}
+		//std::cout << "]" << std::endl;
 
 
 
@@ -109,7 +109,7 @@ int main()
 		std::vector<Eigen::Vector3d> forceFrame(500, Eigen::Vector3d::Zero());
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 		for (int frame = 0 ; frame < 500; frame++)
-		{		
+		{
 			objMeshFormat testMesh;
 			testMesh.readObjFile("E:/hydroStatic_object/Libuipc/libuipc/output/tests/sim_case/25_linear_arap_beam.cpp/scene_surface" + std::to_string(frame) + ".obj");
 			testMesh.sepConnectedComponents();
@@ -241,7 +241,7 @@ int main()
 		// 3. ABD test
 		// 4. Explicit test
 		// 5. Object hanging test to verify element sampling algorithm
-		int caseNum = 5;
+		int caseNum = 0;
 		if (caseNum == 0)
 		{
 			Material mat1;
@@ -250,19 +250,19 @@ int main()
 			mat1.updateDenpendecies();
 
 
-			
-			std::vector<meshConfiguration> config;			
+
+			std::vector<meshConfiguration> config;
 			meshConfiguration m1, m2, m3, m4;
 			m1.filePath = "../input/beam.msh";
 			m1.mesh_material = mat1;
-			m1.scale = {1000, 1000, 1000};
+			m1.scale = { 1000, 1000, 1000 };
 			m1.note = "beam";
 			config.push_back(m1);
 
 			m2 = m1;
 			m2.filePath = "../input/left_support.msh";
 			m2.note = "left_support";
-			m2.translation = { 0, 0, 1.0e-4};
+			m2.translation = { 0, 0, 1.0e-4 };
 			//config.push_back(m2);
 
 			m3 = m1;
@@ -292,7 +292,7 @@ int main()
 
 
 
-			
+
 
 
 
@@ -327,7 +327,7 @@ int main()
 					for (int fra = 0; fra < parameters.num_timesteps; fra++)
 					{
 						double incre = 0.1 / (double)parameters.num_timesteps * (double)fra;
-						Eigen::Vector3d inc = {0,0,-incre };
+						Eigen::Vector3d inc = { 0,0,-incre };
 						Eigen::Vector3d desiredPos = inc + tetSimMesh.pos_node[p];
 
 						tetSimMesh.boundaryCondition_node[p].location.push_back(desiredPos);
@@ -365,11 +365,11 @@ int main()
 
 
 			std::vector<meshConfiguration> config;
-			meshConfiguration m1,m2;
+			meshConfiguration m1, m2;
 			m1.filePath = "../input/tet_origin.msh";
 			m1.mesh_material = mat1;
-			m1.translation = {0,0,1.1};
-			m1.velocity = {0,0,1};
+			m1.translation = { 0,0,1.1 };
+			m1.velocity = { 0,0,1 };
 			m1.note = "tet_origin";
 			config.push_back(m1);
 
@@ -467,7 +467,7 @@ int main()
 			parameters.outputFrequency = 1000;
 			parameters.enableGround = true;
 			parameters.searchResidual = 0.001;
-			parameters.model = "ARAP"; // neoHookean ARAP ARAP_linear ACAP
+			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;
 			//parameters.objectNames = objectNames;
 			parameters.IPC_dis = 0.001;
@@ -513,7 +513,7 @@ int main()
 				std::vector<Eigen::Vector3d> nodeForce;
 
 				// Simulation loop
-				for (int step = 0; step < parameters.num_timesteps; ++step) 
+				for (int step = 0; step < parameters.num_timesteps; ++step)
 				{
 					if (step % 100 == 0)
 					{
@@ -528,10 +528,10 @@ int main()
 					{
 						tetSimMesh.elastForce_node[nf] = Eigen::Vector3d::Zero();
 					}
-					tetSimMesh.elastForce_node[0] = {0,135,100};
-					tetSimMesh.elastForce_node[1] = {145,47,28};
-					tetSimMesh.elastForce_node[2] = {13,167,95};
-					tetSimMesh.elastForce_node[3] = {0,0,100};
+					tetSimMesh.elastForce_node[0] = { 0,135,100 };
+					tetSimMesh.elastForce_node[1] = { 145,47,28 };
+					tetSimMesh.elastForce_node[2] = { 13,167,95 };
+					tetSimMesh.elastForce_node[3] = { 0,0,100 };
 
 					// Apply gravity
 					for (int nf = 0; nf < tetSimMesh.elastForce_node.size(); nf++)
@@ -553,7 +553,7 @@ int main()
 						Eigen::MatrixXd V = svd.matrixV();
 						Eigen::MatrixXd R = U * V.transpose();
 						Eigen::MatrixXd Q = V * S.asDiagonal() * V.transpose();
-						
+
 						Eigen::Matrix3d P = R;
 
 
@@ -589,7 +589,7 @@ int main()
 						tetSimMesh.vel_node[nf] += acceleration * parameters.dt;
 						tetSimMesh.pos_node[nf] += tetSimMesh.vel_node[nf] * parameters.dt;
 					}
-					
+
 				}
 
 
@@ -817,8 +817,8 @@ int main()
 			m1.filePath = "../input/Right_top_move.msh";
 			m1.mesh_material = mat1;
 			m1.note = "cube";
-			m1.scale = {1000,1000,1000};
-			m1.rotation_angle = {PI_Value / 2.0,0,0};
+			m1.scale = { 1000,1000,1000 };
+			m1.rotation_angle = { PI_Value / 2.0,0,0 };
 			m1.translation = { -48,4,5.3 };
 			config.push_back(m1);
 
@@ -856,7 +856,7 @@ int main()
 
 				if (larger && smaller)
 				{
-					tetSimMesh.sample_MLS_points_inside_tetrahedral(t , numMLSPoints);
+					tetSimMesh.sample_MLS_points_inside_tetrahedral(t, numMLSPoints);
 				}
 
 
@@ -872,10 +872,10 @@ int main()
 			parameters.gravity = { 0, 0, 0 };
 			parameters.num_timesteps = 100000;
 			parameters.numOfThreads = 12;
-			parameters.dt = 1.0e-3;
+			parameters.dt = 2.0e-3;
 			parameters.outputFrequency = 1;
 			parameters.enableGround = true;
-			parameters.searchResidual = 5.0;
+			parameters.searchResidual = 7.0;
 			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;
 			parameters.IPC_dis = 0.01;
@@ -905,7 +905,7 @@ int main()
 						tetSimMesh.boundaryCondition_node[p].type = 1;
 						Eigen::Vector3d vel = { 0,0,-1.0 };
 						for (int fra = 0; fra < parameters.num_timesteps; fra++)
-						{				
+						{
 							tetSimMesh.boundaryCondition_node[p].location.push_back(tetSimMesh.pos_node[p] + vel * parameters.dt * (double)fra);
 						}
 					}
@@ -921,7 +921,7 @@ int main()
 			implicitFEM(tetSimMesh, parameters);
 		}
 
-}
+	}
 
 
 	return 0;

@@ -244,7 +244,7 @@ void implicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 			step_forward(parameters, tetSimMesh, currentPosition, direction, step);
 			double newEnergyVal = compute_IP_energy(tetSimMesh, parameters, timestep);
 			std::cout << std::scientific << std::setprecision(4) << "			step = " << step << "; newEnergyVal = " << newEnergyVal << "; dis = " << tetSimMesh.pos_node[7][2] - tetSimMesh.pos_node[0][2] << std::endl;
-			while (newEnergyVal > lastEnergyVal && step >= 1.0e-5)
+			while (newEnergyVal > lastEnergyVal && step >= 1.0e-4)
 			{
 				step /= 2.0;
 
@@ -256,6 +256,12 @@ void implicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 					break;
 				}
 			}
+			
+			if ((newEnergyVal / lastEnergyVal < 1.0e-3) && (dist_to_converge / parameters.dt < parameters.searchResidual))
+			{
+				break;
+			}
+			
 			lastEnergyVal = newEnergyVal;
 
 
@@ -380,7 +386,8 @@ double compute_Barrier_energy(Mesh& tetSimMesh, FEMParamters& parameters, int ti
 		{
 			int ptInd = PG_PG[i][1];
 			Eigen::Vector3d P = tetSimMesh.pos_node[ptInd];
-			energy_PG_PG[i] = Ground::val(P[2] * P[2], parameters.IPC_dis * parameters.IPC_dis, tetSimMesh.boundaryVertices_area[ptInd], parameters.IPC_kStiffness, parameters.dt);
+			double z2 = P[2] * P[2];
+			energy_PG_PG[i] = Ground::val(z2, tetSimMesh.boundaryVertices_area[ptInd], parameters);
 		}
 		barrierEnergy += std::accumulate(energy_PG_PG.begin(), energy_PG_PG.end(), 0.0);
 
@@ -399,7 +406,7 @@ double compute_Barrier_energy(Mesh& tetSimMesh, FEMParamters& parameters, int ti
 
 			double dis2 = 0;
 			DIS::computePointTriD(P, A, B, C, dis2, cont_PT[3]);
-			energy_PT_PP[i] = BarrierEnergy::val_PT(tetSimMesh.boundaryVertices_area[ptInd], dis2, squaredDouble(parameters.IPC_dis), parameters.IPC_kStiffness, parameters.dt);
+			energy_PT_PP[i] = BarrierEnergy::val_PT(tetSimMesh.boundaryVertices_area[ptInd], dis2, parameters);
 		}
 		barrierEnergy += std::accumulate(energy_PT_PP.begin(), energy_PT_PP.end(), 0.0);
 
@@ -418,7 +425,7 @@ double compute_Barrier_energy(Mesh& tetSimMesh, FEMParamters& parameters, int ti
 
 			double dis2 = 0;
 			DIS::computePointTriD(P, A, B, C, dis2, cont_PT[3]);
-			energy_PT_PE[i] = BarrierEnergy::val_PT(tetSimMesh.boundaryVertices_area[ptInd], dis2, squaredDouble(parameters.IPC_dis), parameters.IPC_kStiffness, parameters.dt);
+			energy_PT_PE[i] = BarrierEnergy::val_PT(tetSimMesh.boundaryVertices_area[ptInd], dis2, parameters);
 
 		}
 		barrierEnergy += std::accumulate(energy_PT_PE.begin(), energy_PT_PE.end(), 0.0);
@@ -438,7 +445,7 @@ double compute_Barrier_energy(Mesh& tetSimMesh, FEMParamters& parameters, int ti
 
 			double dis2 = 0;
 			DIS::computePointTriD(P, A, B, C, dis2, cont_PT[3]);
-			energy_PT_PT[i] = BarrierEnergy::val_PT(tetSimMesh.boundaryVertices_area[ptInd], dis2, squaredDouble(parameters.IPC_dis), parameters.IPC_kStiffness, parameters.dt);
+			energy_PT_PT[i] = BarrierEnergy::val_PT(tetSimMesh.boundaryVertices_area[ptInd], dis2, parameters);
 
 		}
 		barrierEnergy += std::accumulate(energy_PT_PT.begin(), energy_PT_PT.end(), 0.0);
@@ -459,7 +466,8 @@ double compute_Barrier_energy(Mesh& tetSimMesh, FEMParamters& parameters, int ti
 			double dis2 = 0;
 			DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2, cont_EE[3]);
 			Eigen::Vector4i ptIndices = { e1p1 , e1p2 , e2p1 , e2p2 };
-			energy_EE_EE[i] = BarrierEnergy::val_EE(tetSimMesh.boundaryEdges_area[e1p1][e1p2], dis2, tetSimMesh, ptIndices, squaredDouble(parameters.IPC_dis), parameters.IPC_kStiffness, parameters.dt);
+			energy_EE_EE[i] = BarrierEnergy::val_EE(tetSimMesh.boundaryEdges_area[e1p1][e1p2],
+				dis2, tetSimMesh, ptIndices, parameters);
 
 		}
 		barrierEnergy += std::accumulate(energy_EE_EE.begin(), energy_EE_EE.end(), 0.0);
@@ -610,7 +618,10 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 			int ptInd = PG_PG[i][1];
 			Eigen::Vector3d P = tetSimMesh.pos_node[ptInd];
 			int actualStartIndex_hess = startIndex_hess + i * 9, actualStartIndex_grad = startIndex_grad + i * 3;
-			Ground::gradAndHess(hessian_triplet, grad_triplet, actualStartIndex_hess, actualStartIndex_grad, tetSimMesh.boundaryCondition_node, ptInd, P[2] * P[2], parameters.IPC_dis * parameters.IPC_dis, tetSimMesh.boundaryVertices_area[ptInd], parameters.IPC_kStiffness, parameters.dt);
+			double z2 = P[2] * P[2];
+			Ground::gradAndHess(hessian_triplet, grad_triplet, actualStartIndex_hess,
+				actualStartIndex_grad, ptInd,
+				z2, tetSimMesh.boundaryVertices_area[ptInd], parameters);			
 		}
 
 		startIndex_grad += PG_PG.size() * 3, startIndex_hess += PG_PG.size() * 9;
@@ -631,7 +642,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 			DIS::computePointTriD(P, A, B, C, dis2);
 			Eigen::Vector4i ptIndices = { ptInd , tri[0] , tri[1] , tri[2] };
 			int actualStartIndex_hess = startIndex_hess + i * 36, actualStartIndex_grad = startIndex_grad + i * 6;
-			BarrierEnergy::gradAndHess_PT(hessian_triplet, grad_triplet, actualStartIndex_hess, actualStartIndex_grad, tetSimMesh.boundaryCondition_node, ptIndices, type, dis2, tetSimMesh, parameters.IPC_dis * parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
+			BarrierEnergy::gradAndHess_PT(hessian_triplet, grad_triplet, actualStartIndex_hess, actualStartIndex_grad, ptIndices, type, dis2, tetSimMesh, parameters);
 
 		}
 
@@ -653,7 +664,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 			DIS::computePointTriD(P, A, B, C, dis2);
 			Eigen::Vector4i ptIndices = { ptInd , tri[0] , tri[1] , tri[2] };
 			int actualStartIndex_hess = startIndex_hess + i * 81, actualStartIndex_grad = startIndex_grad + i * 9;
-			BarrierEnergy::gradAndHess_PT(hessian_triplet, grad_triplet, actualStartIndex_hess, actualStartIndex_grad, tetSimMesh.boundaryCondition_node, ptIndices, type, dis2, tetSimMesh, parameters.IPC_dis * parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
+			BarrierEnergy::gradAndHess_PT(hessian_triplet, grad_triplet, actualStartIndex_hess, actualStartIndex_grad, ptIndices, type, dis2, tetSimMesh, parameters);
 
 		}
 
@@ -675,7 +686,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 			DIS::computePointTriD(P, A, B, C, dis2);
 			Eigen::Vector4i ptIndices = { ptInd , tri[0] , tri[1] , tri[2] };
 			int actualStartIndex_hess = startIndex_hess + i * 144, actualStartIndex_grad = startIndex_grad + i * 12;
-			BarrierEnergy::gradAndHess_PT(hessian_triplet, grad_triplet, actualStartIndex_hess, actualStartIndex_grad, tetSimMesh.boundaryCondition_node, ptIndices, type, dis2, tetSimMesh, parameters.IPC_dis * parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
+			BarrierEnergy::gradAndHess_PT(hessian_triplet, grad_triplet, actualStartIndex_hess, actualStartIndex_grad,  ptIndices, type, dis2, tetSimMesh, parameters);
 
 		}
 
@@ -697,7 +708,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 			DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
 			Eigen::Vector4i ptIndices = { e1p1 , e1p2 , e2p1 , e2p2 };
 			int actualStartIndex_hess = startIndex_hess + i * 144, actualStartIndex_grad = startIndex_grad + i * 12;
-			BarrierEnergy::gradAndHess_EE(hessian_triplet, grad_triplet, actualStartIndex_hess, actualStartIndex_grad, tetSimMesh.boundaryCondition_node, ptIndices, type, dis2, tetSimMesh, parameters.IPC_dis * parameters.IPC_dis, parameters.IPC_kStiffness, parameters.dt);
+			BarrierEnergy::gradAndHess_EE(hessian_triplet, grad_triplet, actualStartIndex_hess, actualStartIndex_grad, ptIndices, type, dis2, tetSimMesh, parameters);
 
 		}
 
