@@ -467,7 +467,7 @@ int main()
 			parameters.outputFrequency = 1000;
 			parameters.enableGround = true;
 			parameters.searchResidual = 0.001;
-			parameters.model = "ARAP"; // neoHookean ARAP ARAP_linear ACAP
+			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;
 			//parameters.objectNames = objectNames;
 			parameters.IPC_dis = 0.001;

@@ -32,7 +32,8 @@ Eigen::Vector3d compute_contact_force(objMeshFormat& obj1, objMeshFormat& obj2,
 
 						if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
 						{
-                            double g_bd = BarrierEnergy::compute_g_b(dis2, parameters.IPC_dis * parameters.IPC_dis);
+                            double d_hat2 = parameters.IPC_dis * parameters.IPC_dis;
+                            double g_bd = BarrierEnergy::compute_g_b(dis2, d_hat2);
                             switch (type)
                             {
                             case 0:
@@ -159,7 +160,8 @@ Eigen::Vector3d compute_contact_force(objMeshFormat& obj1, objMeshFormat& obj2,
 
                         if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
                         {
-                            double g_bd = BarrierEnergy::compute_g_b(dis2, parameters.IPC_dis * parameters.IPC_dis);
+                            double d_hat2 = parameters.IPC_dis * parameters.IPC_dis;
+                            double g_bd = BarrierEnergy::compute_g_b(dis2, d_hat2);
                             switch (type)
                             {
                             case 0:
@@ -275,7 +277,8 @@ Eigen::Vector3d compute_contact_force(objMeshFormat& obj1, objMeshFormat& obj2,
 
                         if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
                         {
-                            double g_bd = BarrierEnergy::compute_g_b(dis2, parameters.IPC_dis * parameters.IPC_dis);
+                            double d_hat2 = parameters.IPC_dis * parameters.IPC_dis;
+                            double g_bd = BarrierEnergy::compute_g_b(dis2, d_hat2);
                             
 
                             switch (type)
