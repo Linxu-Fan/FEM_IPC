@@ -70,6 +70,7 @@ void explicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 
 		// Compute deformation gradient F
 		tetSimMesh.update_F(parameters.numOfThreads);
+		updateMLS_after_advection(tetSimMesh, parameters);
 
 
 		// Compute forces from elements
@@ -217,12 +218,15 @@ void implicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 			tetSimMesh.exportSurfaceMesh("surfMesh", timestep);
 
 			{
-				std::ofstream outfile2("./output/diff.txt", std::ios::trunc);
-				for (int vert = 0; vert < tetSimMesh.pos_node_Rest.size(); ++vert)
+				std::ofstream outfile2("./output/MLS-Pts"+std::to_string(timestep) + ".obj", std::ios::trunc);
+				for (std::map<int, std::vector<MLSPoints>>::iterator it = tetSimMesh.MLSPoints_tet_map.begin();
+					it != tetSimMesh.MLSPoints_tet_map.end(); it++) // each tetrahedral that is replaced by MLS points
 				{
-					outfile2 << std::scientific << std::setprecision(8) << tetSimMesh.pos_node_Rest[vert][0] << " " 
-						<< tetSimMesh.pos_node_Rest[vert][1] << " " << tetSimMesh.pos_node_Rest[vert][2] << " "
-						<<(tetSimMesh.pos_node[vert] - tetSimMesh.pos_node_Rest[vert]).norm() << std::endl;
+					for (int j = 0; j < it->second.size(); j++)
+					{
+						Eigen::Vector3d pos = it->second[j].pos;
+						outfile2 << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
+					}
 				}
 				outfile2.close();
 			}
@@ -329,6 +333,7 @@ double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timeste
 {
 	double energyVal = 0;
 	tetSimMesh.update_F(parameters.numOfThreads);
+	updateMLS_after_advection(tetSimMesh, parameters);
 
 	// energy contribution per vertex
 	std::vector<double> node_ext_ine_energy_vec(tetSimMesh.pos_node.size());
@@ -376,6 +381,13 @@ double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timeste
 					tetSimMesh.MLSPoints_tet_map[eI][m].volume);
 			}
 			tex_est_energy_vec[eI] = energyMLS_tmp;
+
+			if (timestep == 100)
+			{
+				std::cout << "tetSimMesh.MLSPoints_tet_map[eI][m].F = " << tetSimMesh.MLSPoints_tet_map[74][0].F << std::endl;
+				std::cout << "energyMLS_tmp = " << energyMLS_tmp << std::endl;
+			}
+
 		}
 		
 	}
@@ -388,7 +400,6 @@ double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timeste
 
 	return energyVal;
 }
-
 
 double compute_Barrier_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timestep)
 {
@@ -528,6 +539,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 
 	// update defromation gradient
 	tetSimMesh.update_F(parameters.numOfThreads);
+	updateMLS_after_advection(tetSimMesh, parameters);
 
 
 	//double startTime1, endTime1;
@@ -783,8 +795,8 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 			for (int k = 0; k < mp.index_node.size(); k++)
 			{
 				int nodeInd = mp.index_node[k];
-				Eigen::Vector3d grad_MLS_node = mp.dFdx[k].transpose() * grad_tmp;
-				Eigen::Matrix3d hess_MLS_node = mp.dFdx[k].transpose() * hess_tmp * mp.dFdx[k];
+				Eigen::Vector3d grad_MLS_node = parameters.dt * parameters.dt * mp.volume * mp.dFdx[k].transpose() * grad_tmp;
+				Eigen::Matrix3d hess_MLS_node = parameters.dt * parameters.dt * mp.volume * mp.dFdx[k].transpose() * hess_tmp * mp.dFdx[k];
 
 				for (int xd = 0; xd < 3; xd++)
 				{

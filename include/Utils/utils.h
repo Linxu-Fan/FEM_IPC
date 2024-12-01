@@ -31,7 +31,7 @@
 #include <cfloat>
 #include <complex>
 
-#include <cppad/cppad.hpp>
+//#include <cppad/cppad.hpp>
 
 #define PI_Value 3.14159265358979323846 
 

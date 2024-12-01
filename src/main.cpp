@@ -13,75 +13,75 @@ int main()
 	if (0)
 	{
 
-		const int dim = 3; // 3D 空间
+		//const int dim = 3; // 3D 空间
 
-		// 定义节点位置 x_i（固定值）
-		Eigen::Vector3d x_i;
-		x_i << 1.0, 2.0, 3.0; // 示例坐标
+		//// 定义节点位置 x_i（固定值）
+		//Eigen::Vector3d x_i;
+		//x_i << 1.0, 2.0, 3.0; // 示例坐标
 
-		// 定义影响半径 d_i
-		double d_i = 1.0;
+		//// 定义影响半径 d_i
+		//double d_i = 1.0;
 
-		// 定义独立变量 x_s（AD 类型）
-		std::vector<CppAD::AD<double> > x_s_vec(dim); // x_s 的向量表示
+		//// 定义独立变量 x_s（AD 类型）
+		//std::vector<CppAD::AD<double> > x_s_vec(dim); // x_s 的向量表示
 
-		// 为 x_s_vec 赋初值（例如 [0.0, 0.0, 0.0]）
-		for (int i = 0; i < dim; ++i) {
-			x_s_vec[i] = 0.0;
-		}
+		//// 为 x_s_vec 赋初值（例如 [0.0, 0.0, 0.0]）
+		//for (int i = 0; i < dim; ++i) {
+		//	x_s_vec[i] = 0.0;
+		//}
 
-		// 将 x_s_vec 声明为独立变量
-		CppAD::Independent(x_s_vec);
+		//// 将 x_s_vec 声明为独立变量
+		//CppAD::Independent(x_s_vec);
 
-		// 将 x_s_vec 转换为 Eigen 向量 x_s（AD 类型）
-		Eigen::Matrix< CppAD::AD<double>, Eigen::Dynamic, 1 > x_s(dim);
-		for (int i = 0; i < dim; ++i) {
-			x_s(i) = x_s_vec[i];
-		}
+		//// 将 x_s_vec 转换为 Eigen 向量 x_s（AD 类型）
+		//Eigen::Matrix< CppAD::AD<double>, Eigen::Dynamic, 1 > x_s(dim);
+		//for (int i = 0; i < dim; ++i) {
+		//	x_s(i) = x_s_vec[i];
+		//}
 
-		// 计算差值向量 diff = x_s - x_i
-		Eigen::Matrix< CppAD::AD<double>, Eigen::Dynamic, 1 > diff(dim);
-		for (int i = 0; i < dim; ++i) {
-			diff(i) = x_s(i) - x_i(i);
-		}
+		//// 计算差值向量 diff = x_s - x_i
+		//Eigen::Matrix< CppAD::AD<double>, Eigen::Dynamic, 1 > diff(dim);
+		//for (int i = 0; i < dim; ++i) {
+		//	diff(i) = x_s(i) - x_i(i);
+		//}
 
-		// 计算距离 r_i = || diff ||
-		CppAD::AD<double> r_i = CppAD::sqrt(diff.dot(diff)); // 或者使用 diff.norm()
+		//// 计算距离 r_i = || diff ||
+		//CppAD::AD<double> r_i = CppAD::sqrt(diff.dot(diff)); // 或者使用 diff.norm()
 
-		// 计算权重函数 w_i
-		CppAD::AD<double> w_i = CppAD::exp(-CppAD::pow(r_i / d_i, 2.0));
+		//// 计算权重函数 w_i
+		//CppAD::AD<double> w_i = CppAD::exp(-CppAD::pow(r_i / d_i, 2.0));
 
-		// 定义依赖变量向量 w_vec
-		std::vector< CppAD::AD<double> > w_vec(1);
-		w_vec[0] = w_i;
+		//// 定义依赖变量向量 w_vec
+		//std::vector< CppAD::AD<double> > w_vec(1);
+		//w_vec[0] = w_i;
 
-		// 创建函数 f：x_s_vec -> w_vec
-		CppAD::ADFun<double> f(x_s_vec, w_vec);
+		//// 创建函数 f：x_s_vec -> w_vec
+		//CppAD::ADFun<double> f(x_s_vec, w_vec);
 
-		// 选择一个特定的 x_s 值来评估函数和导数
-		std::vector<double> x_s_val(dim);
-		x_s_val[0] = 0.5;
-		x_s_val[1] = 1.0;
-		x_s_val[2] = 1.5;
+		//// 选择一个特定的 x_s 值来评估函数和导数
+		//std::vector<double> x_s_val(dim);
+		//x_s_val[0] = 0.5;
+		//x_s_val[1] = 1.0;
+		//x_s_val[2] = 1.5;
 
-		// 计算函数值 w_i
-		std::vector<double> w_val = f.Forward(0, x_s_val);
+		//// 计算函数值 w_i
+		//std::vector<double> w_val = f.Forward(0, x_s_val);
 
-		// 计算导数 dw_i/dx_s
-		std::vector<double> dw_dx_s = f.Jacobian(x_s_val);
+		//// 计算导数 dw_i/dx_s
+		//std::vector<double> dw_dx_s = f.Jacobian(x_s_val);
 
-		// 输出结果
-		std::cout << "At x_s = [";
-		for (int i = 0; i < dim; ++i) {
-			std::cout << x_s_val[i] << (i < dim - 1 ? ", " : "");
-		}
-		std::cout << "], the weight w_i = " << w_val[0] << std::endl;
+		//// 输出结果
+		//std::cout << "At x_s = [";
+		//for (int i = 0; i < dim; ++i) {
+		//	std::cout << x_s_val[i] << (i < dim - 1 ? ", " : "");
+		//}
+		//std::cout << "], the weight w_i = " << w_val[0] << std::endl;
 
-		std::cout << "Derivative dw_i/dx_s = [";
-		for (int i = 0; i < dim; ++i) {
-			std::cout << dw_dx_s[i] << (i < dim - 1 ? ", " : "");
-		}
-		std::cout << "]" << std::endl;
+		//std::cout << "Derivative dw_i/dx_s = [";
+		//for (int i = 0; i < dim; ++i) {
+		//	std::cout << dw_dx_s[i] << (i < dim - 1 ? ", " : "");
+		//}
+		//std::cout << "]" << std::endl;
 
 
 
@@ -873,7 +873,7 @@ int main()
 			parameters.num_timesteps = 100000;
 			parameters.numOfThreads = 12;
 			parameters.dt = 2.0e-3;
-			parameters.outputFrequency = 10;
+			parameters.outputFrequency = 100;
 			parameters.enableGround = true;
 			parameters.searchResidual = 7.0;
 			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
@@ -917,11 +917,113 @@ int main()
 			}
 
 
+			{
+				// export all tetrahedron that has MLS points
+				{
+					std::ofstream outfile9("./output/tetMLS.obj", std::ios::trunc);
+					for (std::map<int, std::vector<MLSPoints>>::iterator it = tetSimMesh.MLSPoints_tet_map.begin(); it != tetSimMesh.MLSPoints_tet_map.end(); it++)
+					{
+						int indTet = it->first;
+						for (int i = 0; i < 4; i++)
+						{
+							int indVt = tetSimMesh.tetrahedrals[indTet][i];
+							Eigen::Vector3d pos = tetSimMesh.pos_node[indVt];
+							outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
+						}
+					}
+					for (int j = 0; j < tetSimMesh.MLSPoints_tet_map.size(); j++)
+					{
+						outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 1 << " " << j * 4 + 2 << " " << j * 4 + 3 << std::endl;
+						outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 2 << " " << j * 4 + 3 << " " << j * 4 + 4 << std::endl;
+						outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 3 << " " << j * 4 + 4 << " " << j * 4 + 1 << std::endl;
+						outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 4 << " " << j * 4 + 1 << " " << j * 4 + 2 << std::endl;
+					}
+					outfile9.close();
+				}
+
+				// export tetrahedron-74
+				{
+					std::ofstream outfile9("./output/tetMLS-74.obj", std::ios::trunc);
+					for (int i = 0; i < 4; i++)
+					{
+						int indVt = tetSimMesh.tetrahedrals[74][i];
+						Eigen::Vector3d pos = tetSimMesh.pos_node[indVt];
+						outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
+					}
+					outfile9 << std::scientific << std::setprecision(8) << "f " << 1 << " " << 2 << " " << 3 << std::endl;
+					outfile9 << std::scientific << std::setprecision(8) << "f " << 2 << " " << 3 << " " << 4 << std::endl;
+					outfile9 << std::scientific << std::setprecision(8) << "f " << 3 << " " << 4 << " " << 1 << std::endl;
+					outfile9 << std::scientific << std::setprecision(8) << "f " << 4 << " " << 1 << " " << 2 << std::endl;
+					outfile9.close();
+				}
+
+				// export tetrahedron-74's neighbouring tets
+				{
+					std::ofstream outfile9("./output/tetMLS-74-neigs.obj", std::ios::trunc);
+					std::set<int> allTets;
+					for (int i = 0; i < 4; i++)
+					{
+						int indVt = tetSimMesh.tetrahedrals[74][i];
+						std::vector<int> tetsThisNode = tetSimMesh.tetrahedrals_node[indVt];
+						for (int j = 0; j < tetsThisNode.size(); j++)
+						{
+							int indTet = tetsThisNode[j];
+							allTets.insert(indTet);
+						}
+					}
+
+
+					for (std::set<int>::iterator it = allTets.begin(); it != allTets.end(); it++)
+					{
+						int indTet = *it;
+						for (int i = 0; i < 4; i++)
+						{
+							int indVt = tetSimMesh.tetrahedrals[indTet][i];
+							Eigen::Vector3d pos = tetSimMesh.pos_node[indVt];
+							outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
+						}
+					}
+					for (int j = 0; j < allTets.size(); j++)
+					{
+						outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 1 << " " << j * 4 + 2 << " " << j * 4 + 3 << std::endl;
+						outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 2 << " " << j * 4 + 3 << " " << j * 4 + 4 << std::endl;
+						outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 3 << " " << j * 4 + 4 << " " << j * 4 + 1 << std::endl;
+						outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 4 << " " << j * 4 + 1 << " " << j * 4 + 2 << std::endl;
+					}
+
+					outfile9.close();
+				}
+
+				// export tetrahedron-74 MLS-0
+				{
+					std::ofstream outfile9("./output/tetMLS-74-MLS-0.obj", std::ios::trunc);
+					Eigen::Vector3d pos = tetSimMesh.MLSPoints_tet_map[74][0].pos_Rest;
+					outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
+					outfile9.close();
+				}
+
+				// export tetrahedron-74 MLS-0 control points
+				{
+					std::ofstream outfile9("./output/tetMLS-74-MLS-0-ctrPts.obj", std::ios::trunc);
+					for (auto value : tetSimMesh.MLSPoints_tet_map[74][0].index_node)
+					{
+						Eigen::Vector3d pos = tetSimMesh.pos_node[value];
+						outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;						
+					}
+					outfile9.close();
+
+				}
+
+			}
+
+			
+			
+
 
 			implicitFEM(tetSimMesh, parameters);
 		}
 
-}
+	}
 
 
 	return 0;

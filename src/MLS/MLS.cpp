@@ -116,11 +116,19 @@ void MLSPoints::MLS_approximation(const std::vector<Vector3d>& pos_node_Rest,
                 }
             }
 
+
+
+
             // Store the derivative tensor component
             Vector9d fv = flatenMatrix3d(dF_dxi_alpha);
+
+           //std::cout << "fv: " << fv.transpose() << std::endl;
+           
+
             dFdx[i].col(alpha) = fv;
 
-            //dF_dxi[i][alpha] = dF_dxi_alpha;
+            //std::cout << "dFdx[i]: " << dFdx[i] << std::endl;
+            //std::cout << "dFdx[i]: " << dFdx[i] << std::endl;
         }
     }
 
