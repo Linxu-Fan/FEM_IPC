@@ -111,8 +111,11 @@ public:
 	// calculate the boundingbox's diagonal size
 	double calBBXDiagSize();
 
+
+	// Given a crack surface, check intersected tetrahedrons and sample MLS points
+	void sample_MLS_points(objMeshFormat& crack, int& num_points, double& radius, int& numOfThreads);
 	// sample MLS points inside a tetrahedral
-	void sample_MLS_points_inside_tetrahedral(int tetIndex, int num_points);
+	void sample_MLS_points_inside_tetrahedral(objMeshFormat& crack, int& tetIndex, int& num_points, double& radius);
 	// using BSF to find neighbouring nodes of a tetrahedron
 	std::vector<int> find_Neighbour_Nodes_tetrahedral(int tetIndex, int maxLayers); // maxLayers: the maximum number of layers to search
 

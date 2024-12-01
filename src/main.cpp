@@ -12,85 +12,59 @@ int main()
 
 	if (0)
 	{
-
-		//const int dim = 3; // 3D 空间
-
-		//// 定义节点位置 x_i（固定值）
-		//Eigen::Vector3d x_i;
-		//x_i << 1.0, 2.0, 3.0; // 示例坐标
-
-		//// 定义影响半径 d_i
-		//double d_i = 1.0;
-
-		//// 定义独立变量 x_s（AD 类型）
-		//std::vector<CppAD::AD<double> > x_s_vec(dim); // x_s 的向量表示
-
-		//// 为 x_s_vec 赋初值（例如 [0.0, 0.0, 0.0]）
-		//for (int i = 0; i < dim; ++i) {
-		//	x_s_vec[i] = 0.0;
-		//}
-
-		//// 将 x_s_vec 声明为独立变量
-		//CppAD::Independent(x_s_vec);
-
-		//// 将 x_s_vec 转换为 Eigen 向量 x_s（AD 类型）
-		//Eigen::Matrix< CppAD::AD<double>, Eigen::Dynamic, 1 > x_s(dim);
-		//for (int i = 0; i < dim; ++i) {
-		//	x_s(i) = x_s_vec[i];
-		//}
-
-		//// 计算差值向量 diff = x_s - x_i
-		//Eigen::Matrix< CppAD::AD<double>, Eigen::Dynamic, 1 > diff(dim);
-		//for (int i = 0; i < dim; ++i) {
-		//	diff(i) = x_s(i) - x_i(i);
-		//}
-
-		//// 计算距离 r_i = || diff ||
-		//CppAD::AD<double> r_i = CppAD::sqrt(diff.dot(diff)); // 或者使用 diff.norm()
-
-		//// 计算权重函数 w_i
-		//CppAD::AD<double> w_i = CppAD::exp(-CppAD::pow(r_i / d_i, 2.0));
-
-		//// 定义依赖变量向量 w_vec
-		//std::vector< CppAD::AD<double> > w_vec(1);
-		//w_vec[0] = w_i;
-
-		//// 创建函数 f：x_s_vec -> w_vec
-		//CppAD::ADFun<double> f(x_s_vec, w_vec);
-
-		//// 选择一个特定的 x_s 值来评估函数和导数
-		//std::vector<double> x_s_val(dim);
-		//x_s_val[0] = 0.5;
-		//x_s_val[1] = 1.0;
-		//x_s_val[2] = 1.5;
-
-		//// 计算函数值 w_i
-		//std::vector<double> w_val = f.Forward(0, x_s_val);
-
-		//// 计算导数 dw_i/dx_s
-		//std::vector<double> dw_dx_s = f.Jacobian(x_s_val);
-
-		//// 输出结果
-		//std::cout << "At x_s = [";
-		//for (int i = 0; i < dim; ++i) {
-		//	std::cout << x_s_val[i] << (i < dim - 1 ? ", " : "");
-		//}
-		//std::cout << "], the weight w_i = " << w_val[0] << std::endl;
-
-		//std::cout << "Derivative dw_i/dx_s = [";
-		//for (int i = 0; i < dim; ++i) {
-		//	std::cout << dw_dx_s[i] << (i < dim - 1 ? ", " : "");
-		//}
-		//std::cout << "]" << std::endl;
+	
+		Eigen::Vector3d tet_v0 = { 0, 2, 2.8284271247 };
+		Eigen::Vector3d tet_v1 = { 1.7320508076, - 1, 2.8284271247 };
+		Eigen::Vector3d tet_v2 = { -1.7320508076, - 1, 2.8284271247 };
+		Eigen::Vector3d tet_v3 = { 0, 0, 0 };
 
 
 
+		objMeshFormat testMesh;
+		//Eigen::Vector3d p1 = {-4,-4,1};
+		//Eigen::Vector3d p2 = {4,-4,1};
+		//Eigen::Vector3d p3 = {4,4,1};
+		//Eigen::Vector3d p4 = {-4,4,1};
+
+		//Eigen::Vector3d p1 = { -0.1,-0.1,1 };
+		//Eigen::Vector3d p2 = { 0.1,-0.1,1 };
+		//Eigen::Vector3d p3 = { 0.1,0.1,1 };
+		//Eigen::Vector3d p4 = { -0.1,0.1,1 };
+
+		//Eigen::Vector3d p1 = { -0.1,-0.1,1 };
+		//Eigen::Vector3d p2 = { 0.1,-0.1,1 };
+		//Eigen::Vector3d p3 = { 0.1,1,1 };
+		//Eigen::Vector3d p4 = { -0.1,1,1 };
+
+		//Eigen::Vector3d p1 = { -0.1,5,1 };
+		//Eigen::Vector3d p2 = { 0.1,5,1 };
+		//Eigen::Vector3d p3 = { 0.1,1,1 };
+		//Eigen::Vector3d p4 = { -0.1,1,1 };
+
+		Eigen::Vector3d p1 = { -0.1,5,0 };
+		Eigen::Vector3d p2 = { 0.1,5,0 };
+		Eigen::Vector3d p3 = { 0.1,1,0 };
+		Eigen::Vector3d p4 = { -0.1,1,0 };
+
+		testMesh.vertices.push_back(p1);
+		testMesh.vertices.push_back(p2);
+		testMesh.vertices.push_back(p3);
+		testMesh.vertices.push_back(p4);
 
 
 
+		std::vector<int> fc;
+		fc.push_back(0);
+		fc.push_back(1);
+		fc.push_back(2);
+		fc.push_back(3);
+		testMesh.vertFaces.push_back(fc);
 
 
+		testMesh.outputFile("faces",-99);
 
+		bool intersect = testMesh.checkIfMeshIntersectWithTetrahedron(tet_v0, tet_v1, tet_v2, tet_v3);
+		std::cout << "intersect = " << intersect << std::endl;
 
 
 
@@ -835,43 +809,12 @@ int main()
 			tetSimMesh.createGlobalSimulationMesh();
 
 
-			int numMLSPoints = 6;
-			for (int t = 0; t < tetSimMesh.tetrahedrals.size(); t++)
-			{
-				Eigen::Vector4i tet = tetSimMesh.tetrahedrals[t];
-
-				bool larger = false, smaller = false;
-				for (int i = 0; i < 4; i++)
-				{
-					double posz = tetSimMesh.pos_node[tet[i]][2];
-					if (posz > 15)
-					{
-						larger = true;
-					}
-					if (posz < 15)
-					{
-						smaller = true;
-					}
-				}
-
-				if (larger && smaller)
-				{
-					tetSimMesh.sample_MLS_points_inside_tetrahedral(t , numMLSPoints);
-				}
-
-
-
-			}
-
-
-			std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
-			std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
 
 
 			FEMParamters parameters;
 			parameters.gravity = { 0, 0, 0 };
 			parameters.num_timesteps = 100000;
-			parameters.numOfThreads = 12;
+			parameters.numOfThreads = 4;
 			parameters.dt = 2.0e-3;
 			parameters.outputFrequency = 100;
 			parameters.enableGround = true;
@@ -885,6 +828,40 @@ int main()
 			parameters.IPC_B3Stiffness = 500;
 
 			std::cout << "parameters.IPC_hashSize = " << parameters.IPC_hashSize << std::endl;
+
+
+
+
+
+			{
+				objMeshFormat crack;
+				Eigen::Vector3d p1 = { -4,-4,15 };
+				Eigen::Vector3d p2 = { 4,-4,15 };
+				Eigen::Vector3d p3 = { 4,4,15 };
+				Eigen::Vector3d p4 = { -4,4,15 };
+				crack.vertices.push_back(p1);
+				crack.vertices.push_back(p2);
+				crack.vertices.push_back(p3);
+				crack.vertices.push_back(p4);
+				std::vector<int> fc;
+				fc.push_back(0);
+				fc.push_back(1);
+				fc.push_back(2);
+				fc.push_back(3);
+				crack.vertFaces.push_back(fc);
+
+				crack.outputFile("crack", -99);
+
+				tetSimMesh.sample_MLS_points(crack, parameters.MLS_num_MLS_Pts, parameters.MLS_radius, parameters.numOfThreads);
+
+			}
+			
+
+
+			std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
+			std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
+
+
 
 
 			for (int p = 0; p < tetSimMesh.pos_node.size(); p++)

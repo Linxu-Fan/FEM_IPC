@@ -23,7 +23,7 @@ Eigen::Vector3d MLSPoints::computeWeightDerivative(const Eigen::Vector3d& x_s,
 }
 
 void MLSPoints::MLS_approximation(const std::vector<Vector3d>& pos_node_Rest, 
-    const std::vector<Vector3d>& pos_node, double h)
+    const std::vector<Vector3d>& pos_node, double& radius)
 {
 
     const size_t N = index_node.size();
@@ -36,7 +36,7 @@ void MLSPoints::MLS_approximation(const std::vector<Vector3d>& pos_node_Rest,
     // Compute weights
     for (size_t i = 0; i < N; ++i) 
     {
-        w_i[i] = computeWeight(pos_node_Rest[index_node[i]], pos_Rest, h);
+        w_i[i] = computeWeight(pos_node_Rest[index_node[i]], pos_Rest, radius);
         w_sum += w_i[i];
     }
 
@@ -136,7 +136,7 @@ void MLSPoints::MLS_approximation(const std::vector<Vector3d>& pos_node_Rest,
 }
 
 void MLSPoints::init_MLS(Eigen::Vector3d& pos_Rest_, double volume_, 
-    std::vector<int>& index_node_, std::string kernel, double h)
+    std::vector<int>& index_node_, std::string kernel, double& h)
 {
     pos_Rest = pos_Rest_;
     pos = pos_Rest_;

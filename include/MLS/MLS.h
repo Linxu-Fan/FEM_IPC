@@ -17,11 +17,11 @@ public:
 
 
 	void MLS_approximation(const std::vector<Vector3d>& pos_node_Rest, 
-		const std::vector<Vector3d>& pos_node, double h);
+		const std::vector<Vector3d>& pos_node, double& radius);
 
 	// initialize the MLS point
 	void init_MLS(Eigen::Vector3d& pos_Rest_, double volume_, 
-		std::vector<int>& index_node_, std::string kernel, double kernelSize);
+		std::vector<int>& index_node_, std::string kernel, double& kernelSize);
 
 	double computeWeight(const Eigen::Vector3d& x_s, const Eigen::Vector3d& x_i, double d_i);
 

@@ -570,7 +570,7 @@ double Mesh::calBBXDiagSize()
 	return (BBX.first - BBX.second).norm();
 }
 
-void Mesh::sample_MLS_points_inside_tetrahedral(int tetIndex, int num_points)
+void Mesh::sample_MLS_points_inside_tetrahedral(objMeshFormat& crack, int& tetIndex, int& num_points, double& radius)
 {
 	Eigen::Vector4i tet = tetrahedrals[tetIndex];
 	Eigen::Vector3d V1 = pos_node_Rest[tet[0]], V2 = pos_node_Rest[tet[1]], 
@@ -582,49 +582,20 @@ void Mesh::sample_MLS_points_inside_tetrahedral(int tetIndex, int num_points)
 	for (int i = 0; i < num_points; i++)
 	{
 		Eigen::Vector3d pt = randomPointInTetrahedron(V1, V2, V3, V4);
-
-		/*if (i == 0)
-		{
-			pt = 0.1 * V1 + 0.2 * V2 + 0.3 * V3 + 0.4 * V4;
-		}
-		else if (i == 1)
-		{
-			pt = 0.2 * V1 + 0.3 * V2 + 0.4 * V3 + 0.1 * V4;
-		}
-		else if (i == 2)
-		{
-			pt = 0.3 * V1 + 0.4 * V2 + 0.1 * V3 + 0.2 * V4;
-		}
-		else if (i == 3)
-		{
-			pt = 0.4 * V1 + 0.1 * V2 + 0.2 * V3 + 0.3 * V4;
-		}
-		else if (i == 4)
-		{
-			pt = 0.4 * V1 + 0.3 * V2 + 0.2 * V3 + 0.1 * V4;
-		}
-		else if (i == 5)
-		{
-			pt = 0.2 * V1 + 0.2 * V2 + 0.2 * V3 + 0.4 * V4;
-		}*/
-
+		
 		std::vector<int> validNodes;
 		for (int h = 0; h < neigNodes_tet.size(); h++)
 		{
 			int ni = neigNodes_tet[h];
-			if (pt[2] < 15 && pos_node[ni][2] < 15)
-			{
-				validNodes.push_back(ni);
-			}
-
-			if (pt[2] > 15 && pos_node[ni][2] > 15)
+			Eigen::Vector3d vertPos = pos_node[ni];
+			if (!crack.checkIfMeshIntersectWithLine(vertPos, pt))
 			{
 				validNodes.push_back(ni);
 			}
 		}
 
 		MLSPoints mpt;
-		mpt.init_MLS(pt, tetra_vol[tetIndex] / (double)num_points, validNodes, "Gaussian", 1.5);
+		mpt.init_MLS(pt, tetra_vol[tetIndex] / (double)num_points, validNodes, "Gaussian", radius);
 
 		MLSPoints_tet_map[tetIndex].push_back(mpt);
 
@@ -678,6 +649,32 @@ std::vector<int> Mesh::find_Neighbour_Nodes_tetrahedral(int tetIndex, int maxLay
 
 }
 
+void Mesh::sample_MLS_points(objMeshFormat& crack, int& num_points, double& radius, int& numOfThreads)
+{
+	std::vector<bool> tetsIntersected(tetrahedrals.size(), false);
+#pragma omp parallel for num_threads(numOfThreads)
+	for (int t = 0; t < tetrahedrals.size(); t++)
+	{
+		Eigen::Vector4i tet = tetrahedrals[t];
+		Eigen::Vector3d tet_v0 = pos_node_Rest[tet[0]], tet_v1 = pos_node_Rest[tet[1]],
+			tet_v2 = pos_node_Rest[tet[2]], tet_v3 = pos_node_Rest[tet[3]];
+
+		if (crack.checkIfMeshIntersectWithTetrahedron(tet_v0, tet_v1, tet_v2, tet_v3))
+		{
+			tetsIntersected[t] = true;
+		}
+	}
+
+	for (int h = 0; h < tetsIntersected.size(); h++)
+	{
+		if (tetsIntersected[h])
+		{
+			sample_MLS_points_inside_tetrahedral(crack, h, num_points, radius);
+		}
+	}
+
+
+}
 
 
 

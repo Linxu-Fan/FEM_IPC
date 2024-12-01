@@ -1,5 +1,153 @@
-#include "objMesh.h"
+﻿#include "objMesh.h"
 
+
+
+// Function to compute face normal
+Eigen::Vector3d computeNormal(const Eigen::Vector3d& v0,
+	const Eigen::Vector3d& v1,
+	const Eigen::Vector3d& v2)
+{
+	return (v1 - v0).cross(v2 - v0).normalized();
+}
+
+// Function to compute projection of points onto an axis
+void projectOntoAxis(const std::vector<Eigen::Vector3d>& points,
+	const Eigen::Vector3d& axis,
+	double& minProj,
+	double& maxProj)
+{
+	minProj = std::numeric_limits<double>::infinity();
+	maxProj = -std::numeric_limits<double>::infinity();
+	for (const auto& p : points)
+	{
+		double proj = axis.dot(p);
+		if (proj < minProj) minProj = proj;
+		if (proj > maxProj) maxProj = proj;
+	}
+}
+
+// Triangle-Tetrahedron intersection test using SAT
+bool triangleTetrahedronIntersect(const Eigen::Vector3d& tri_v0,
+	const Eigen::Vector3d& tri_v1,
+	const Eigen::Vector3d& tri_v2,
+	const Eigen::Vector3d& tet_v0,
+	const Eigen::Vector3d& tet_v1,
+	const Eigen::Vector3d& tet_v2,
+	const Eigen::Vector3d& tet_v3)
+{
+	// Collect vertices
+	std::vector<Eigen::Vector3d> triVerts = { tri_v0, tri_v1, tri_v2 };
+	std::vector<Eigen::Vector3d> tetVerts = { tet_v0, tet_v1, tet_v2, tet_v3 };
+
+	// Edges of the triangle
+	std::vector<Eigen::Vector3d> triEdges = {
+		tri_v1 - tri_v0,
+		tri_v2 - tri_v1,
+		tri_v0 - tri_v2
+	};
+
+	// Edges of the tetrahedron
+	std::vector<Eigen::Vector3d> tetEdges = {
+		tet_v1 - tet_v0,
+		tet_v2 - tet_v0,
+		tet_v3 - tet_v0,
+		tet_v2 - tet_v1,
+		tet_v3 - tet_v1,
+		tet_v3 - tet_v2
+	};
+
+	// Normals of the tetrahedron faces
+	std::vector<Eigen::Vector3d> tetNormals = {
+		(tet_v1 - tet_v0).cross(tet_v2 - tet_v0).normalized(),
+		(tet_v2 - tet_v0).cross(tet_v3 - tet_v0).normalized(),
+		(tet_v3 - tet_v0).cross(tet_v1 - tet_v0).normalized(),
+		(tet_v1 - tet_v2).cross(tet_v3 - tet_v2).normalized()
+	};
+
+	// Triangle normal
+	Eigen::Vector3d triNormal = computeNormal(tri_v0, tri_v1, tri_v2);
+
+	// Axes to test
+	std::vector<Eigen::Vector3d> axes;
+
+	// Add triangle normal
+	axes.push_back(triNormal);
+
+	// Add tetrahedron face normals
+	axes.insert(axes.end(), tetNormals.begin(), tetNormals.end());
+
+	// Add cross products of edges
+	for (const auto& e1 : triEdges)
+	{
+		for (const auto& e2 : tetEdges)
+		{
+			Eigen::Vector3d axis = e1.cross(e2);
+			if (axis.norm() > 1e-8)  // Avoid zero-length axes
+				axes.push_back(axis.normalized());
+		}
+	}
+
+	// Test axes
+	for (const auto& axis : axes)
+	{
+		double triMin, triMax;
+		double tetMin, tetMax;
+		projectOntoAxis(triVerts, axis, triMin, triMax);
+		projectOntoAxis(tetVerts, axis, tetMin, tetMax);
+
+		// Check for separation
+		if (triMax < tetMin || tetMax < triMin)
+		{
+			// No overlap on this axis, shapes are separated
+			return false;
+		}
+	}
+
+	// No separating axis found, shapes intersect
+	return true;
+}
+
+
+
+// Möller–Trumbore intersection algorithm for line segment and triangle
+bool lineSegmentIntersectsTriangle(const Eigen::Vector3d& orig,
+	const Eigen::Vector3d& dest,
+	const Eigen::Vector3d& vert0,
+	const Eigen::Vector3d& vert1,
+	const Eigen::Vector3d& vert2,
+	Eigen::Vector3d& intersectPoint)
+{
+	const double EPSILON = 1e-8;
+
+	Eigen::Vector3d edge1 = vert1 - vert0;
+	Eigen::Vector3d edge2 = vert2 - vert0;
+	Eigen::Vector3d direction = dest - orig;
+	Eigen::Vector3d pvec = direction.cross(edge2);
+	double det = edge1.dot(pvec);
+
+	// If the determinant is near zero, the line lies in the plane of the triangle or is parallel to it
+	if (std::abs(det) < EPSILON)
+		return false;
+
+	double invDet = 1.0 / det;
+	Eigen::Vector3d tvec = orig - vert0;
+	double u = tvec.dot(pvec) * invDet;
+	if (u < 0.0 || u > 1.0)
+		return false;
+
+	Eigen::Vector3d qvec = tvec.cross(edge1);
+	double v = direction.dot(qvec) * invDet;
+	if (v < 0.0 || u + v > 1.0)
+		return false;
+
+	double t = edge2.dot(qvec) * invDet;
+	if (t < 0.0 || t > 1.0)
+		return false;
+
+	// Intersection point
+	intersectPoint = orig + t * direction;
+	return true;
+}
 
 
 void objMeshFormat::readObjFile(std::string fileName)
@@ -96,7 +244,6 @@ void depthFirstSearch(int v, const std::vector<std::set<int>>& adjList,
 	}
 }
 
-
 void objMeshFormat::sepConnectedComponents()
 {
 
@@ -148,8 +295,6 @@ void objMeshFormat::sepConnectedComponents()
 
 }
 
-
-
 void objMeshFormat::clear()
 {
 	vertices.clear();
@@ -157,7 +302,6 @@ void objMeshFormat::clear()
 	vertFaces.clear();
 	componentsSep.clear();
 }
-
 
 void objMeshFormat::outputFile(std::string fileName, int timestep)
 {
@@ -186,7 +330,79 @@ void objMeshFormat::outputFile(std::string fileName, int timestep)
 		}
 		outfile9 << std::endl;
 	}
+	for (int k = 0; k < vertFaces.size(); k++)
+	{
+		outfile9 << "f ";
+		if (0)
+		{
+			for (int m = 0; m < vertFaces[k].size(); m++)
+			{
+				outfile9 << vertFaces[k][m] + 1 << " ";
+			}
+		}
+		else
+		{
+			for (int m = vertFaces[k].size() - 1; m >= 0; m--)
+			{
+				outfile9 << vertFaces[k][m] + 1 << " ";
+			}
+		}
+		outfile9 << std::endl;
+	}
 	outfile9.close();
 }
 
+bool objMeshFormat::checkIfMeshIntersectWithTetrahedron(const Eigen::Vector3d tet_v0, const Eigen::Vector3d tet_v1,
+	const Eigen::Vector3d tet_v2, const Eigen::Vector3d tet_v3)
+{
+	// Iterate over each face
+	for (const auto& face : vertFaces)
+	{
+		// Triangulate face if it has more than 3 vertices
+		for (size_t i = 1; i + 1 < face.size(); ++i)
+		{
+			Eigen::Vector3d tri_v0 = vertices[face[0]];
+			Eigen::Vector3d tri_v1 = vertices[face[i]];
+			Eigen::Vector3d tri_v2 = vertices[face[i + 1]];
 
+			// Check for intersection
+			if (triangleTetrahedronIntersect(tri_v0, tri_v1, tri_v2,
+				tet_v0, tet_v1, tet_v2, tet_v3))
+			{
+				// Intersection found
+				return true;
+			}
+		}
+	}
+
+	// No intersection found
+	return false;
+}
+
+bool objMeshFormat::checkIfMeshIntersectWithLine(const Eigen::Vector3d line_pt1, const Eigen::Vector3d line_pt2)
+{
+	// Iterate over each face
+	for (const auto& face : vertFaces)
+	{
+		// Triangulate face if it has more than 3 vertices
+		for (size_t i = 1; i + 1 < face.size(); ++i)
+		{
+			Eigen::Vector3d tri_v0 = vertices[face[0]];
+			Eigen::Vector3d tri_v1 = vertices[face[i]];
+			Eigen::Vector3d tri_v2 = vertices[face[i + 1]];
+
+			// Check for intersection
+			Eigen::Vector3d intersectPoint;
+			if (lineSegmentIntersectsTriangle(line_pt1, line_pt2,
+				tri_v0, tri_v1, tri_v2,
+				intersectPoint))
+			{
+				// Intersection found
+				return true;
+			}
+		}
+	}
+
+	// No intersection found
+	return false;
+}

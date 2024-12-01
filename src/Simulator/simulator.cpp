@@ -323,7 +323,7 @@ void updateMLS_after_advection(Mesh& tetSimMesh, FEMParamters& parameters)
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 		for (int j = 0; j < it->second.size(); j++)
 		{
-			it->second[j].MLS_approximation(tetSimMesh.pos_node_Rest, tetSimMesh.pos_node, 1.5);
+			it->second[j].MLS_approximation(tetSimMesh.pos_node_Rest, tetSimMesh.pos_node, parameters.MLS_radius);
 		}
 	}
 }
@@ -872,7 +872,6 @@ void step_forward(FEMParamters& parameters, Mesh& tetSimMesh, std::vector<Eigen:
 
 	updateMLS_after_advection(tetSimMesh, parameters);
 }
-
 
 void calContactInfo(Mesh& tetSimMesh, FEMParamters& parameters, int timestep, 
 	std::vector<Vector5i>& PG_PG, std::vector<Vector5i>& PT_PP, std::vector<Vector5i>& PT_PE,

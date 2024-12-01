@@ -79,6 +79,9 @@ struct FEMParamters
     double IPC_kStiffness = 1.0e14;
     double IPC_B3Stiffness = 200; // in order to move a point to the desired position, we define an energy
 
+    double MLS_radius = 1.5; // the support radius of MLS points
+    int MLS_num_MLS_Pts = 6; // number of MLS points inside a tetrahedron
+
     double ABD_Coeff = 1.0e10; // penalty coefficient for ABD
 
 };
