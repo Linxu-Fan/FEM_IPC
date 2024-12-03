@@ -248,7 +248,7 @@ void implicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 			std::vector<Eigen::Vector3d> direction = solve_linear_system(tetSimMesh, parameters, timestep);
 			double dist_to_converge = infiniteNorm(direction);
 
-			if (timestep == 0)
+			/*if (timestep == 0)
 			{
 				for (int m = 0; m < direction.size(); m++)
 				{
@@ -257,7 +257,7 @@ void implicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 						std::cout << "			direction[" << m << "] = " << direction[m][2] << std::endl;
 					}
 				}
-			}
+			}*/
 
 
 			

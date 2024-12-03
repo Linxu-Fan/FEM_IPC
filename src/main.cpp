@@ -788,13 +788,25 @@ int main()
 
 			std::vector<meshConfiguration> config;
 			meshConfiguration m1, m2, m3, m4;
-			m1.filePath = "../input/bunny_lowRes_mesh.msh";
+			m1.filePath = "../input/bunny_highRes_mesh.msh";
 			m1.mesh_material = mat1;
 			m1.note = "bunny";
 			//m1.scale = {1000,1000,1000};
 			//m1.rotation_angle = {PI_Value / 2.0,0,0};
 			m1.translation = { 0,0,0 };
 			config.push_back(m1);
+
+
+
+			//std::vector<meshConfiguration> config;
+			//meshConfiguration m1, m2, m3, m4;
+			//m1.filePath = "../input/Right_top_move.msh";
+			//m1.mesh_material = mat1;
+			//m1.note = "cube";
+			//m1.scale = { 1000,1000,1000 };
+			//m1.rotation_angle = { PI_Value / 2.0,0,0 };
+			//m1.translation = { -48,4,5.3 };
+			//config.push_back(m1);
 
 
 
@@ -808,6 +820,8 @@ int main()
 			}
 			tetSimMesh.createGlobalSimulationMesh();
 
+			tetSimMesh.exportEdges("bunnyEdges");
+
 
 
 
@@ -815,7 +829,7 @@ int main()
 			parameters.gravity = { 0, 0, -9.8 };
 			parameters.num_timesteps = 100000;
 			parameters.numOfThreads = 32;
-			parameters.dt = 2.0e-3;
+			parameters.dt = 1.0e-4;
 			parameters.outputFrequency = 1;
 			parameters.enableGround = false;
 			parameters.searchResidual = 7.0;
@@ -827,16 +841,41 @@ int main()
 			parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
 			parameters.IPC_B3Stiffness = 500;
 
-			parameters.MLS_radius = 0.1;
+			parameters.MLS_radius = 1.5;
 
 			std::cout << "parameters.IPC_hashSize = " << parameters.IPC_hashSize << std::endl;
 
 
 
+
+			/*{
+				objMeshFormat crack;
+				Eigen::Vector3d p1 = { -4,-4,15 };
+				Eigen::Vector3d p2 = { 4,-4,15 };
+				Eigen::Vector3d p3 = { 4,4,15 };
+				Eigen::Vector3d p4 = { -4,4,15 };
+				crack.vertices.push_back(p1);
+				crack.vertices.push_back(p2);
+				crack.vertices.push_back(p3);
+				crack.vertices.push_back(p4);
+				std::vector<int> fc;
+				fc.push_back(0);
+				fc.push_back(1);
+				fc.push_back(2);
+				fc.push_back(3);
+				crack.vertFaces.push_back(fc);
+
+				crack.outputFile("crack", -99);
+
+				tetSimMesh.sample_MLS_points(crack, parameters.MLS_num_MLS_Pts, parameters.MLS_radius, parameters.numOfThreads);
+
+			}*/
+
+
 			{
 				objMeshFormat crack;	
-				//crack.readObjFile("../input/bunnyCrack.obj", true);
-				crack.readObjFile("../input/bunnyCrack_Plane.obj", true);
+				crack.readObjFile("../input/bunnyCrack.obj", true);
+				//crack.readObjFile("../input/bunnyCrack_Plane.obj", true);
 				crack.outputFile("bunnyCrack", -99, true);
 				tetSimMesh.sample_MLS_points(crack, parameters.MLS_num_MLS_Pts, parameters.MLS_radius, parameters.numOfThreads);
 			}

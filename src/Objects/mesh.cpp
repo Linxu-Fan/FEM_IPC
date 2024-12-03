@@ -242,6 +242,39 @@ void tetMesh::output(int timestep)
 	outfile2.close();
 }
 
+void tetMesh::exportEdges(std::string fileName)
+{
+	std::set<std::pair<int, int>> edges_set;
+	for (int i = 0; i < tetrahedrals.size(); ++i) {
+		int n[4] = { tetrahedrals[i][0], tetrahedrals[i][1], tetrahedrals[i][2], tetrahedrals[i][3] };
+
+		// Generate all combinations of edges in a tetrahedron
+		for (int a = 0; a < 4; ++a) {
+			for (int b = a + 1; b < 4; ++b) {
+				int idx1 = n[a];
+				int idx2 = n[b];
+				if (idx1 > idx2) std::swap(idx1, idx2);
+				edges_set.insert(std::make_pair(idx1, idx2));
+			}
+		}
+	}
+
+	std::ofstream outfile2("./output/" + fileName + ".obj", std::ios::trunc);
+	for (int vert = 0; vert < pos_node.size(); ++vert)
+	{
+		outfile2 << std::scientific << std::setprecision(8) << "v "
+			<< pos_node[vert][0] << " " << pos_node[vert][1] << " "
+			<< pos_node[vert][2] << " " << std::endl;
+	}
+
+	for (const auto& edge : edges_set) 
+	{
+		outfile2 << "l " << edge.first + 1 << " " << edge.second + 1 << std::endl;  // Convert back to one-based indexing
+	}
+
+	outfile2.close();
+
+}
 
 
 
@@ -580,26 +613,29 @@ void Mesh::sample_MLS_points_inside_tetrahedral(objMeshFormat& crack, int& tetIn
 
 	for (int i = 0; i < num_points; i++)
 	{
-		Eigen::Vector3d pt = randomPointInTetrahedron(V1, V2, V3, V4);
-		
+		Eigen::Vector3d pt = randomPointInTetrahedron(V1, V2, V3, V4);		
 		std::vector<int> validNodes;
-		int maxLayers = 1;
-		do
+
+		int maxLayers = 2;	
+		std::vector<int> neigNodes_tet = find_Neighbour_Nodes_tetrahedral(tetIndex, maxLayers);
+		for (int h = 0; h < neigNodes_tet.size(); h++)
 		{
-			validNodes.clear();			
-			std::vector<int> neigNodes_tet = find_Neighbour_Nodes_tetrahedral(tetIndex, maxLayers);
-			for (int h = 0; h < neigNodes_tet.size(); h++)
+			int ni = neigNodes_tet[h];
+			Eigen::Vector3d vertPos = pos_node[ni];
+			if ((vertPos - pt).norm() < radius )
 			{
-				int ni = neigNodes_tet[h];
-				Eigen::Vector3d vertPos = pos_node[ni];
 				if (!crack.checkIfMeshIntersectWithLine(vertPos, pt))
 				{
 					validNodes.push_back(ni);
 				}
 			}
-			maxLayers += 1;
-		} 
-		while (validNodes.size() < 4);
+		}
+		
+		if (validNodes.size() < 4)
+		{
+			std::cout << "Insufficient control points for MLS points! Num of ctr pts is "<< validNodes.size() << std::endl;
+		}
+
 
 
 

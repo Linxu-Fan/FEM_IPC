@@ -59,6 +59,8 @@ public:
 	void findSurfaceMesh();
 	// output the mesh
 	void output(int timestep);
+	// export the mesh's edges
+	void exportEdges(std::string fileName);
 
 
 

@@ -153,7 +153,7 @@ void objMeshFormat::readObjFile(std::string fileName, bool polygonal)
 {
 	clear();
 
-	int ct = 0;
+	//int ct = 0;
 	// read vertices and faces
 	std::ifstream in;
 	in.open(fileName);
@@ -205,7 +205,7 @@ void objMeshFormat::readObjFile(std::string fileName, bool polygonal)
 					}
 					facesPolygonal.push_back(facePolygonal);
 
-					ct += 1;
+					//ct += 1;
 				}
 
 			}
@@ -214,7 +214,7 @@ void objMeshFormat::readObjFile(std::string fileName, bool polygonal)
 
 	in.close();
 
-	std::cout << "ct = " << ct << std::endl;
+	//std::cout << "ct = " << ct << std::endl;
 
 	findVertFaces_Edges();
 
