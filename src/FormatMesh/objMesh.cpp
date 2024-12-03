@@ -108,7 +108,6 @@ bool triangleTetrahedronIntersect(const Eigen::Vector3d& tri_v0,
 }
 
 
-
 // Möller–Trumbore intersection algorithm for line segment and triangle
 bool lineSegmentIntersectsTriangle(const Eigen::Vector3d& orig,
 	const Eigen::Vector3d& dest,
@@ -150,36 +149,72 @@ bool lineSegmentIntersectsTriangle(const Eigen::Vector3d& orig,
 }
 
 
-void objMeshFormat::readObjFile(std::string fileName)
+void objMeshFormat::readObjFile(std::string fileName, bool polygonal)
 {
 	clear();
 
+	int ct = 0;
 	// read vertices and faces
 	std::ifstream in;
 	in.open(fileName);
 	std::string line;
-	while (getline(in, line))
+	if (!polygonal)
 	{
-		if (line.size() > 0)
+		while (getline(in, line))
 		{
-			std::vector<std::string> vecCoor = split(line, " ");
-			if (vecCoor[0] == "v")
+			if (line.size() > 0)
 			{
-				Eigen::Vector3d vt = { std::stod(vecCoor[1]) , std::stod(vecCoor[2]) , std::stod(vecCoor[3])};
-				vertices.push_back(vt);
-			}
+				std::vector<std::string> vecCoor = split(line, " ");
+				if (vecCoor[0] == "v")
+				{
+					Eigen::Vector3d vt = { std::stod(vecCoor[1]) , std::stod(vecCoor[2]) , std::stod(vecCoor[3]) };
+					vertices.push_back(vt);
+				}
 
-			if (vecCoor[0] == "f")
-			{
-				Eigen::Vector3i ele = { std::stoi(vecCoor[1]) - 1 ,  std::stoi(vecCoor[2]) - 1 ,  std::stoi(vecCoor[3]) - 1 };
-				faces.push_back(ele);
-			}
+				if (vecCoor[0] == "f")
+				{
+					Eigen::Vector3i ele = { std::stoi(vecCoor[1]) - 1 ,  std::stoi(vecCoor[2]) - 1 ,  std::stoi(vecCoor[3]) - 1 };
+					faces.push_back(ele);
+				}
 
+			}
 		}
 	}
+	else
+	{
+		while (getline(in, line))
+		{
+			if (line.size() > 0)
+			{
+				std::vector<std::string> vecCoor = split(line, " ");
+				if (vecCoor[0] == "v")
+				{
+					Eigen::Vector3d vt = { std::stod(vecCoor[1]) , std::stod(vecCoor[2]) , std::stod(vecCoor[3]) };
+					vertices.push_back(vt);
+				}
+
+				if (vecCoor[0] == "f")
+				{
+					//std::cout << "vecCoor = " << line << std::endl;
+					//std::cout << "vecCoor.size() = " << vecCoor.size() << std::endl;
+					std::vector<int> facePolygonal;
+					for (int h = 1; h < vecCoor.size(); h++)
+					{
+						//std::cout << "	ele = " << std::stoi(vecCoor[h]) - 1 << std::endl;
+						facePolygonal.push_back(std::stoi(vecCoor[h]) - 1 );				
+					}
+					facesPolygonal.push_back(facePolygonal);
+
+					ct += 1;
+				}
+
+			}
+		}
+	}
+
 	in.close();
 
-
+	std::cout << "ct = " << ct << std::endl;
 
 	findVertFaces_Edges();
 
@@ -301,9 +336,10 @@ void objMeshFormat::clear()
 	faces.clear();
 	vertFaces.clear();
 	componentsSep.clear();
+	facesPolygonal.clear();
 }
 
-void objMeshFormat::outputFile(std::string fileName, int timestep)
+void objMeshFormat::outputFile(std::string fileName, int timestep, bool polygonal)
 {
 	std::ofstream outfile9("./output/" + fileName + "_" + std::to_string(timestep) + ".obj", std::ios::trunc);
 	for (int k = 0; k < vertices.size(); k++)
@@ -311,44 +347,50 @@ void objMeshFormat::outputFile(std::string fileName, int timestep)
 		Eigen::Vector3d scale = vertices[k];
 		outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
 	}
-	for (int k = 0; k < faces.size(); k++)
+	if (!polygonal)
 	{
-		outfile9 << "f ";
-		if (0)
+		for (int k = 0; k < faces.size(); k++)
 		{
-			for (int m = 0; m < faces[k].size(); m++)
+			outfile9 << "f ";
+			if (0)
 			{
-				outfile9 << faces[k][m] + 1 << " ";
+				for (int m = 0; m < faces[k].size(); m++)
+				{
+					outfile9 << faces[k][m] + 1 << " ";
+				}
 			}
-		}
-		else
-		{
-			for (int m = faces[k].size() - 1; m >= 0; m--)
+			else
 			{
-				outfile9 << faces[k][m] + 1 << " ";
+				for (int m = faces[k].size() - 1; m >= 0; m--)
+				{
+					outfile9 << faces[k][m] + 1 << " ";
+				}
 			}
+			outfile9 << std::endl;
 		}
-		outfile9 << std::endl;
 	}
-	for (int k = 0; k < vertFaces.size(); k++)
+	else
 	{
-		outfile9 << "f ";
-		if (0)
+		for (int k = 0; k < facesPolygonal.size(); k++)
 		{
-			for (int m = 0; m < vertFaces[k].size(); m++)
+			outfile9 << "f ";
+			if (0)
 			{
-				outfile9 << vertFaces[k][m] + 1 << " ";
+				for (int m = 0; m < facesPolygonal[k].size(); m++)
+				{
+					outfile9 << facesPolygonal[k][m] + 1 << " ";
+				}
 			}
-		}
-		else
-		{
-			for (int m = vertFaces[k].size() - 1; m >= 0; m--)
+			else
 			{
-				outfile9 << vertFaces[k][m] + 1 << " ";
+				for (int m = facesPolygonal[k].size() - 1; m >= 0; m--)
+				{
+					outfile9 << facesPolygonal[k][m] + 1 << " ";
+				}
 			}
+			outfile9 << std::endl;
 		}
-		outfile9 << std::endl;
-	}
+	}	
 	outfile9.close();
 }
 
@@ -356,7 +398,7 @@ bool objMeshFormat::checkIfMeshIntersectWithTetrahedron(const Eigen::Vector3d te
 	const Eigen::Vector3d tet_v2, const Eigen::Vector3d tet_v3)
 {
 	// Iterate over each face
-	for (const auto& face : vertFaces)
+	for (const auto& face : facesPolygonal)
 	{
 		// Triangulate face if it has more than 3 vertices
 		for (size_t i = 1; i + 1 < face.size(); ++i)
@@ -382,7 +424,7 @@ bool objMeshFormat::checkIfMeshIntersectWithTetrahedron(const Eigen::Vector3d te
 bool objMeshFormat::checkIfMeshIntersectWithLine(const Eigen::Vector3d line_pt1, const Eigen::Vector3d line_pt2)
 {
 	// Iterate over each face
-	for (const auto& face : vertFaces)
+	for (const auto& face : facesPolygonal)
 	{
 		// Triangulate face if it has more than 3 vertices
 		for (size_t i = 1; i + 1 < face.size(); ++i)

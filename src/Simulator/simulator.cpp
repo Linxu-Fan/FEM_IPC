@@ -247,6 +247,20 @@ void implicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 			std::cout << "		ite = " << ite << "; lastEnergyVal = " << lastEnergyVal << std::endl;
 			std::vector<Eigen::Vector3d> direction = solve_linear_system(tetSimMesh, parameters, timestep);
 			double dist_to_converge = infiniteNorm(direction);
+
+			if (timestep == 0)
+			{
+				for (int m = 0; m < direction.size(); m++)
+				{
+					if (std::abs(direction[m][2] + 7.84e-5) > 1.0e-6)
+					{
+						std::cout << "			direction[" << m << "] = " << direction[m][2] << std::endl;
+					}
+				}
+			}
+
+
+			
 			std::cout << std::scientific << std::setprecision(4) << "			dist_to_converge = " 
 				<< dist_to_converge / parameters.dt << "m/s; threshold = " << parameters.searchResidual 
 				<< "m/s" << std::endl;
@@ -358,6 +372,7 @@ double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timeste
 	}
 	energyVal = std::accumulate(node_ext_ine_energy_vec.begin(), node_ext_ine_energy_vec.end(), 0.0);
 
+	std::cout << "		Vertex energy = " << energyVal << std::endl;
 
 	// energy contribution per element
 	std::vector<double> tex_est_energy_vec(tetSimMesh.tetra_F.size());
@@ -369,7 +384,7 @@ double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timeste
 		if (tetSimMesh.MLSPoints_tet_map.find(eI) == tetSimMesh.MLSPoints_tet_map.end()) // if this tetrahedral is not replaced by MLS points
 		{
 			tex_est_energy_vec[eI] = ElasticEnergy::Val(tetSimMesh.materialMesh[matInd], 
-				parameters.model, tetSimMesh.tetra_F[eI], parameters.dt, tetSimMesh.tetra_vol[eI]);
+				parameters.model, tetSimMesh.tetra_F[eI], parameters.dt, tetSimMesh.tetra_vol[eI]);			
 		}
 		else
 		{
@@ -381,22 +396,17 @@ double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timeste
 					tetSimMesh.MLSPoints_tet_map[eI][m].volume);
 			}
 			tex_est_energy_vec[eI] = energyMLS_tmp;
-
-			if (timestep == 100)
-			{
-				std::cout << "tetSimMesh.MLSPoints_tet_map[eI][m].F = " << tetSimMesh.MLSPoints_tet_map[74][0].F << std::endl;
-				std::cout << "energyMLS_tmp = " << energyMLS_tmp << std::endl;
-			}
-
 		}
 		
 	}
 	energyVal += std::accumulate(tex_est_energy_vec.begin(), tex_est_energy_vec.end(), 0.0);
 
+	std::cout << "		Element energy = " << std::accumulate(tex_est_energy_vec.begin(), tex_est_energy_vec.end(), 0.0) << std::endl;
 
 	// energy contribution from barrier
 	energyVal += compute_Barrier_energy(tetSimMesh, parameters, timestep);
 
+	std::cout << "		Barrier energy = " << compute_Barrier_energy(tetSimMesh, parameters, timestep) << std::endl;
 
 	return energyVal;
 }
@@ -844,6 +854,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 	solver.compute(leftHandSide);
 	Eigen::VectorXd result = solver.solve(-rightHandSide);
 
+	
 
 	//double endTime5 = omp_get_wtime();
 	//std::cout << "	Solve grad_hess Time is : " << endTime5 - endTime4 << "s" << std::endl;

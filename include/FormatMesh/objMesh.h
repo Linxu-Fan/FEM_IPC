@@ -65,17 +65,18 @@ struct objMeshFormat
     std::vector<Eigen::Vector3d> vertices;
 	std::vector<Eigen::Vector2i> edges; // 1st int: smaller vertex index; 2nd int: larger vertex index
     std::vector<Eigen::Vector3i> faces;
+	std::vector<std::vector<int>> facesPolygonal; // polygonal face
 	std::vector<std::vector<int>> vertFaces; // faces that share this vertex
 	std::vector<objMeshFormat> componentsSep; // separated connected-components
 	
 
 	void clear();
 
-	void readObjFile(std::string fileName);
+	void readObjFile(std::string fileName, bool polygonal = false); // if polygonal is true, read polygonal mesh
 
     void sepConnectedComponents(); // separate connected comonents
 
-    void outputFile(std::string fileName, int timestep = -99);
+    void outputFile(std::string fileName, int timestep = -99, bool polygonal = false);
 
 	void findVertFaces_Edges();
 

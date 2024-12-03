@@ -576,23 +576,32 @@ void Mesh::sample_MLS_points_inside_tetrahedral(objMeshFormat& crack, int& tetIn
 	Eigen::Vector3d V1 = pos_node_Rest[tet[0]], V2 = pos_node_Rest[tet[1]], 
 		V3 = pos_node_Rest[tet[2]], V4 = pos_node_Rest[tet[3]];
 
-	int maxLayers = 1;
-	std::vector<int> neigNodes_tet = find_Neighbour_Nodes_tetrahedral(tetIndex, maxLayers);
+
 
 	for (int i = 0; i < num_points; i++)
 	{
 		Eigen::Vector3d pt = randomPointInTetrahedron(V1, V2, V3, V4);
 		
 		std::vector<int> validNodes;
-		for (int h = 0; h < neigNodes_tet.size(); h++)
+		int maxLayers = 1;
+		do
 		{
-			int ni = neigNodes_tet[h];
-			Eigen::Vector3d vertPos = pos_node[ni];
-			if (!crack.checkIfMeshIntersectWithLine(vertPos, pt))
+			validNodes.clear();			
+			std::vector<int> neigNodes_tet = find_Neighbour_Nodes_tetrahedral(tetIndex, maxLayers);
+			for (int h = 0; h < neigNodes_tet.size(); h++)
 			{
-				validNodes.push_back(ni);
+				int ni = neigNodes_tet[h];
+				Eigen::Vector3d vertPos = pos_node[ni];
+				if (!crack.checkIfMeshIntersectWithLine(vertPos, pt))
+				{
+					validNodes.push_back(ni);
+				}
 			}
-		}
+			maxLayers += 1;
+		} 
+		while (validNodes.size() < 4);
+
+
 
 		MLSPoints mpt;
 		mpt.init_MLS(pt, tetra_vol[tetIndex] / (double)num_points, validNodes, "Gaussian", radius);
