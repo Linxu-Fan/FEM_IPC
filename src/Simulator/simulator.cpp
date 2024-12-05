@@ -372,11 +372,14 @@ double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timeste
 	}
 	energyVal = std::accumulate(node_ext_ine_energy_vec.begin(), node_ext_ine_energy_vec.end(), 0.0);
 
-	std::cout << "		Vertex energy = " << energyVal << std::endl;
+	//std::cout << "		Vertex energy = " << energyVal << std::endl;
+
+
+	int numEleDeg = 0, numMLSDeg = 0;
 
 	// energy contribution per element
 	std::vector<double> tex_est_energy_vec(tetSimMesh.tetra_F.size());
-#pragma omp parallel for num_threads(parameters.numOfThreads)
+//#pragma omp parallel for num_threads(parameters.numOfThreads)
 	for (int eI = 0; eI < tetSimMesh.tetra_F.size(); eI++)
 	{
 		// the internal elastic energy contribution
@@ -384,7 +387,13 @@ double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timeste
 		if (tetSimMesh.MLSPoints_tet_map.find(eI) == tetSimMesh.MLSPoints_tet_map.end()) // if this tetrahedral is not replaced by MLS points
 		{
 			tex_est_energy_vec[eI] = ElasticEnergy::Val(tetSimMesh.materialMesh[matInd], 
-				parameters.model, tetSimMesh.tetra_F[eI], parameters.dt, tetSimMesh.tetra_vol[eI]);			
+				parameters.model, tetSimMesh.tetra_F[eI], parameters.dt, tetSimMesh.tetra_vol[eI]);	
+
+			if (tetSimMesh.tetra_F[eI].determinant() <= 0)
+			{
+				numEleDeg += 1;
+			}
+			
 		}
 		else
 		{
@@ -394,6 +403,11 @@ double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timeste
 				energyMLS_tmp += ElasticEnergy::Val(tetSimMesh.materialMesh[matInd], 
 					parameters.model, tetSimMesh.MLSPoints_tet_map[eI][m].F, parameters.dt, 
 					tetSimMesh.MLSPoints_tet_map[eI][m].volume);
+
+				if (tetSimMesh.MLSPoints_tet_map[eI][m].F.determinant() <= 0)
+				{
+					numMLSDeg += 1;
+				}
 			}
 			tex_est_energy_vec[eI] = energyMLS_tmp;
 		}
@@ -401,12 +415,19 @@ double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timeste
 	}
 	energyVal += std::accumulate(tex_est_energy_vec.begin(), tex_est_energy_vec.end(), 0.0);
 
-	std::cout << "		Element energy = " << std::accumulate(tex_est_energy_vec.begin(), tex_est_energy_vec.end(), 0.0) << std::endl;
+	//std::cout << "		Element energy = " << std::accumulate(tex_est_energy_vec.begin(), tex_est_energy_vec.end(), 0.0) << std::endl;
+	
+	if (numEleDeg + numMLSDeg > 0)
+	{
+		std::cout << "		numEleDeg = " << numEleDeg << "; numMLSDeg = " << numMLSDeg << std::endl;
+		std::cout << std::endl;
+	}
+	
 
 	// energy contribution from barrier
 	energyVal += compute_Barrier_energy(tetSimMesh, parameters, timestep);
 
-	std::cout << "		Barrier energy = " << compute_Barrier_energy(tetSimMesh, parameters, timestep) << std::endl;
+	//std::cout << "		Barrier energy = " << compute_Barrier_energy(tetSimMesh, parameters, timestep) << std::endl;
 
 	return energyVal;
 }

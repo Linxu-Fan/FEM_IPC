@@ -132,7 +132,7 @@ void tetMesh::update_F(int numOfThreads)
 		assert(tetra_F[i].determinant() > 0);
 		if (tetra_F[i].determinant() < 0)
 		{
-			std::cout << "Tetrahedral reverse!" << std::endl;
+			//std::cout << "Tetrahedral reverse!" << std::endl;
 		}
 
 	}

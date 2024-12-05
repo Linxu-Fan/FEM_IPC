@@ -827,13 +827,13 @@ int main()
 
 			FEMParamters parameters;
 			parameters.gravity = { 0, 0, -9.8 };
-			parameters.num_timesteps = 100000;
+			parameters.num_timesteps = 1000000;
 			parameters.numOfThreads = 32;
 			parameters.dt = 1.0e-4;
-			parameters.outputFrequency = 1;
+			parameters.outputFrequency = 100;
 			parameters.enableGround = false;
 			parameters.searchResidual = 7.0;
-			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+			parameters.model = "ARAP"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;
 			parameters.IPC_dis = 0.01;
 			parameters.IPC_eta = 0.05;
