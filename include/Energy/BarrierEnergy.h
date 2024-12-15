@@ -19,25 +19,25 @@ namespace BarrierEnergy
 		std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, 
 		int& startIndex_grad,  
 		Eigen::Vector4i& ptIndices, int& type, double& dis2, Mesh& tetSimMesh,
-		FEMParamters& parameters);
+		FEMParamters& parameters, bool ABD = false);
 
 	void cal_PT_PP_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
 		std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess,
-		Eigen::Vector3d& P1, Eigen::Vector3d& P2, Eigen::Vector2i& activePtsLocalInd,
-		int& startIndex_grad, 
-		FEMParamters& parameters, double& contactArea, double& g_bd, double& h_bd);
+		Eigen::Vector2i& activePtsLocalInd,
+		int& startIndex_grad, Mesh& tetSimMesh,
+		FEMParamters& parameters, double& contactArea, double& g_bd, double& h_bd, bool ABD = false);
 
 	void cal_PT_PE_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
 		std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess,
-		Eigen::Vector3d& P1, Eigen::Vector3d& P2, Eigen::Vector3d& P3, Eigen::Vector3i& activePtsLocalInd,
-		int& startIndex_grad, 
-		FEMParamters& parameters, double& contactArea, double& g_bd, double& h_bd);
+		Eigen::Vector3i& activePtsLocalInd,
+		int& startIndex_grad, Mesh& tetSimMesh,
+		FEMParamters& parameters, double& contactArea, double& g_bd, double& h_bd, bool ABD = false);
 
 	void cal_PT_PT_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
-		std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess,
-		Eigen::Vector3d& P1, Eigen::Vector3d& P2, Eigen::Vector3d& P3, Eigen::Vector3d& P4, 
-		Eigen::Vector4i& activePtsLocalInd,int& startIndex_grad, 
-		FEMParamters& parameters, double& contactArea, double& g_bd, double& h_bd);
+		std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess,		 
+		Eigen::Vector4i& activePtsLocalInd,
+		int& startIndex_grad, Mesh& tetSimMesh,
+		FEMParamters& parameters, double& contactArea, double& g_bd, double& h_bd, bool ABD = false);
 
 
 
@@ -46,14 +46,14 @@ namespace BarrierEnergy
 		std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, 
 		int& startIndex_grad,
 		Eigen::Vector4i& ptIndices, int& type, double& dis2, Mesh& tetSimMesh,
-		FEMParamters& parameters);
+		FEMParamters& parameters, bool ABD = false);
 
-	void cal_EE_PP_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
-		std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess,
-		int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node,
-		Eigen::Vector2i& activePtsLocalInd, int& type, double& dis2, Mesh& tetSimMesh,
-		FEMParamters& parameters,double& g_bd, double& h_bd, double& contactArea,
-		Eigen::Vector3d& P1, Eigen::Vector3d& P2);
+	//void cal_EE_PP_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
+	//	std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess,
+	//	int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node,
+	//	Eigen::Vector2i& activePtsLocalInd, int& type, double& dis2, Mesh& tetSimMesh,
+	//	FEMParamters& parameters,double& g_bd, double& h_bd, double& contactArea,
+	//	Eigen::Vector3d& P1, Eigen::Vector3d& P2, bool ABD = false);
 
 
 
@@ -82,7 +82,7 @@ namespace Ground
 	void gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet, 
 		std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, 
 		int& startIndex_grad, 
-		int& index_i, double& coor_z, double& contactArea, FEMParamters& parameters);
+		int& index_i, double& coor_z, double& contactArea, FEMParamters& parameters, bool ABD = false);
 
 
 }

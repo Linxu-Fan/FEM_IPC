@@ -12,7 +12,20 @@ int main()
 
 	if (0)
 	{
-	
+		double energyVal = 0;
+		std::vector<double> tv;
+		tv.push_back(1.0);
+		tv.push_back(2.0);
+		tv.push_back(3.0);
+
+		energyVal += std::accumulate(tv.begin(), tv.end(), 0.0);
+
+		std::cout << "energyVal = " << energyVal << std::endl;
+
+		energyVal += std::accumulate(tv.begin(), tv.end(), 0.0);
+
+		std::cout << "energyVal = " << energyVal << std::endl;
+
 		//Eigen::Vector3d tet_v0 = { 0, 2, 2.8284271247 };
 		//Eigen::Vector3d tet_v1 = { 1.7320508076, - 1, 2.8284271247 };
 		//Eigen::Vector3d tet_v2 = { -1.7320508076, - 1, 2.8284271247 };
@@ -215,117 +228,117 @@ int main()
 		// 3. ABD test
 		// 4. Explicit test
 		// 5. Object hanging test to verify element sampling algorithm
-		int caseNum = 5;
+		int caseNum = 0;
 		if (caseNum == 0)
 		{
-			//Material mat1;
-			//mat1.density = 2780;
-			//mat1.E = 7.26e7;
-			//mat1.updateDenpendecies();
+			Material mat1;
+			mat1.density = 2780;
+			mat1.E = 7.26e7;
+			mat1.updateDenpendecies();
 
 
-			//
-			//std::vector<meshConfiguration> config;			
-			//meshConfiguration m1, m2, m3, m4;
-			//m1.filePath = "../input/beam.msh";
-			//m1.mesh_material = mat1;
-			//m1.scale = {1000, 1000, 1000};
-			//m1.note = "beam";
-			//config.push_back(m1);
+			
+			std::vector<meshConfiguration> config;			
+			meshConfiguration m1, m2, m3, m4;
+			m1.filePath = "../input/beam.msh";
+			m1.mesh_material = mat1;
+			m1.scale = {1000, 1000, 1000};
+			m1.note = "beam";
+			config.push_back(m1);
 
-			//m2 = m1;
-			//m2.filePath = "../input/left_support.msh";
-			//m2.note = "left_support";
-			//m2.translation = { 0, 0, 1.0e-4};
-			////config.push_back(m2);
+			m2 = m1;
+			m2.filePath = "../input/left_support.msh";
+			m2.note = "left_support";
+			m2.translation = { 0, 0, 1.0e-4};
+			//config.push_back(m2);
 
-			//m3 = m1;
-			//m3.filePath = "../input/middle_support.msh";
-			//m3.note = "middle_support";
-			//m3.translation = { 0, 0, -1.0e-4 };
-			////config.push_back(m3);
+			m3 = m1;
+			m3.filePath = "../input/middle_support.msh";
+			m3.note = "middle_support";
+			m3.translation = { 0, 0, -1.0e-4 };
+			//config.push_back(m3);
 
-			//m4 = m1;
-			//m4.filePath = "../input/impactor.msh";
-			//m4.note = "impactor";
-			//m4.translation = { 0, 0, 1.5e-2 };
-			//config.push_back(m4);
-
-
-
-
-			//Mesh tetSimMesh;
-			//for (int i = 0; i < config.size(); i++)
-			//{
-			//	tetMesh msh_tmp;
-			//	msh_tmp.readMesh(config[i]);
-			//	msh_tmp.initializeTetMesh();
-			//	tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
-			//}
-			//tetSimMesh.createGlobalSimulationMesh();
+			m4 = m1;
+			m4.filePath = "../input/impactor.msh";
+			m4.note = "impactor";
+			m4.translation = { 0, 0, 1.5e-2 };
+			config.push_back(m4);
 
 
 
-			//
+
+			Mesh tetSimMesh;
+			for (int i = 0; i < config.size(); i++)
+			{
+				tetMesh msh_tmp;
+				msh_tmp.readMesh(config[i]);
+				msh_tmp.initializeTetMesh();
+				tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
+			}
+			tetSimMesh.createGlobalSimulationMesh();
 
 
 
-			//std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
-			//std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
-
-
-			//FEMParamters parameters;
-			//parameters.gravity = { 0, 0, 0 };
-			//parameters.num_timesteps = 3000;
-			//parameters.numOfThreads = 12;
-			//parameters.dt = 5.0e-4;
-			//parameters.outputFrequency = 20;
-			//parameters.enableGround = false;
-			//parameters.searchResidual = 5.0;
-			//parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
-			//parameters.rigidMode = true;
-			////parameters.objectNames = objectNames;
-			//parameters.IPC_dis = 0.01;
-			//parameters.IPC_eta = 0.05;
-			//parameters.IPC_kStiffness = 1.0e14;
-			//parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
-			//parameters.IPC_B3Stiffness = 500;
+			
 
 
 
-			//for (int p = 0; p < tetSimMesh.pos_node.size(); p++)
-			//{
-			//	if (tetSimMesh.note_node[p] == "impactor")
-			//	{
-			//		tetSimMesh.boundaryCondition_node[p].type = 1;
-			//		for (int fra = 0; fra < parameters.num_timesteps; fra++)
-			//		{
-			//			double incre = 0.1 / (double)parameters.num_timesteps * (double)fra;
-			//			Eigen::Vector3d inc = {0,0,-incre };
-			//			Eigen::Vector3d desiredPos = inc + tetSimMesh.pos_node[p];
+			std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
+			std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
 
-			//			tetSimMesh.boundaryCondition_node[p].location.push_back(desiredPos);
-			//		}
-			//	}
 
-			//	if (tetSimMesh.note_node[p] == "beam")
-			//	{
-			//		if (tetSimMesh.pos_node[p][0] <= -22)
-			//		{
-			//			tetSimMesh.boundaryCondition_node[p].type = 1;
-			//			for (int fra = 0; fra < parameters.num_timesteps; fra++)
-			//			{
-			//				Eigen::Vector3d desiredPos = tetSimMesh.pos_node[p];
-			//				tetSimMesh.boundaryCondition_node[p].location.push_back(desiredPos);
-			//			}
-			//		}
-			//	}
-
-			//}
+			FEMParamters parameters;
+			parameters.gravity = { 0, 0, 0 };
+			parameters.num_timesteps = 1000;
+			parameters.numOfThreads = 12;
+			parameters.dt = 5.0e-4;
+			parameters.outputFrequency = 20;
+			parameters.enableGround = false;
+			parameters.searchResidual = 5.0;
+			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+			parameters.rigidMode = true;
+			//parameters.objectNames = objectNames;
+			parameters.IPC_dis = 0.01;
+			parameters.IPC_eta = 0.05;
+			parameters.IPC_kStiffness = 1.0e14;
+			parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
+			parameters.IPC_B3Stiffness = 500;
 
 
 
-			//implicitFEM(tetSimMesh, parameters);
+			for (int p = 0; p < tetSimMesh.pos_node.size(); p++)
+			{
+				if (tetSimMesh.note_node[p] == "impactor")
+				{
+					tetSimMesh.boundaryCondition_node[p].type = 1;
+					for (int fra = 0; fra < parameters.num_timesteps; fra++)
+					{
+						double incre = 0.1 / (double)parameters.num_timesteps * (double)fra;
+						Eigen::Vector3d inc = {0,0,-incre };
+						Eigen::Vector3d desiredPos = inc + tetSimMesh.pos_node[p];
+
+						tetSimMesh.boundaryCondition_node[p].location.push_back(desiredPos);
+					}
+				}
+
+				if (tetSimMesh.note_node[p] == "beam")
+				{
+					if (tetSimMesh.pos_node[p][0] <= -22)
+					{
+						tetSimMesh.boundaryCondition_node[p].type = 1;
+						for (int fra = 0; fra < parameters.num_timesteps; fra++)
+						{
+							Eigen::Vector3d desiredPos = tetSimMesh.pos_node[p];
+							tetSimMesh.boundaryCondition_node[p].location.push_back(desiredPos);
+						}
+					}
+				}
+
+			}
+
+
+
+			implicitFEM(tetSimMesh, parameters);
 
 
 		}
@@ -873,11 +886,11 @@ int main()
 
 
 			{
-				objMeshFormat crack;	
-				crack.readObjFile("../input/bunnyCrack.obj", true);
-				//crack.readObjFile("../input/bunnyCrack_Plane.obj", true);
-				crack.outputFile("bunnyCrack", -99, true);
-				tetSimMesh.sample_MLS_points(crack, parameters.MLS_num_MLS_Pts, parameters.MLS_radius, parameters.numOfThreads);
+				//objMeshFormat crack;	
+				//crack.readObjFile("../input/bunnyCrack.obj", true);
+				////crack.readObjFile("../input/bunnyCrack_Plane.obj", true);
+				//crack.outputFile("bunnyCrack", -99, true);
+				//tetSimMesh.sample_MLS_points(crack, parameters.MLS_num_MLS_Pts, parameters.MLS_radius, parameters.numOfThreads);
 			}
 			
 

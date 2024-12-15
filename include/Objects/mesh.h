@@ -132,11 +132,11 @@ public:
 	// data structure specialized for ABD
 	std::vector<Matrix12d> massMatrix_ABD; // the mass matrix of each mesh if in ABD mode
 	std::vector<Eigen::Vector3d> translation_prev_ABD; // translation of each mesh in previous timestep if in ABD mode
-	std::vector<Eigen::Vector3d> translation_ABD; // translation of each mesh if in ABD mode
 	std::vector<Eigen::Vector3d> translation_vel_ABD; // translation velocity
+	std::vector<Eigen::Vector3d> translation_ABD; // translation of each mesh if in ABD mode
 	std::vector<Eigen::Matrix3d> deformation_prev_ABD; // deformation of each mesh in previous timestep if in ABD mode
-	std::vector<Eigen::Matrix3d> deformation_ABD; // deformation of each mesh if in ABD mode
 	std::vector<Eigen::Matrix3d> deformation_vel_ABD; // deformation velocity
+	std::vector<Eigen::Matrix3d> deformation_ABD; // deformation of each mesh if in ABD mode
 	std::vector<double> volume_ABD; // volume of each mesh if in ABD mode
 
 
