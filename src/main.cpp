@@ -828,7 +828,7 @@ int main()
 			FEMParamters parameters;
 			parameters.gravity = { 0, 0, -9.8 };
 			parameters.num_timesteps = 1000000;
-			parameters.numOfThreads = 32;
+			parameters.numOfThreads = 16;
 			parameters.dt = 1.0e-4;
 			parameters.outputFrequency = 100;
 			parameters.enableGround = false;
@@ -841,7 +841,7 @@ int main()
 			parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
 			parameters.IPC_B3Stiffness = 500;
 
-			parameters.MLS_radius = 1.5;
+			parameters.MLS_radius = 0.5;
 
 			std::cout << "parameters.IPC_hashSize = " << parameters.IPC_hashSize << std::endl;
 

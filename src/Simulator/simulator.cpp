@@ -379,7 +379,7 @@ double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timeste
 
 	// energy contribution per element
 	std::vector<double> tex_est_energy_vec(tetSimMesh.tetra_F.size());
-//#pragma omp parallel for num_threads(parameters.numOfThreads)
+#pragma omp parallel for num_threads(parameters.numOfThreads)
 	for (int eI = 0; eI < tetSimMesh.tetra_F.size(); eI++)
 	{
 		// the internal elastic energy contribution

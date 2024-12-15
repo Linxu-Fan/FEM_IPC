@@ -27,6 +27,22 @@ public:
 
 	Eigen::Vector3d computeWeightDerivative(const Eigen::Vector3d& x_s, const Eigen::Vector3d& x_i, double d_i);
 
+
+
+	// new MLS approximation
+	Eigen::MatrixXd computeBasisGradient(int d);
+
+
+
+
+	// quadratic MLS approximation
+	// Function to construct the quadratic shifted basis for a point
+	Eigen::VectorXd computeQuadraticShiftedBasis(const Eigen::VectorXd& p_i, const Eigen::VectorXd& p_s);
+
+	// Function to compute the gradient of the quadratic shifted basis at p_s
+	Eigen::MatrixXd computeBasisGradientAtPs(int d, int m);
+
+
 };
 
 
