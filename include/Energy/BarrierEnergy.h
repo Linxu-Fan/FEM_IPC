@@ -4,6 +4,12 @@
 #include "distance.h"
 #include "mesh.h"
 
+template<int size>
+void assemble_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
+	std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess,
+	std::vector<int>& activePts, Eigen::Matrix<double, size * 3, 1>& grad_, Eigen::Matrix<double, size * 3, size * 3>& hess_,
+	int& startIndex_grad, Mesh& tetSimMesh, bool ABD = false);
+
 
 namespace BarrierEnergy
 {
@@ -21,24 +27,11 @@ namespace BarrierEnergy
 		Eigen::Vector4i& ptIndices, int& type, double& dis2, Mesh& tetSimMesh,
 		FEMParamters& parameters, bool ABD = false);
 
-	void cal_PT_PP_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
+	void cal_and_assemble_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
 		std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess,
-		Eigen::Vector2i& activePtsLocalInd,
+		std::vector<int>& activePtsLocalInd,
 		int& startIndex_grad, Mesh& tetSimMesh,
 		FEMParamters& parameters, double& contactArea, double& g_bd, double& h_bd, bool ABD = false);
-
-	void cal_PT_PE_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
-		std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess,
-		Eigen::Vector3i& activePtsLocalInd,
-		int& startIndex_grad, Mesh& tetSimMesh,
-		FEMParamters& parameters, double& contactArea, double& g_bd, double& h_bd, bool ABD = false);
-
-	void cal_PT_PT_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
-		std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess,		 
-		Eigen::Vector4i& activePtsLocalInd,
-		int& startIndex_grad, Mesh& tetSimMesh,
-		FEMParamters& parameters, double& contactArea, double& g_bd, double& h_bd, bool ABD = false);
-
 
 
 	// compute the energy gradient and hessian of edge-edge contact
@@ -48,20 +41,11 @@ namespace BarrierEnergy
 		Eigen::Vector4i& ptIndices, int& type, double& dis2, Mesh& tetSimMesh,
 		FEMParamters& parameters, bool ABD = false);
 
-	//void cal_EE_PP_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
-	//	std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess,
-	//	int& startIndex_grad, std::vector<boundaryCondition>& boundaryCondition_node,
-	//	Eigen::Vector2i& activePtsLocalInd, int& type, double& dis2, Mesh& tetSimMesh,
-	//	FEMParamters& parameters,double& g_bd, double& h_bd, double& contactArea,
-	//	Eigen::Vector3d& P1, Eigen::Vector3d& P2, bool ABD = false);
-
-
 
 	// project edge-edge's gradient and hessian into full 12x1 vector and 12x12 matrix to faciliate mollifier mulitiplication
-	void project_grad_to_full(Eigen::Vector2i& activePtsLocalInd, Vector6d& grad_, 
-		Matrix6d& hess_, Vector12d& grad_full, Matrix12d& hess__full);
-	void project_grad_to_full(Eigen::Vector3i& activePtsLocalInd, Vector9d& grad_, 
-		Matrix9d& hess_, Vector12d& grad_full, Matrix12d& hess__full);
+	template<int size>
+	void project_grad_to_full(std::vector<int>& activePtsLocalInd, Eigen::Matrix<double, size * 3, 1>& grad_,
+		Eigen::Matrix<double, size * 3, size * 3>& hess_, Vector12d& grad_full, Matrix12d& hess__full);
 
 
 	double compute_b(double& d2, double& dHat2);
@@ -81,7 +65,7 @@ namespace Ground
 
 	void gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet, 
 		std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, 
-		int& startIndex_grad, 
+		int& startIndex_grad, Mesh& tetSimMesh,
 		int& index_i, double& coor_z, double& contactArea, FEMParamters& parameters, bool ABD = false);
 
 

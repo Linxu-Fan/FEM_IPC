@@ -253,129 +253,6 @@ std::pair<Eigen::Vector3d, Eigen::Vector3d> findBoundingBox_vec(std::vector<Eige
 
 
 
-
-
-void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, 
-	std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, 
-	int& startIndex_grad, 
-	int& D1Index, Vector3d& V3, Matrix3d& H3x3)
-{
-	for (int xd = 0; xd < 3; xd++)
-	{
-		grad_triplet[startIndex_grad + xd] = { D1Index * 3 + xd, V3[xd] };
-		for (int yd = 0; yd < 3; yd++)
-		{
-			hessian_triplet[startIndex_hess + xd * 3 + yd] = { D1Index * 3 + xd, D1Index * 3 + yd, H3x3(xd, yd) };
-		}
-	}
-
-}
-
-
-void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, 
-	std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, 
-	int& startIndex_grad, 
-	Eigen::Vector2i& D2Index, Vector6d& V6, Matrix6d& H6x6)
-{
-
-
-	for (int j = 0; j < 2; j++)
-	{
-		int pt1 = D2Index[j];
-		for (int xd = 0; xd < 3; xd++)
-		{
-			double value = V6[j * 3 + xd];
-			grad_triplet[startIndex_grad + j * 3 + xd] = { pt1 * 3 + xd, value };
-		}
-
-		for (int q = 0; q < 2; q++)
-		{
-			int pt2 = D2Index[q];
-			for (int xd = 0; xd < 3; xd++)
-			{
-				for (int yd = 0; yd < 3; yd++)
-				{
-					hessian_triplet[startIndex_hess + j * 18 + q * 9 + xd * 3 + yd] = { pt1 * 3 + xd, pt2 * 3 + yd, H6x6(j * 3 + xd, q * 3 + yd) };
-				}
-			}
-		}
-	}
-
-
-}
-
-
-void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, 
-	std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, 
-	int& startIndex_grad, 
-	Eigen::Vector3i& D3Index, Vector9d& V9, Matrix9d& H9x9)
-{
-
-
-	for (int j = 0; j < 3; j++)
-	{
-		int pt1 = D3Index[j];
-		for (int xd = 0; xd < 3; xd++)
-		{
-			double value = V9[j * 3 + xd];
-			grad_triplet[startIndex_grad + j * 3 + xd] = { pt1 * 3 + xd, value };
-		}
-
-		for (int q = 0; q < 3; q++)
-		{
-			int pt2 = D3Index[q];
-
-			for (int xd = 0; xd < 3; xd++)
-			{
-				for (int yd = 0; yd < 3; yd++)
-				{
-					hessian_triplet[startIndex_hess + j * 27 + q * 9 + xd * 3 + yd] = { pt1 * 3 + xd, pt2 * 3 + yd, H9x9(j * 3 + xd, q * 3 + yd) };
-				}
-			}		
-		}
-
-	
-	}
-
-}
-
-
-void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, 
-	std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess,
-	int& startIndex_grad, 
-	Eigen::Vector4i& D4Index, Vector12d& V12, Matrix12d& H12x12)
-{
-
-	for (int j = 0; j < 4; j++)
-	{
-		int pt1 = D4Index[j];
-		for (int xd = 0; xd < 3; xd++)
-		{
-			double value = V12[j * 3 + xd];
-			grad_triplet[startIndex_grad + j * 3 + xd] = { pt1 * 3 + xd, value };
-		}
-
-		for (int q = 0; q < 4; q++)
-		{
-			int pt2 = D4Index[q];
-
-			for (int xd = 0; xd < 3; xd++)
-			{
-				for (int yd = 0; yd < 3; yd++)
-				{
-					hessian_triplet[startIndex_hess + j * 36 + q * 9 + xd * 3 + yd] = { pt1 * 3 + xd, pt2 * 3 + yd, H12x12(j * 3 + xd, q * 3 + yd) };
-				}
-			}			
-		}
-
-		
-	}
-
-}
-
-
-
-
 bool insideBoundingBox(Eigen::Vector3d pt, Eigen::Vector3d bbx_min, Eigen::Vector3d bbx_max)
 {
 	bool res = false;
@@ -414,6 +291,20 @@ Eigen::Vector3d randomPointInTetrahedron(const Eigen::Vector3d& V1, const Eigen:
 	double b4 = r4 / sum;
 
 	return b1 * V1 + b2 * V2 + b3 * V3 + b4 * V4;
+}
+
+
+
+
+
+Eigen::Matrix<double, 3, 12> build_Jx_matrix_for_ABD(const Eigen::Vector3d& pos)
+{
+	Eigen::Matrix<double, 3, 12> Jx;
+	Jx.block(0, 0, 3, 3) = Eigen::Matrix3d::Identity();
+	Jx.block(0, 3, 1, 3) = pos.transpose();
+	Jx.block(1, 6, 1, 3) = pos.transpose();
+	Jx.block(2, 9, 1, 3) = pos.transpose();
+	return Jx;
 }
 
 
@@ -540,6 +431,10 @@ void ComputeEigenvector1(double a00, double a01, double a02, double a11,
 		}
 	}
 }
+
+
+
+
 
 
 

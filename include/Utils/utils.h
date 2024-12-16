@@ -197,23 +197,14 @@ struct boundaryCondition
 
 
 
-
-
-void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, int& D1Index, Vector3d& V3, Matrix3d& H3x3);
-void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, Eigen::Vector2i& D2Index, Vector6d& V6, Matrix6d& H6x6);
-void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, Eigen::Vector3i& D3Index, Vector9d& V9, Matrix9d& H9x9);
-void BE_to_triplet(std::vector<Eigen::Triplet<double>>& hessian_triplet, std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, int& startIndex_grad, Eigen::Vector4i& D4Index, Vector12d& V12, Matrix12d& H12x12);
-
-
-
 template <typename Scalar, int size>
-static void makePD(Eigen::Matrix<Scalar, size, size>& symMtr)
+static void makePD(Eigen::Matrix<double, size, size>& symMtr)
 {
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix<Scalar, size, size>> eigenSolver(symMtr);
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double, size, size>> eigenSolver(symMtr);
     if (eigenSolver.eigenvalues()[0] >= 0.0) {
         return;
     }
-    Eigen::DiagonalMatrix<Scalar, size> D(eigenSolver.eigenvalues());
+    Eigen::DiagonalMatrix<double, size> D(eigenSolver.eigenvalues());
     int rows = ((size == Eigen::Dynamic) ? symMtr.rows() : size);
     for (int i = 0; i < rows; i++) {
         if (D.diagonal()[i] < 0.0) {
@@ -229,6 +220,24 @@ static void makePD(Eigen::Matrix<Scalar, size, size>& symMtr)
 
 
 Eigen::Vector3d randomPointInTetrahedron(const Eigen::Vector3d& V1, const Eigen::Vector3d& V2, const Eigen::Vector3d& V3, const Eigen::Vector3d& V4);
+
+
+
+Eigen::Matrix<double, 3, 12> build_Jx_matrix_for_ABD(const Eigen::Vector3d& pos);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

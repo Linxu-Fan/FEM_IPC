@@ -232,8 +232,8 @@ int main()
 		if (caseNum == 0)
 		{
 			Material mat1;
-			mat1.density = 2780;
-			mat1.E = 7.26e7;
+			mat1.density = 7880;
+			mat1.E = 7.26e10;
 			mat1.updateDenpendecies();
 
 
@@ -288,7 +288,7 @@ int main()
 
 
 			FEMParamters parameters;
-			parameters.gravity = { 0, 0, 0 };
+			parameters.gravity = { 0, 0, -9.8 };
 			parameters.num_timesteps = 1000;
 			parameters.numOfThreads = 12;
 			parameters.dt = 5.0e-4;

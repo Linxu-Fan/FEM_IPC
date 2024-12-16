@@ -695,7 +695,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 				actualStartIndex_grad = startIndex_grad + i * 3;
 			double z2 = P[2] * P[2];
 			Ground::gradAndHess(hessian_triplet, grad_triplet, actualStartIndex_hess, 
-				actualStartIndex_grad, ptInd, 
+				actualStartIndex_grad, tetSimMesh, ptInd,
 				z2, tetSimMesh.boundaryVertices_area[ptInd],parameters);
 		}
 
