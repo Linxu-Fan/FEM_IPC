@@ -161,12 +161,6 @@ void BarrierEnergy::cal_and_assemble_gradAndHess(std::vector<Eigen::Triplet<doub
         makePD<double, 12>(hessian);
         assemble_gradAndHess<4>(hessian_triplet, grad_triplet, startIndex_hess, activePtsLocalInd, grad, hessian, startIndex_grad, tetSimMesh, ABD);
     }
-    else
-    {
-
-    }
-
-
 
    
 }
@@ -200,7 +194,7 @@ void assemble_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
                 {
                     for (int yd = 0; yd < 3; yd++)
                     {
-                        hessian_triplet[startIndex_hess + j * 36 + q * 9 + xd * 3 + yd] = { pt1 * 3 + xd, pt2 * 3 + yd, hess_(j * 3 + xd, q * 3 + yd) };
+                        hessian_triplet[startIndex_hess + activePts.size() * j * 9 + q * 9 + xd * 3 + yd] = { pt1 * 3 + xd, pt2 * 3 + yd, hess_(j * 3 + xd, q * 3 + yd) };
                     }
                 }
             }
@@ -222,7 +216,7 @@ void assemble_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
             for (int xd = 0; xd < 12; xd++)
             {
                 double value = energy_wrt_q_grad[xd];
-                grad_triplet[startIndex_grad + xd] = { AB_index_1 * 12 + xd, value };
+                grad_triplet[startIndex_grad + j * 12 + xd] = { AB_index_1 * 12 + xd, value };
             }
 
             // assemble hessian
@@ -238,7 +232,7 @@ void assemble_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
                 {
                     for (int yd = 0; yd < 12; yd++)
                     {
-                        hessian_triplet[startIndex_hess + j * 144 * 2 + q * 144 + xd * 12 + yd] = { AB_index_1 * 12 + xd, AB_index_2 * 12 + yd, energy_wrt_q_hess(xd, yd) };
+                        hessian_triplet[startIndex_hess + j * activePts.size() * 144 + q * 144 + xd * 12 + yd] = { AB_index_1 * 12 + xd, AB_index_2 * 12 + yd, energy_wrt_q_hess(xd, yd) };
                     }
                 }
             }

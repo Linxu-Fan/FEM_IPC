@@ -87,7 +87,6 @@ struct FEMParamters
 };
 
 
-
 // Struct of material
 struct Material
 {
@@ -133,9 +132,6 @@ struct Material
 };
 
 
-
-
-
 // split a line from a text file
 std::vector<std::string> split(const std::string& s, const std::string& seperator);
 
@@ -161,7 +157,6 @@ bool findIntersectionOfTwoVector3d(Eigen::Vector3d& minCoor1, Eigen::Vector3d& m
 
 // find if an element exists in a multimap
 bool existInMultiMap_2(int x, int y, std::map<int, std::map<int, int>>& gridMap);
-
 
 
 inline double squaredDouble(double a)
@@ -198,23 +193,23 @@ struct boundaryCondition
 
 
 template <typename Scalar, int size>
-static void makePD(Eigen::Matrix<double, size, size>& symMtr)
+static void makePD(Eigen::Matrix<Scalar, size, size>& symMtr)
 {
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double, size, size>> eigenSolver(symMtr);
-    if (eigenSolver.eigenvalues()[0] >= 0.0) {
-        return;
-    }
-    Eigen::DiagonalMatrix<double, size> D(eigenSolver.eigenvalues());
-    int rows = ((size == Eigen::Dynamic) ? symMtr.rows() : size);
-    for (int i = 0; i < rows; i++) {
-        if (D.diagonal()[i] < 0.0) {
-            D.diagonal()[i] = 0.0;
-        }
-        else {
-            break;
-        }
-    }
-    symMtr = eigenSolver.eigenvectors() * D * eigenSolver.eigenvectors().transpose();
+	Eigen::SelfAdjointEigenSolver<Eigen::Matrix<Scalar, size, size>> eigenSolver(symMtr);
+	if (eigenSolver.eigenvalues()[0] >= 0.0) {
+		return;
+	}
+	Eigen::DiagonalMatrix<Scalar, size> D(eigenSolver.eigenvalues());
+	int rows = ((size == Eigen::Dynamic) ? symMtr.rows() : size);
+	for (int i = 0; i < rows; i++) {
+		if (D.diagonal()[i] < 0.0) {
+			D.diagonal()[i] = 0.0;
+		}
+		else {
+			break;
+		}
+	}
+	symMtr = eigenSolver.eigenvectors() * D * eigenSolver.eigenvectors().transpose();
 }
 
 
@@ -222,7 +217,8 @@ static void makePD(Eigen::Matrix<double, size, size>& symMtr)
 Eigen::Vector3d randomPointInTetrahedron(const Eigen::Vector3d& V1, const Eigen::Vector3d& V2, const Eigen::Vector3d& V3, const Eigen::Vector3d& V4);
 
 
-
+// Build the constant Jx matrix for ABD
+// Jx is defined under Eq.2 in "Affine body dynamics fast, stable and intersection-free simulation of stiff materials"
 Eigen::Matrix<double, 3, 12> build_Jx_matrix_for_ABD(const Eigen::Vector3d& pos);
 
 

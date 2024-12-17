@@ -228,117 +228,117 @@ int main()
 		// 3. ABD test
 		// 4. Explicit test
 		// 5. Object hanging test to verify element sampling algorithm
-		int caseNum = 0;
+		int caseNum = 3;
 		if (caseNum == 0)
 		{
-			Material mat1;
-			mat1.density = 7880;
-			mat1.E = 7.26e10;
-			mat1.updateDenpendecies();
+			//Material mat1;
+			//mat1.density = 7880;
+			//mat1.E = 7.26e10;
+			//mat1.updateDenpendecies();
 
 
-			
-			std::vector<meshConfiguration> config;			
-			meshConfiguration m1, m2, m3, m4;
-			m1.filePath = "../input/beam.msh";
-			m1.mesh_material = mat1;
-			m1.scale = {1000, 1000, 1000};
-			m1.note = "beam";
-			config.push_back(m1);
+			//
+			//std::vector<meshConfiguration> config;			
+			//meshConfiguration m1, m2, m3, m4;
+			//m1.filePath = "../input/beam.msh";
+			//m1.mesh_material = mat1;
+			//m1.scale = {1000, 1000, 1000};
+			//m1.note = "beam";
+			//config.push_back(m1);
 
-			m2 = m1;
-			m2.filePath = "../input/left_support.msh";
-			m2.note = "left_support";
-			m2.translation = { 0, 0, 1.0e-4};
-			//config.push_back(m2);
+			//m2 = m1;
+			//m2.filePath = "../input/left_support.msh";
+			//m2.note = "left_support";
+			//m2.translation = { 0, 0, 1.0e-4};
+			////config.push_back(m2);
 
-			m3 = m1;
-			m3.filePath = "../input/middle_support.msh";
-			m3.note = "middle_support";
-			m3.translation = { 0, 0, -1.0e-4 };
-			//config.push_back(m3);
+			//m3 = m1;
+			//m3.filePath = "../input/middle_support.msh";
+			//m3.note = "middle_support";
+			//m3.translation = { 0, 0, -1.0e-4 };
+			////config.push_back(m3);
 
-			m4 = m1;
-			m4.filePath = "../input/impactor.msh";
-			m4.note = "impactor";
-			m4.translation = { 0, 0, 1.5e-2 };
-			config.push_back(m4);
-
-
-
-
-			Mesh tetSimMesh;
-			for (int i = 0; i < config.size(); i++)
-			{
-				tetMesh msh_tmp;
-				msh_tmp.readMesh(config[i]);
-				msh_tmp.initializeTetMesh();
-				tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
-			}
-			tetSimMesh.createGlobalSimulationMesh();
+			//m4 = m1;
+			//m4.filePath = "../input/impactor.msh";
+			//m4.note = "impactor";
+			//m4.translation = { 0, 0, 1.5e-2 };
+			//config.push_back(m4);
 
 
 
-			
+
+			//Mesh tetSimMesh;
+			//for (int i = 0; i < config.size(); i++)
+			//{
+			//	tetMesh msh_tmp;
+			//	msh_tmp.readMesh(config[i]);
+			//	msh_tmp.initializeTetMesh();
+			//	tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
+			//}
+			//tetSimMesh.createGlobalSimulationMesh();
 
 
 
-			std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
-			std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
-
-
-			FEMParamters parameters;
-			parameters.gravity = { 0, 0, -9.8 };
-			parameters.num_timesteps = 1000;
-			parameters.numOfThreads = 12;
-			parameters.dt = 5.0e-4;
-			parameters.outputFrequency = 20;
-			parameters.enableGround = false;
-			parameters.searchResidual = 5.0;
-			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
-			parameters.rigidMode = true;
-			//parameters.objectNames = objectNames;
-			parameters.IPC_dis = 0.01;
-			parameters.IPC_eta = 0.05;
-			parameters.IPC_kStiffness = 1.0e14;
-			parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
-			parameters.IPC_B3Stiffness = 500;
+			//
 
 
 
-			for (int p = 0; p < tetSimMesh.pos_node.size(); p++)
-			{
-				if (tetSimMesh.note_node[p] == "impactor")
-				{
-					tetSimMesh.boundaryCondition_node[p].type = 1;
-					for (int fra = 0; fra < parameters.num_timesteps; fra++)
-					{
-						double incre = 0.1 / (double)parameters.num_timesteps * (double)fra;
-						Eigen::Vector3d inc = {0,0,-incre };
-						Eigen::Vector3d desiredPos = inc + tetSimMesh.pos_node[p];
+			//std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
+			//std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
 
-						tetSimMesh.boundaryCondition_node[p].location.push_back(desiredPos);
-					}
-				}
 
-				if (tetSimMesh.note_node[p] == "beam")
-				{
-					if (tetSimMesh.pos_node[p][0] <= -22)
-					{
-						tetSimMesh.boundaryCondition_node[p].type = 1;
-						for (int fra = 0; fra < parameters.num_timesteps; fra++)
-						{
-							Eigen::Vector3d desiredPos = tetSimMesh.pos_node[p];
-							tetSimMesh.boundaryCondition_node[p].location.push_back(desiredPos);
-						}
-					}
-				}
-
-			}
+			//FEMParamters parameters;
+			//parameters.gravity = { 0, 0, -9.8 };
+			//parameters.num_timesteps = 1000;
+			//parameters.numOfThreads = 12;
+			//parameters.dt = 5.0e-4;
+			//parameters.outputFrequency = 20;
+			//parameters.enableGround = false;
+			//parameters.searchResidual = 5.0;
+			//parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+			//parameters.rigidMode = true;
+			////parameters.objectNames = objectNames;
+			//parameters.IPC_dis = 0.01;
+			//parameters.IPC_eta = 0.05;
+			//parameters.IPC_kStiffness = 1.0e14;
+			//parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
+			//parameters.IPC_B3Stiffness = 500;
 
 
 
-			implicitFEM(tetSimMesh, parameters);
+			//for (int p = 0; p < tetSimMesh.pos_node.size(); p++)
+			//{
+			//	if (tetSimMesh.note_node[p] == "impactor")
+			//	{
+			//		tetSimMesh.boundaryCondition_node[p].type = 1;
+			//		for (int fra = 0; fra < parameters.num_timesteps; fra++)
+			//		{
+			//			double incre = 0.1 / (double)parameters.num_timesteps * (double)fra;
+			//			Eigen::Vector3d inc = {0,0,-incre };
+			//			Eigen::Vector3d desiredPos = inc + tetSimMesh.pos_node[p];
+
+			//			tetSimMesh.boundaryCondition_node[p].location.push_back(desiredPos);
+			//		}
+			//	}
+
+			//	if (tetSimMesh.note_node[p] == "beam")
+			//	{
+			//		if (tetSimMesh.pos_node[p][0] <= -22)
+			//		{
+			//			tetSimMesh.boundaryCondition_node[p].type = 1;
+			//			for (int fra = 0; fra < parameters.num_timesteps; fra++)
+			//			{
+			//				Eigen::Vector3d desiredPos = tetSimMesh.pos_node[p];
+			//				tetSimMesh.boundaryCondition_node[p].location.push_back(desiredPos);
+			//			}
+			//		}
+			//	}
+
+			//}
+
+
+
+			//implicitFEM(tetSimMesh, parameters);
 
 
 		}
@@ -587,100 +587,67 @@ int main()
 		}
 		else if (caseNum == 3)
 		{
-			//Material mat1;
-			//mat1.density = 2780;
-			//mat1.E = 7.26e7;
-			//mat1.updateDenpendecies();
+			Material mat1;
+			mat1.density = 2780;
+			mat1.E = 7.26e12;
+			mat1.updateDenpendecies();
 
 
 
-			//std::vector<meshConfiguration> config;
-			//meshConfiguration m1, m2, m3, m4;
-			//m1.filePath = "../input/beam.msh";
-			//m1.mesh_material = mat1;
-			//m1.scale = { 1000, 1000, 1000 };
-			//m1.note = "beam";
-			//config.push_back(m1);
-
-			//m4 = m1;
-			//m4.filePath = "../input/impactor.msh";
-			//m4.note = "impactor";
-			//m4.translation = { 0, 0, 1.5e-2 };
-			//config.push_back(m4);
+			std::vector<meshConfiguration> config;
+			meshConfiguration m1, m2;
+			m1.filePath = "../input/cube.msh";
+			m1.mesh_material = mat1;
+			m1.note = "cube1";
+			config.push_back(m1);
 
 
-
-
-			//Mesh tetSimMesh;
-			//for (int i = 0; i < config.size(); i++)
-			//{
-			//	tetMesh msh_tmp;
-			//	msh_tmp.readMesh(config[i]);
-			//	msh_tmp.initializeTetMesh();
-			//	tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
-			//}
-			//tetSimMesh.createGlobalSimulationMesh();
-
-
-			//std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
-			//std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
+			m2.filePath = "../input/cube.msh";
+			m2.mesh_material = mat1;
+			m2.note = "cube2";
+			m2.translation = { 2, 0, 0 };
+			config.push_back(m2);
 
 
 
-			//FEMParamters parameters;
-			//parameters.gravity = { 0, 0, 0 };
-			//parameters.num_timesteps = 3000;
-			//parameters.numOfThreads = 12;
-			//parameters.dt = 5.0e-4;
-			//parameters.outputFrequency = 20;
-			//parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
-			//parameters.enableGround = false;
-			//parameters.searchResidual = 5.0;
-			//parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
-			//parameters.rigidMode = true;
-			////parameters.objectNames = objectNames;
-			//parameters.IPC_dis = 0.01;
-			//parameters.IPC_eta = 0.05;
-			//parameters.IPC_kStiffness = 1.0e14;
-			//parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
-			//parameters.IPC_B3Stiffness = 500;
+
+			Mesh_ABD tetSimMesh;
+			for (int i = 0; i < config.size(); i++)
+			{
+				tetMesh msh_tmp;
+				msh_tmp.readMesh(config[i]);
+				msh_tmp.initializeTetMesh();
+				tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
+			}
+			tetSimMesh.createGlobalSimulationMesh_ABD();
+			tetSimMesh.translation_vel_ABD[0] = { 10,0,0 };
+
+
+			std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
+			std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
 
 
 
-			//for (int p = 0; p < tetSimMesh.pos_node.size(); p++)
-			//{
-			//	if (tetSimMesh.note_node[p] == "impactor")
-			//	{
-			//		tetSimMesh.boundaryCondition_node[p].type = 1;
-			//		for (int fra = 0; fra < parameters.num_timesteps; fra++)
-			//		{
-			//			double incre = 0.1 / (double)parameters.num_timesteps * (double)fra;
-			//			Eigen::Vector3d inc = { 0,0,-incre };
-			//			Eigen::Vector3d desiredPos = inc + tetSimMesh.pos_node[p];
-
-			//			tetSimMesh.boundaryCondition_node[p].location.push_back(desiredPos);
-			//		}
-			//	}
-
-			//	if (tetSimMesh.note_node[p] == "beam")
-			//	{
-			//		if (tetSimMesh.pos_node[p][0] <= -22)
-			//		{
-			//			tetSimMesh.boundaryCondition_node[p].type = 1;
-			//			for (int fra = 0; fra < parameters.num_timesteps; fra++)
-			//			{
-			//				Eigen::Vector3d desiredPos = tetSimMesh.pos_node[p];
-			//				tetSimMesh.boundaryCondition_node[p].location.push_back(desiredPos);
-			//			}
-			//		}
-			//	}
-
-			//}
+			FEMParamters parameters;
+			parameters.gravity = { 0, 0, 0 };
+			parameters.num_timesteps = 1000;
+			parameters.numOfThreads = 12;
+			parameters.dt = 1.0e-2;
+			parameters.outputFrequency = 1;
+			parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
+			parameters.enableGround = false;
+			parameters.searchResidual = 6.0;
+			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+			parameters.rigidMode = true;
+			parameters.IPC_dis = 0.01;
+			parameters.IPC_eta = 0.05;
+			parameters.IPC_kStiffness = 1.0e14;
+			parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
+			parameters.IPC_B3Stiffness = 500;
 
 
 
-			//implicitFEM(tetSimMesh, parameters);
-
+			implicitFEM_ABD(tetSimMesh, parameters);
 
 		}
 		else if (caseNum == 4)
@@ -786,278 +753,278 @@ int main()
 		}
 		else if (caseNum == 5)
 		{
-			Material mat1;
-			mat1.density = 2700;
-			mat1.E = 1.0e7;
-			mat1.nu = 0.3;
+			//Material mat1;
+			//mat1.density = 2700;
+			//mat1.E = 1.0e7;
+			//mat1.nu = 0.3;
 
-			mat1.thetaf = 6.0E5;
-			mat1.Gf = 300;
-			double hsTarget = 0.45;
-			mat1.lch = 1.0;
-			mat1.updateDenpendecies();
-
-
-
-			std::vector<meshConfiguration> config;
-			meshConfiguration m1, m2, m3, m4;
-			m1.filePath = "../input/bunny_highRes_mesh.msh";
-			m1.mesh_material = mat1;
-			m1.note = "bunny";
-			//m1.scale = {1000,1000,1000};
-			//m1.rotation_angle = {PI_Value / 2.0,0,0};
-			m1.translation = { 0,0,0 };
-			config.push_back(m1);
+			//mat1.thetaf = 6.0E5;
+			//mat1.Gf = 300;
+			//double hsTarget = 0.45;
+			//mat1.lch = 1.0;
+			//mat1.updateDenpendecies();
 
 
 
 			//std::vector<meshConfiguration> config;
 			//meshConfiguration m1, m2, m3, m4;
-			//m1.filePath = "../input/Right_top_move.msh";
+			//m1.filePath = "../input/bunny_highRes_mesh.msh";
 			//m1.mesh_material = mat1;
-			//m1.note = "cube";
-			//m1.scale = { 1000,1000,1000 };
-			//m1.rotation_angle = { PI_Value / 2.0,0,0 };
-			//m1.translation = { -48,4,5.3 };
+			//m1.note = "bunny";
+			////m1.scale = {1000,1000,1000};
+			////m1.rotation_angle = {PI_Value / 2.0,0,0};
+			//m1.translation = { 0,0,0 };
 			//config.push_back(m1);
 
 
 
-			Mesh tetSimMesh;
-			for (int i = 0; i < config.size(); i++)
-			{
-				tetMesh msh_tmp;
-				msh_tmp.readMesh(config[i]);
-				msh_tmp.initializeTetMesh();
-				tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
-			}
-			tetSimMesh.createGlobalSimulationMesh();
-
-			tetSimMesh.exportEdges("bunnyEdges");
+			////std::vector<meshConfiguration> config;
+			////meshConfiguration m1, m2, m3, m4;
+			////m1.filePath = "../input/Right_top_move.msh";
+			////m1.mesh_material = mat1;
+			////m1.note = "cube";
+			////m1.scale = { 1000,1000,1000 };
+			////m1.rotation_angle = { PI_Value / 2.0,0,0 };
+			////m1.translation = { -48,4,5.3 };
+			////config.push_back(m1);
 
 
 
+			//Mesh tetSimMesh;
+			//for (int i = 0; i < config.size(); i++)
+			//{
+			//	tetMesh msh_tmp;
+			//	msh_tmp.readMesh(config[i]);
+			//	msh_tmp.initializeTetMesh();
+			//	tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
+			//}
+			//tetSimMesh.createGlobalSimulationMesh();
 
-			FEMParamters parameters;
-			parameters.gravity = { 0, 0, -9.8 };
-			parameters.num_timesteps = 1000000;
-			parameters.numOfThreads = 16;
-			parameters.dt = 1.0e-4;
-			parameters.outputFrequency = 100;
-			parameters.enableGround = false;
-			parameters.searchResidual = 7.0;
-			parameters.model = "ARAP"; // neoHookean ARAP ARAP_linear ACAP
-			parameters.rigidMode = true;
-			parameters.IPC_dis = 0.01;
-			parameters.IPC_eta = 0.05;
-			parameters.IPC_kStiffness = 1.0e12;
-			parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
-			parameters.IPC_B3Stiffness = 500;
-
-			parameters.MLS_radius = 0.5;
-
-			std::cout << "parameters.IPC_hashSize = " << parameters.IPC_hashSize << std::endl;
+			//tetSimMesh.exportEdges("bunnyEdges");
 
 
 
 
-			/*{
-				objMeshFormat crack;
-				Eigen::Vector3d p1 = { -4,-4,15 };
-				Eigen::Vector3d p2 = { 4,-4,15 };
-				Eigen::Vector3d p3 = { 4,4,15 };
-				Eigen::Vector3d p4 = { -4,4,15 };
-				crack.vertices.push_back(p1);
-				crack.vertices.push_back(p2);
-				crack.vertices.push_back(p3);
-				crack.vertices.push_back(p4);
-				std::vector<int> fc;
-				fc.push_back(0);
-				fc.push_back(1);
-				fc.push_back(2);
-				fc.push_back(3);
-				crack.vertFaces.push_back(fc);
+			//FEMParamters parameters;
+			//parameters.gravity = { 0, 0, -9.8 };
+			//parameters.num_timesteps = 1000000;
+			//parameters.numOfThreads = 16;
+			//parameters.dt = 1.0e-4;
+			//parameters.outputFrequency = 100;
+			//parameters.enableGround = false;
+			//parameters.searchResidual = 7.0;
+			//parameters.model = "ARAP"; // neoHookean ARAP ARAP_linear ACAP
+			//parameters.rigidMode = true;
+			//parameters.IPC_dis = 0.01;
+			//parameters.IPC_eta = 0.05;
+			//parameters.IPC_kStiffness = 1.0e12;
+			//parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
+			//parameters.IPC_B3Stiffness = 500;
 
-				crack.outputFile("crack", -99);
+			//parameters.MLS_radius = 0.5;
 
-				tetSimMesh.sample_MLS_points(crack, parameters.MLS_num_MLS_Pts, parameters.MLS_radius, parameters.numOfThreads);
-
-			}*/
-
-
-			{
-				//objMeshFormat crack;	
-				//crack.readObjFile("../input/bunnyCrack.obj", true);
-				////crack.readObjFile("../input/bunnyCrack_Plane.obj", true);
-				//crack.outputFile("bunnyCrack", -99, true);
-				//tetSimMesh.sample_MLS_points(crack, parameters.MLS_num_MLS_Pts, parameters.MLS_radius, parameters.numOfThreads);
-			}
-			
-
-
-			std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
-			std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
+			//std::cout << "parameters.IPC_hashSize = " << parameters.IPC_hashSize << std::endl;
 
 
 
 
-			for (int p = 0; p < tetSimMesh.pos_node.size(); p++)
-			{
-				/*if (tetSimMesh.note_node[p] == "cube")
-				{
-					if (tetSimMesh.pos_node[p][2] >= 25)
-					{
-						tetSimMesh.boundaryCondition_node[p].type = 1;
-						for (int fra = 0; fra < parameters.num_timesteps; fra++)
-						{
-							tetSimMesh.boundaryCondition_node[p].location.push_back(tetSimMesh.pos_node[p]);
-						}
-					}
+			///*{
+			//	objMeshFormat crack;
+			//	Eigen::Vector3d p1 = { -4,-4,15 };
+			//	Eigen::Vector3d p2 = { 4,-4,15 };
+			//	Eigen::Vector3d p3 = { 4,4,15 };
+			//	Eigen::Vector3d p4 = { -4,4,15 };
+			//	crack.vertices.push_back(p1);
+			//	crack.vertices.push_back(p2);
+			//	crack.vertices.push_back(p3);
+			//	crack.vertices.push_back(p4);
+			//	std::vector<int> fc;
+			//	fc.push_back(0);
+			//	fc.push_back(1);
+			//	fc.push_back(2);
+			//	fc.push_back(3);
+			//	crack.vertFaces.push_back(fc);
 
-					if (tetSimMesh.pos_node[p][2] <= 6)
-					{
-						tetSimMesh.boundaryCondition_node[p].type = 1;
-						Eigen::Vector3d vel = { 0,0,-1.0 };
-						for (int fra = 0; fra < parameters.num_timesteps; fra++)
-						{				
-							tetSimMesh.boundaryCondition_node[p].location.push_back(tetSimMesh.pos_node[p] + vel * parameters.dt * (double)fra);
-						}
-					}
+			//	crack.outputFile("crack", -99);
 
+			//	tetSimMesh.sample_MLS_points(crack, parameters.MLS_num_MLS_Pts, parameters.MLS_radius, parameters.numOfThreads);
 
-				}*/
+			//}*/
 
 
-			}
+			//{
+			//	//objMeshFormat crack;	
+			//	//crack.readObjFile("../input/bunnyCrack.obj", true);
+			//	////crack.readObjFile("../input/bunnyCrack_Plane.obj", true);
+			//	//crack.outputFile("bunnyCrack", -99, true);
+			//	//tetSimMesh.sample_MLS_points(crack, parameters.MLS_num_MLS_Pts, parameters.MLS_radius, parameters.numOfThreads);
+			//}
+			//
 
 
-			{
-				//// export all tetrahedron that has MLS points
-				//{
-				//	std::ofstream outfile9("./output/tetMLS.obj", std::ios::trunc);
-				//	for (std::map<int, std::vector<MLSPoints>>::iterator it = tetSimMesh.MLSPoints_tet_map.begin(); it != tetSimMesh.MLSPoints_tet_map.end(); it++)
-				//	{
-				//		int indTet = it->first;
-				//		for (int i = 0; i < 4; i++)
-				//		{
-				//			int indVt = tetSimMesh.tetrahedrals[indTet][i];
-				//			Eigen::Vector3d pos = tetSimMesh.pos_node[indVt];
-				//			outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
-				//		}
-				//	}
-				//	for (int j = 0; j < tetSimMesh.MLSPoints_tet_map.size(); j++)
-				//	{
-				//		outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 1 << " " << j * 4 + 2 << " " << j * 4 + 3 << std::endl;
-				//		outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 2 << " " << j * 4 + 3 << " " << j * 4 + 4 << std::endl;
-				//		outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 3 << " " << j * 4 + 4 << " " << j * 4 + 1 << std::endl;
-				//		outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 4 << " " << j * 4 + 1 << " " << j * 4 + 2 << std::endl;
-				//	}
-				//	outfile9.close();
-				//}
-
-				//// export tetrahedron-74
-				//{
-				//	std::ofstream outfile9("./output/tetMLS-74.obj", std::ios::trunc);
-				//	for (int i = 0; i < 4; i++)
-				//	{
-				//		int indVt = tetSimMesh.tetrahedrals[74][i];
-				//		Eigen::Vector3d pos = tetSimMesh.pos_node[indVt];
-				//		outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
-				//	}
-				//	outfile9 << std::scientific << std::setprecision(8) << "f " << 1 << " " << 2 << " " << 3 << std::endl;
-				//	outfile9 << std::scientific << std::setprecision(8) << "f " << 2 << " " << 3 << " " << 4 << std::endl;
-				//	outfile9 << std::scientific << std::setprecision(8) << "f " << 3 << " " << 4 << " " << 1 << std::endl;
-				//	outfile9 << std::scientific << std::setprecision(8) << "f " << 4 << " " << 1 << " " << 2 << std::endl;
-				//	outfile9.close();
-				//}
-
-				//// export tetrahedron-74's neighbouring tets
-				//{
-				//	std::ofstream outfile9("./output/tetMLS-74-neigs.obj", std::ios::trunc);
-				//	std::set<int> allTets;
-				//	for (int i = 0; i < 4; i++)
-				//	{
-				//		int indVt = tetSimMesh.tetrahedrals[74][i];
-				//		std::vector<int> tetsThisNode = tetSimMesh.tetrahedrals_node[indVt];
-				//		for (int j = 0; j < tetsThisNode.size(); j++)
-				//		{
-				//			int indTet = tetsThisNode[j];
-				//			allTets.insert(indTet);
-				//		}
-				//	}
-
-
-				//	for (std::set<int>::iterator it = allTets.begin(); it != allTets.end(); it++)
-				//	{
-				//		int indTet = *it;
-				//		for (int i = 0; i < 4; i++)
-				//		{
-				//			int indVt = tetSimMesh.tetrahedrals[indTet][i];
-				//			Eigen::Vector3d pos = tetSimMesh.pos_node[indVt];
-				//			outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
-				//		}
-				//	}
-				//	for (int j = 0; j < allTets.size(); j++)
-				//	{
-				//		outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 1 << " " << j * 4 + 2 << " " << j * 4 + 3 << std::endl;
-				//		outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 2 << " " << j * 4 + 3 << " " << j * 4 + 4 << std::endl;
-				//		outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 3 << " " << j * 4 + 4 << " " << j * 4 + 1 << std::endl;
-				//		outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 4 << " " << j * 4 + 1 << " " << j * 4 + 2 << std::endl;
-				//	}
-
-				//	outfile9.close();
-				//}
-
-				//// export tetrahedron-74 MLS-0
-				//{
-				//	std::ofstream outfile9("./output/tetMLS-74-MLS-0.obj", std::ios::trunc);
-				//	Eigen::Vector3d pos = tetSimMesh.MLSPoints_tet_map[74][0].pos_Rest;
-				//	outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
-				//	outfile9.close();
-				//}
-
-				//// export tetrahedron-74 MLS-0 control points
-				//{
-				//	std::ofstream outfile9("./output/tetMLS-74-MLS-0-ctrPts.obj", std::ios::trunc);
-				//	for (auto value : tetSimMesh.MLSPoints_tet_map[74][0].index_node)
-				//	{
-				//		Eigen::Vector3d pos = tetSimMesh.pos_node[value];
-				//		outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;						
-				//	}
-				//	outfile9.close();
-
-				//}
+			//std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
+			//std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
 
 
 
-				//// export all MLS points that have insufficient control points
-				//{
-				//	std::ofstream outfile9("./output/tetMLS_insuff.obj", std::ios::trunc);
-				//	for (std::map<int, std::vector<MLSPoints>>::iterator it = tetSimMesh.MLSPoints_tet_map.begin(); it != tetSimMesh.MLSPoints_tet_map.end(); it++)
-				//	{
-				//		int indTet = it->first;
-				//		for (int m = 0; m < tetSimMesh.MLSPoints_tet_map[indTet].size(); m++)
-				//		{
-				//			//int indVt = tetSimMesh.tetrahedrals[indTet][m];
-				//			if (tetSimMesh.MLSPoints_tet_map[indTet][m].index_node.size() < 4)
-				//			{
-				//				Eigen::Vector3d pos = tetSimMesh.MLSPoints_tet_map[indTet][m].pos_Rest;
-				//				outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
-				//			}					
-				//		}
-				//	}
-				//	outfile9.close();
-				//}
+
+			//for (int p = 0; p < tetSimMesh.pos_node.size(); p++)
+			//{
+			//	/*if (tetSimMesh.note_node[p] == "cube")
+			//	{
+			//		if (tetSimMesh.pos_node[p][2] >= 25)
+			//		{
+			//			tetSimMesh.boundaryCondition_node[p].type = 1;
+			//			for (int fra = 0; fra < parameters.num_timesteps; fra++)
+			//			{
+			//				tetSimMesh.boundaryCondition_node[p].location.push_back(tetSimMesh.pos_node[p]);
+			//			}
+			//		}
+
+			//		if (tetSimMesh.pos_node[p][2] <= 6)
+			//		{
+			//			tetSimMesh.boundaryCondition_node[p].type = 1;
+			//			Eigen::Vector3d vel = { 0,0,-1.0 };
+			//			for (int fra = 0; fra < parameters.num_timesteps; fra++)
+			//			{				
+			//				tetSimMesh.boundaryCondition_node[p].location.push_back(tetSimMesh.pos_node[p] + vel * parameters.dt * (double)fra);
+			//			}
+			//		}
+
+
+			//	}*/
+
+
+			//}
+
+
+			//{
+			//	//// export all tetrahedron that has MLS points
+			//	//{
+			//	//	std::ofstream outfile9("./output/tetMLS.obj", std::ios::trunc);
+			//	//	for (std::map<int, std::vector<MLSPoints>>::iterator it = tetSimMesh.MLSPoints_tet_map.begin(); it != tetSimMesh.MLSPoints_tet_map.end(); it++)
+			//	//	{
+			//	//		int indTet = it->first;
+			//	//		for (int i = 0; i < 4; i++)
+			//	//		{
+			//	//			int indVt = tetSimMesh.tetrahedrals[indTet][i];
+			//	//			Eigen::Vector3d pos = tetSimMesh.pos_node[indVt];
+			//	//			outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
+			//	//		}
+			//	//	}
+			//	//	for (int j = 0; j < tetSimMesh.MLSPoints_tet_map.size(); j++)
+			//	//	{
+			//	//		outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 1 << " " << j * 4 + 2 << " " << j * 4 + 3 << std::endl;
+			//	//		outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 2 << " " << j * 4 + 3 << " " << j * 4 + 4 << std::endl;
+			//	//		outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 3 << " " << j * 4 + 4 << " " << j * 4 + 1 << std::endl;
+			//	//		outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 4 << " " << j * 4 + 1 << " " << j * 4 + 2 << std::endl;
+			//	//	}
+			//	//	outfile9.close();
+			//	//}
+
+			//	//// export tetrahedron-74
+			//	//{
+			//	//	std::ofstream outfile9("./output/tetMLS-74.obj", std::ios::trunc);
+			//	//	for (int i = 0; i < 4; i++)
+			//	//	{
+			//	//		int indVt = tetSimMesh.tetrahedrals[74][i];
+			//	//		Eigen::Vector3d pos = tetSimMesh.pos_node[indVt];
+			//	//		outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
+			//	//	}
+			//	//	outfile9 << std::scientific << std::setprecision(8) << "f " << 1 << " " << 2 << " " << 3 << std::endl;
+			//	//	outfile9 << std::scientific << std::setprecision(8) << "f " << 2 << " " << 3 << " " << 4 << std::endl;
+			//	//	outfile9 << std::scientific << std::setprecision(8) << "f " << 3 << " " << 4 << " " << 1 << std::endl;
+			//	//	outfile9 << std::scientific << std::setprecision(8) << "f " << 4 << " " << 1 << " " << 2 << std::endl;
+			//	//	outfile9.close();
+			//	//}
+
+			//	//// export tetrahedron-74's neighbouring tets
+			//	//{
+			//	//	std::ofstream outfile9("./output/tetMLS-74-neigs.obj", std::ios::trunc);
+			//	//	std::set<int> allTets;
+			//	//	for (int i = 0; i < 4; i++)
+			//	//	{
+			//	//		int indVt = tetSimMesh.tetrahedrals[74][i];
+			//	//		std::vector<int> tetsThisNode = tetSimMesh.tetrahedrals_node[indVt];
+			//	//		for (int j = 0; j < tetsThisNode.size(); j++)
+			//	//		{
+			//	//			int indTet = tetsThisNode[j];
+			//	//			allTets.insert(indTet);
+			//	//		}
+			//	//	}
+
+
+			//	//	for (std::set<int>::iterator it = allTets.begin(); it != allTets.end(); it++)
+			//	//	{
+			//	//		int indTet = *it;
+			//	//		for (int i = 0; i < 4; i++)
+			//	//		{
+			//	//			int indVt = tetSimMesh.tetrahedrals[indTet][i];
+			//	//			Eigen::Vector3d pos = tetSimMesh.pos_node[indVt];
+			//	//			outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
+			//	//		}
+			//	//	}
+			//	//	for (int j = 0; j < allTets.size(); j++)
+			//	//	{
+			//	//		outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 1 << " " << j * 4 + 2 << " " << j * 4 + 3 << std::endl;
+			//	//		outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 2 << " " << j * 4 + 3 << " " << j * 4 + 4 << std::endl;
+			//	//		outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 3 << " " << j * 4 + 4 << " " << j * 4 + 1 << std::endl;
+			//	//		outfile9 << std::scientific << std::setprecision(8) << "f " << j * 4 + 4 << " " << j * 4 + 1 << " " << j * 4 + 2 << std::endl;
+			//	//	}
+
+			//	//	outfile9.close();
+			//	//}
+
+			//	//// export tetrahedron-74 MLS-0
+			//	//{
+			//	//	std::ofstream outfile9("./output/tetMLS-74-MLS-0.obj", std::ios::trunc);
+			//	//	Eigen::Vector3d pos = tetSimMesh.MLSPoints_tet_map[74][0].pos_Rest;
+			//	//	outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
+			//	//	outfile9.close();
+			//	//}
+
+			//	//// export tetrahedron-74 MLS-0 control points
+			//	//{
+			//	//	std::ofstream outfile9("./output/tetMLS-74-MLS-0-ctrPts.obj", std::ios::trunc);
+			//	//	for (auto value : tetSimMesh.MLSPoints_tet_map[74][0].index_node)
+			//	//	{
+			//	//		Eigen::Vector3d pos = tetSimMesh.pos_node[value];
+			//	//		outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;						
+			//	//	}
+			//	//	outfile9.close();
+
+			//	//}
 
 
 
-			}
+			//	//// export all MLS points that have insufficient control points
+			//	//{
+			//	//	std::ofstream outfile9("./output/tetMLS_insuff.obj", std::ios::trunc);
+			//	//	for (std::map<int, std::vector<MLSPoints>>::iterator it = tetSimMesh.MLSPoints_tet_map.begin(); it != tetSimMesh.MLSPoints_tet_map.end(); it++)
+			//	//	{
+			//	//		int indTet = it->first;
+			//	//		for (int m = 0; m < tetSimMesh.MLSPoints_tet_map[indTet].size(); m++)
+			//	//		{
+			//	//			//int indVt = tetSimMesh.tetrahedrals[indTet][m];
+			//	//			if (tetSimMesh.MLSPoints_tet_map[indTet][m].index_node.size() < 4)
+			//	//			{
+			//	//				Eigen::Vector3d pos = tetSimMesh.MLSPoints_tet_map[indTet][m].pos_Rest;
+			//	//				outfile9 << std::scientific << std::setprecision(8) << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
+			//	//			}					
+			//	//		}
+			//	//	}
+			//	//	outfile9.close();
+			//	//}
 
-			
-			
 
 
-			implicitFEM(tetSimMesh, parameters);
+			//}
+
+			//
+			//
+
+
+			//implicitFEM(tetSimMesh, parameters);
 		}
 
 	}

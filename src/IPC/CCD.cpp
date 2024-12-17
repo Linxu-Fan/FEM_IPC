@@ -513,6 +513,7 @@ double calMaxStep_spatialHash(FEMParamters& parameters, Mesh& tetSimMesh,
 #pragma omp parallel for num_threads(parameters.numOfThreads)
     for (int y = 0; y < spatialHash_vec.size(); y++)
     {
+
         double step = 1.0;
         for (std::set<int>::iterator itP = spatialHash_vec[y].vertIndices.begin(); 
             itP != spatialHash_vec[y].vertIndices.end(); itP++)

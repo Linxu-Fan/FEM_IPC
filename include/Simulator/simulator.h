@@ -9,6 +9,11 @@
 #include "ElasticEnergy.h" 
 #include "BarrierEnergy.h" 
 
+
+//////////////////////////////////////////
+// General FEM simulation
+//////////////////////////////////////////
+
 // explicit integration. Only used for one object simulation without contact
 void explicitFEM(Mesh& tetSimMesh, FEMParamters& parameters);
 
@@ -45,5 +50,35 @@ void calContactInfo(Mesh& tetSimMesh, FEMParamters& parameters, int timestep,
 // calculate the maximum feasible step size
 double calMaxStepSize(Mesh& tetSimMesh, FEMParamters& parameters, int timestep,  
 	std::vector<Eigen::Vector3d>& direction);
+
+
+
+
+
+
+
+//////////////////////////////////////////
+// ABD simulation
+//////////////////////////////////////////
+
+// implicit integration
+void implicitFEM_ABD(Mesh_ABD& tetSimMesh, FEMParamters& parameters);
+
+// construct q vector according translation and deformation
+Vector12d constructQVec(Eigen::Vector3d translation, Eigen::Matrix3d deformation); 
+
+// compute the incremental potential energy
+double compute_IP_energy_ABD(Mesh_ABD& tetSimMesh, FEMParamters& parameters, int timestep);
+
+// compute energy gradient and hessian of the linear system and solve the syetem
+std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamters& parameters, int timestep);
+
+// move points' position according to the direction; Note this is a trial movement
+void step_forward_ABD(FEMParamters& parameters, Mesh_ABD& tetSimMesh, std::vector<Eigen::Vector3d>& current_ABD_translation,
+	std::vector<Eigen::Matrix3d>& current_ABD_deformation, std::vector<Vector12d>& ABD_direction, std::vector<Eigen::Vector3d>& currentPosition, double step);
+
+// convert the ABD state update to position update direction
+void convert_to_position_direction(FEMParamters& parameters, Mesh_ABD& tetSimMesh, std::vector<Vector12d>& direction_ABD, std::vector<Eigen::Vector3d>& position_direction);
+
 
 #endif

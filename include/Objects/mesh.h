@@ -141,8 +141,6 @@ public:
 
 
 	void createGlobalSimulationMesh_ABD();
-	void updateTranslationDeformation_ABD(std::vector<Eigen::Vector3d>& translation_ABD_Incre, 
-		std::vector<Eigen::Matrix3d>& deformation_ABD_Incre);
 };
 
 

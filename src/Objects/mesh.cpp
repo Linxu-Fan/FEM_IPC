@@ -739,11 +739,7 @@ void Mesh_ABD::createGlobalSimulationMesh_ABD()
 
 	for (int i = 0; i < pos_node.size(); i++)
 	{
-		Eigen::Matrix<double, 3, 12> Jx;
-		Jx.block(0, 0, 3, 3) = Eigen::Matrix3d::Identity();
-		Jx.block(0, 3, 1, 3) = pos_node[i].transpose();
-		Jx.block(1, 6, 1, 3) = pos_node[i].transpose();
-		Jx.block(2, 9, 1, 3) = pos_node[i].transpose();
+		Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(pos_node[i]);
 
 		int AB_index = index_node[i][0];
 		massMatrix_ABD[AB_index] += mass_node[i] * Jx.transpose() * Jx;
