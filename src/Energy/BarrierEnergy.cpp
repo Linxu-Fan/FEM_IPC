@@ -204,12 +204,17 @@ void assemble_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
     }
     else
     {
+        //std::cout << "hess = " << std::endl;
+        //std::cout << hess_ << std::endl;
+
+        
 
         for (int j = 0; j < activePts.size(); j++)
         {
             int pt1 = activePts[j];
+            //std::cout << "tetSimMesh.pos_node_Rest[pt1] = " << tetSimMesh.pos_node_Rest[pt1].transpose() << std::endl;
             Eigen::Matrix<double, 3, 12> Jx1 = build_Jx_matrix_for_ABD(tetSimMesh.pos_node_Rest[pt1]);
-            Vector12d energy_wrt_q_grad = Jx1.transpose() * grad_.block<3, 1>(j * 3, 0);
+            Vector12d energy_wrt_q_grad = Jx1.transpose() * grad_.block(j * 3, 0, 3, 1);
             int AB_index_1 = tetSimMesh.index_node[pt1][0]; // the ABD object's index
 
             // assemble gradient
@@ -223,9 +228,20 @@ void assemble_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
             for (int q = 0; q < activePts.size(); q++)
             {
                 int pt2 = activePts[q];
-                Eigen::Matrix<double, 3, 12> Jx2 = build_Jx_matrix_for_ABD(tetSimMesh.pos_node_Rest[pt2]);
+                //std::cout << "tetSimMesh.pos_node_Rest[pt2] = "<< tetSimMesh.pos_node_Rest[pt2].transpose() << std::endl;
+                Eigen::Matrix<double, 3, 12> Jx2 = build_Jx_matrix_for_ABD(tetSimMesh.pos_node_Rest[pt2]);               
+                Matrix12d energy_wrt_q_hess = Jx1.transpose() * hess_.block(j * 3, q * 3, 3, 3) * Jx2; 
                 int AB_index_2 = tetSimMesh.index_node[pt2][0]; // the ABD object's index
-                Matrix12d energy_wrt_q_hess = Jx1.transpose() * hess_.block<3, 3>(j * 3, q * 3) * Jx2;
+
+
+                //std::cout << "pt1 = " << pt1 << "; pt2 = " << pt2 << std::endl;
+                //std::cout << "Jx1 = " << std::endl;
+                //std::cout << Jx1 << std::endl;
+                //std::cout << "Jx2 = " << std::endl;
+                //std::cout << Jx2 << std::endl;
+                //std::cout<< "; energy_wrt_q_hess = " << std::endl;
+                //std::cout << energy_wrt_q_hess << std::endl;
+                //std::cout << "hess = " << std::endl;
 
 
                 for (int xd = 0; xd < 12; xd++)
@@ -238,9 +254,11 @@ void assemble_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
             }
         }
 
+    
+
     }
 
-
+    
     
 
 }

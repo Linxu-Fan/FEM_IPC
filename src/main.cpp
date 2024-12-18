@@ -225,10 +225,12 @@ int main()
 		// 0: Three-point-bending beam test
 		// 1. Two tetrahedrals collision test to verify the correctness of the solver
 		// 2. Single tetrahedral test
-		// 3. ABD test
+		// 3. ABD tes: cube collision
 		// 4. Explicit test
 		// 5. Object hanging test to verify element sampling algorithm
-		int caseNum = 3;
+		// 6. Two tetrahedrals collision test to verify the correctness of the solver in ABD 
+		// 7. Cube tower stress test for ABD 
+		int caseNum = 7;
 		if (caseNum == 0)
 		{
 			//Material mat1;
@@ -587,67 +589,71 @@ int main()
 		}
 		else if (caseNum == 3)
 		{
-			Material mat1;
-			mat1.density = 2780;
-			mat1.E = 7.26e12;
-			mat1.updateDenpendecies();
+			//Material mat1;
+			//mat1.density = 2780;
+			//mat1.E = 7.26e12;
+			//mat1.updateDenpendecies();
 
 
 
-			std::vector<meshConfiguration> config;
-			meshConfiguration m1, m2;
-			m1.filePath = "../input/cube.msh";
-			m1.mesh_material = mat1;
-			m1.note = "cube1";
-			config.push_back(m1);
+			//std::vector<meshConfiguration> config;
+			//meshConfiguration m1, m2;
+			//m1.filePath = "../input/cube.msh";
+			//m1.mesh_material = mat1;
+			////m1.rotation_angle = {-90, -19, 1.7};
+			//m1.translation = {0, 0, 2.0};
+			//m1.note = "cube1";
+			//config.push_back(m1);
 
 
-			m2.filePath = "../input/cube.msh";
-			m2.mesh_material = mat1;
-			m2.note = "cube2";
-			m2.translation = { 2, 0, 0 };
-			config.push_back(m2);
-
-
-
-
-			Mesh_ABD tetSimMesh;
-			for (int i = 0; i < config.size(); i++)
-			{
-				tetMesh msh_tmp;
-				msh_tmp.readMesh(config[i]);
-				msh_tmp.initializeTetMesh();
-				tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
-			}
-			tetSimMesh.createGlobalSimulationMesh_ABD();
-			tetSimMesh.translation_vel_ABD[0] = { 10,0,0 };
-
-
-			std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
-			std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
+			//m2.filePath = "../input/cube.msh";
+			//m2.mesh_material = mat1;
+			//m2.note = "cube2";
+			//m2.translation = { 1.5, 0, 2.0 };
+			//config.push_back(m2);
 
 
 
-			FEMParamters parameters;
-			parameters.gravity = { 0, 0, 0 };
-			parameters.num_timesteps = 1000;
-			parameters.numOfThreads = 12;
-			parameters.dt = 1.0e-2;
-			parameters.outputFrequency = 1;
-			parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
-			parameters.enableGround = false;
-			parameters.searchResidual = 6.0;
-			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
-			parameters.rigidMode = true;
-			parameters.IPC_dis = 0.01;
-			parameters.IPC_eta = 0.05;
-			parameters.IPC_kStiffness = 1.0e14;
-			parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
-			parameters.IPC_B3Stiffness = 500;
+
+			//Mesh_ABD tetSimMesh;
+			//for (int i = 0; i < config.size(); i++)
+			//{
+			//	tetMesh msh_tmp;
+			//	msh_tmp.readMesh(config[i]);
+			//	msh_tmp.initializeTetMesh();
+			//	tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
+			//}
+			//tetSimMesh.createGlobalSimulationMesh_ABD();
+			//tetSimMesh.translation_vel_ABD[0] = { 1,0,-3 };
+			//tetSimMesh.translation_vel_ABD[1] = { 0,0,-3 };
+
+
+			//std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
+			//std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
 
 
 
-			implicitFEM_ABD(tetSimMesh, parameters);
+			//FEMParamters parameters;
+			//parameters.gravity = { 0, 0, 0 };
+			//parameters.num_timesteps = 10000;
+			//parameters.numOfThreads = 12;
+			//parameters.dt = 1.0e-3;
+			//parameters.outputFrequency = 10;
+			//parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
+			//parameters.enableGround = true;
+			//parameters.searchResidual = 6.0;
+			//parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+			//parameters.rigidMode = true;
+			//parameters.IPC_dis = 0.01;
+			//parameters.IPC_eta = 0.05;
+			//parameters.IPC_kStiffness = 1.0e12;
+			//parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
+			//parameters.IPC_B3Stiffness = 500;
+			//parameters.ABD_Coeff = 1.0e9;
+
+
+
+			//implicitFEM_ABD(tetSimMesh, parameters);
 
 		}
 		else if (caseNum == 4)
@@ -1025,6 +1031,157 @@ int main()
 
 
 			//implicitFEM(tetSimMesh, parameters);
+		}
+		else if (caseNum == 6)
+		{
+			//Material mat1;
+			//mat1.density = 1000;
+			//mat1.E = 7.26e5;
+			//mat1.updateDenpendecies();
+
+
+
+			//std::vector<meshConfiguration> config;
+			//meshConfiguration m1,m2;
+			//m1.filePath = "../input/tet_origin.msh";
+			//m1.mesh_material = mat1;
+			//m1.translation = {0,0,1.1};
+			////m1.velocity = {0,0,1};
+			//m1.note = "tet_origin";
+			//config.push_back(m1);
+
+			//m2.filePath = "../input/tet_origin.msh";
+			//m2.mesh_material = mat1;
+			//m2.translation = { 0,0,4.3 };
+			////m2.velocity = { 0,0,-1 };
+			//m2.note = "tet_origin_top";
+			//config.push_back(m2);
+
+
+
+			//Mesh_ABD tetSimMesh;
+			//for (int i = 0; i < config.size(); i++)
+			//{
+			//	tetMesh msh_tmp;
+			//	msh_tmp.readMesh(config[i]);
+			//	msh_tmp.initializeTetMesh();
+			//	tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
+			//}
+			//tetSimMesh.createGlobalSimulationMesh_ABD();
+			//tetSimMesh.translation_vel_ABD[0] = { 0,0,1 };
+			//tetSimMesh.translation_vel_ABD[1] = { 0,0,-1 };
+
+
+			//std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
+			//std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
+
+
+
+			//FEMParamters parameters;
+			//parameters.gravity = { 0, 0, 0 };
+			//parameters.num_timesteps = 1000;
+			//parameters.numOfThreads = 12;
+			//parameters.dt = 1.0e-3;
+			//parameters.outputFrequency = 10;
+			//parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
+			//parameters.enableGround = false;
+			//parameters.searchResidual = 6.0;
+			//parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+			//parameters.rigidMode = true;
+			//parameters.IPC_dis = 0.01;
+			//parameters.IPC_eta = 0.05;
+			//parameters.IPC_kStiffness = 1.0e12;
+			//parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
+			//parameters.IPC_B3Stiffness = 500;
+			//parameters.ABD_Coeff = 1.0e9;
+
+
+
+
+			//implicitFEM_ABD(tetSimMesh, parameters);
+
+
+		}
+		else if (caseNum == 7)
+		{
+			Material mat1;
+			mat1.density = 2780;
+			mat1.E = 7.26e12;
+			mat1.updateDenpendecies();
+
+
+
+			std::vector<meshConfiguration> config;
+			meshConfiguration m1;
+			m1.filePath = "../input/cube.msh";
+			m1.mesh_material = mat1;
+			
+
+			int count = 0;
+			for (int z = 0; z < 5; z++)
+			{
+				for (int x = 0; x < 5; x++)
+				{
+					for (int y = 0; y < 5; y++)
+					{
+						count += 1;
+						m1.note = "cube_"+std::to_string(count);
+						Eigen::Vector3d trans = {(double)x * 1.1, (double)y * 1.1, (double)z * 1.1 + 0.2 };
+						m1.translation = trans;
+						config.push_back(m1);
+					}
+				}
+			}
+
+
+
+
+
+
+
+			Mesh_ABD tetSimMesh;
+			for (int i = 0; i < config.size(); i++)
+			{
+				tetMesh msh_tmp;
+				msh_tmp.readMesh(config[i]);
+				msh_tmp.initializeTetMesh();
+				tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
+			}
+			tetSimMesh.createGlobalSimulationMesh_ABD();
+			for (int num = 0; num < tetSimMesh.translation_vel_ABD.size(); num++)
+			{
+				tetSimMesh.translation_vel_ABD[num] = { 0,0,-3 };
+			}
+			
+
+
+			std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
+			std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
+
+
+
+			FEMParamters parameters;
+			parameters.gravity = { 0, 0, 0 };
+			parameters.num_timesteps = 10000;
+			parameters.numOfThreads = 12;
+			parameters.dt = 1.0e-3;
+			parameters.outputFrequency = 10;
+			parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
+			parameters.enableGround = true;
+			parameters.searchResidual = 6.0;
+			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+			parameters.rigidMode = true;
+			parameters.IPC_dis = 0.01;
+			parameters.IPC_eta = 0.05;
+			parameters.IPC_kStiffness = 1.0e12;
+			parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
+			parameters.IPC_B3Stiffness = 500;
+			parameters.ABD_Coeff = 1.0e9;
+
+
+
+			implicitFEM_ABD(tetSimMesh, parameters);
+
 		}
 
 	}

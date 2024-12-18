@@ -35,6 +35,13 @@ void implicitFEM_ABD(Mesh_ABD& tetSimMesh, FEMParamters& parameters)
 			convert_to_position_direction(parameters, tetSimMesh, direction_ABD, position_direction);
 			double dist_to_converge = infiniteNorm(position_direction);
 
+			//if (timestep == 182)
+			//{
+			//	std::cout << "dir = " << position_direction[0] << std::endl;
+			//	std::cout << "dir = " << position_direction[0] << std::endl;
+			//}
+
+
 			//std::cout << std::scientific << std::setprecision(4) << "tetSimMesh.massMatrix_ABD[0] = " << std::endl << tetSimMesh.massMatrix_ABD[0] << std::endl;
 
 			std::cout << std::scientific << std::setprecision(4) << "			dist_to_converge = "
@@ -82,6 +89,12 @@ void implicitFEM_ABD(Mesh_ABD& tetSimMesh, FEMParamters& parameters)
 		for (int i = 0; i < tetSimMesh.pos_node.size(); i++)
 		{
 			tetSimMesh.vel_node[i] = (tetSimMesh.pos_node[i] - tetSimMesh.pos_node_prev[i]) / parameters.dt;
+
+			if (i == 0)
+			{
+				std::cout << "			tetSimMesh.vel_node[0] = " << tetSimMesh.vel_node[0].transpose() << std::endl;
+			}
+
 		}
 
 
@@ -192,12 +205,21 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 
 
 
+
+
 	int gradSize = tetSimMesh.num_meshes * 12 + tetSimMesh.num_meshes * 9 + PG_PG.size() * 12
 		+ PT_PP.size() * 24 + PT_PE.size() * 36 + PT_PT.size() * 48 + EE_EE.size() * 48;
 	int hessSize = tetSimMesh.num_meshes * 144 + tetSimMesh.num_meshes * 81 + PG_PG.size() * 144
 		+ PT_PP.size() * 144 * 4 + PT_PE.size() * 144 * 9 + PT_PT.size() * 144 * 16 + EE_EE.size() * 144 * 16;
 	std::vector<std::pair<int, double>> grad_triplet(gradSize, std::make_pair(0,0.0));
 	std::vector<Eigen::Triplet<double>> hessian_triplet(hessSize, Eigen::Triplet<double>(0, 0, 0.0));
+
+
+	//if (PT_PP.size() + PT_PE.size() + PT_PT.size() + EE_EE.size() != 0)
+	//{
+	//	std::cout << "		!!!!!!gradSize = "<< gradSize << "; hessSize = "<< hessSize << std::endl;
+	//	std::cout << "		!!!!!!gradSize - nocontact = "<< gradSize - tetSimMesh.num_meshes * 12 - tetSimMesh.num_meshes * 9 << "; hessSize - nocontact = "<< hessSize - tetSimMesh.num_meshes * 144 - tetSimMesh.num_meshes * 81 << std::endl;
+	//}
 
 
 
@@ -246,7 +268,15 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 	}
 
 
+
+	if (timestep == 50)
 	{
+
+		//std::cout << "			PT_PP.size() = " << PT_PP.size();
+		//std::cout << "; PT_PE.size() = " << PT_PE.size();
+		//std::cout << "; PT_PT.size() = " << PT_PT.size();
+		//std::cout << "; EE_EE.size() = " << EE_EE.size() << std::endl;
+
 		//// assemable the left-hand side 
 		//Eigen::SparseMatrix<double> leftHandSide(tetSimMesh.num_meshes * 12, tetSimMesh.num_meshes * 12);
 		//leftHandSide.setFromTriplets(hessian_triplet.begin(), hessian_triplet.end());
@@ -260,8 +290,10 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 		//	rightHandSide[ele.first] += ele.second;
 		//}
 
-		////std::cout << std::scientific << std::setprecision(6) << "rightHandSide_before_def = " << std::endl << rightHandSide.transpose() << std::endl << std::endl;
-		//std::cout << std::scientific << std::setprecision(6) << "leftHandSide_before_def = " << std::endl << leftHandSide << std::endl;
+		//std::cout << std::scientific << std::setprecision(3) << "rightHandSide_before_def = " << rightHandSide.norm() << std::endl;
+		//std::cout << std::scientific << std::setprecision(3) << "rightHandSide_before_def = " << std::endl << rightHandSide.transpose() << std::endl;
+		//std::cout << std::scientific << std::setprecision(3) << "leftHandSide_before_def = " << std::endl << leftHandSide.norm() << std::endl;
+		//std::cout << std::scientific << std::setprecision(3) << std::endl;
 	}
 
 
@@ -326,7 +358,7 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 
 
 
-
+	if(timestep == 200)
 	{
 		//// assemable the left-hand side 
 		//Eigen::SparseMatrix<double> leftHandSide(tetSimMesh.num_meshes * 12, tetSimMesh.num_meshes * 12);
@@ -341,8 +373,10 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 		//	rightHandSide[ele.first] += ele.second;
 		//}
 
-		////std::cout << std::scientific << std::setprecision(6) << "rightHandSide_after_def = " << std::endl << rightHandSide.transpose() << std::endl << std::endl;
-		//std::cout << std::scientific << std::setprecision(6) << "leftHandSide_after_def = " << std::endl << leftHandSide << std::endl;
+		//std::cout << std::scientific << std::setprecision(3) << "rightHandSide_after_def = "  << rightHandSide.norm() << std::endl;
+		//std::cout << std::scientific << std::setprecision(3) << "rightHandSide_after_def = " << std::endl << rightHandSide.transpose() << std::endl;
+		//std::cout << std::scientific << std::setprecision(3) << "leftHandSide_after_def = " << std::endl << leftHandSide.norm() << std::endl;
+		//std::cout << std::scientific << std::setprecision(3) << std::endl;
 	}
 
 

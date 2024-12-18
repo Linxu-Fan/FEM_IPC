@@ -299,7 +299,7 @@ Eigen::Vector3d randomPointInTetrahedron(const Eigen::Vector3d& V1, const Eigen:
 
 Eigen::Matrix<double, 3, 12> build_Jx_matrix_for_ABD(const Eigen::Vector3d& pos)
 {
-	Eigen::Matrix<double, 3, 12> Jx;
+	Eigen::Matrix<double, 3, 12> Jx = Eigen::Matrix<double, 3, 12>::Zero();
 	Jx.block(0, 0, 3, 3) = Eigen::Matrix3d::Identity();
 	Jx.block(0, 3, 1, 3) = pos.transpose();
 	Jx.block(1, 6, 1, 3) = pos.transpose();
