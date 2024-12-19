@@ -309,7 +309,18 @@ Eigen::Matrix<double, 3, 12> build_Jx_matrix_for_ABD(const Eigen::Vector3d& pos)
 
 
 
-
+Matrix9d kroneckerProduct_matrices(const Eigen::Matrix3d& A, const Eigen::Matrix3d& B)
+{
+	Matrix9d result = Matrix9d::Zero();
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			result.block(i * 3, j * 3, 3, 3) = A(i, j) * B;
+		}
+	}
+	return result;
+}
 
 
 

@@ -165,12 +165,12 @@ double compute_IP_energy_ABD(Mesh_ABD& tetSimMesh, FEMParamters& parameters, int
 	for (int AI = 0; AI < AB_aff_energy_vec.size(); AI++)
 	{
 		// original implementation
-		//AB_aff_energy_vec[AI] = parameters.ABD_Coeff * tetSimMesh.volume_ABD[AI] * (tetSimMesh.deformation_ABD[AI].transpose() * tetSimMesh.deformation_ABD[AI] - Eigen::Matrix3d::Identity()).squaredNorm();
+		AB_aff_energy_vec[AI] = parameters.dt * parameters.dt * parameters.ABD_Coeff * tetSimMesh.volume_ABD[AI] * (tetSimMesh.deformation_ABD[AI].transpose() * tetSimMesh.deformation_ABD[AI] - Eigen::Matrix3d::Identity()).squaredNorm();
 
-		// neo-hookean implementation
-		double J = tetSimMesh.deformation_ABD[AI].determinant();
-		AB_aff_energy_vec[AI] = parameters.dt * parameters.dt * tetSimMesh.volume_ABD[AI] * parameters.ABD_Coeff / 2.0 * (0.5 * (tetSimMesh.deformation_ABD[AI]
-								+ tetSimMesh.deformation_ABD[AI].transpose()) - Eigen::Matrix3d::Identity()).squaredNorm();
+		//// Linear ARAP implementation
+		//double J = tetSimMesh.deformation_ABD[AI].determinant();
+		//AB_aff_energy_vec[AI] = parameters.dt * parameters.dt * tetSimMesh.volume_ABD[AI] * parameters.ABD_Coeff / 2.0 * (0.5 * (tetSimMesh.deformation_ABD[AI]
+		//						+ tetSimMesh.deformation_ABD[AI].transpose()) - Eigen::Matrix3d::Identity()).squaredNorm();
 
 	}
 	energyVal += std::accumulate(AB_aff_energy_vec.begin(), AB_aff_energy_vec.end(), 0.0);
@@ -205,21 +205,12 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 
 
 
-
-
 	int gradSize = tetSimMesh.num_meshes * 12 + tetSimMesh.num_meshes * 9 + PG_PG.size() * 12
 		+ PT_PP.size() * 24 + PT_PE.size() * 36 + PT_PT.size() * 48 + EE_EE.size() * 48;
 	int hessSize = tetSimMesh.num_meshes * 144 + tetSimMesh.num_meshes * 81 + PG_PG.size() * 144
 		+ PT_PP.size() * 144 * 4 + PT_PE.size() * 144 * 9 + PT_PT.size() * 144 * 16 + EE_EE.size() * 144 * 16;
 	std::vector<std::pair<int, double>> grad_triplet(gradSize, std::make_pair(0,0.0));
 	std::vector<Eigen::Triplet<double>> hessian_triplet(hessSize, Eigen::Triplet<double>(0, 0, 0.0));
-
-
-	//if (PT_PP.size() + PT_PE.size() + PT_PT.size() + EE_EE.size() != 0)
-	//{
-	//	std::cout << "		!!!!!!gradSize = "<< gradSize << "; hessSize = "<< hessSize << std::endl;
-	//	std::cout << "		!!!!!!gradSize - nocontact = "<< gradSize - tetSimMesh.num_meshes * 12 - tetSimMesh.num_meshes * 9 << "; hessSize - nocontact = "<< hessSize - tetSimMesh.num_meshes * 144 - tetSimMesh.num_meshes * 81 << std::endl;
-	//}
 
 
 
@@ -269,82 +260,34 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 
 
 
-	if (timestep == 50)
-	{
-
-		//std::cout << "			PT_PP.size() = " << PT_PP.size();
-		//std::cout << "; PT_PE.size() = " << PT_PE.size();
-		//std::cout << "; PT_PT.size() = " << PT_PT.size();
-		//std::cout << "; EE_EE.size() = " << EE_EE.size() << std::endl;
-
-		//// assemable the left-hand side 
-		//Eigen::SparseMatrix<double> leftHandSide(tetSimMesh.num_meshes * 12, tetSimMesh.num_meshes * 12);
-		//leftHandSide.setFromTriplets(hessian_triplet.begin(), hessian_triplet.end());
-
-		//// assemable the right-hand side 
-		//Eigen::VectorXd rightHandSide = Eigen::VectorXd(tetSimMesh.num_meshes * 12);
-		//rightHandSide.setZero();
-		//for (int i = 0; i < grad_triplet.size(); i++)
-		//{
-		//	std::pair<int, double> ele = grad_triplet[i];
-		//	rightHandSide[ele.first] += ele.second;
-		//}
-
-		//std::cout << std::scientific << std::setprecision(3) << "rightHandSide_before_def = " << rightHandSide.norm() << std::endl;
-		//std::cout << std::scientific << std::setprecision(3) << "rightHandSide_before_def = " << std::endl << rightHandSide.transpose() << std::endl;
-		//std::cout << std::scientific << std::setprecision(3) << "leftHandSide_before_def = " << std::endl << leftHandSide.norm() << std::endl;
-		//std::cout << std::scientific << std::setprecision(3) << std::endl;
-	}
-
-
 
 	// contribution from affine energy
 	startIndex_grad = tetSimMesh.num_meshes * 12 , startIndex_hess = tetSimMesh.num_meshes * 144;
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 	for (int AI = 0; AI < tetSimMesh.num_meshes; AI++)
 	{
-		
-		//// original implementation
-		//for (int i = 0; i < 3; i++)
-		//{
-		//	Eigen::Vector3d ai = tetSimMesh.deformation_ABD[AI].col(i);
-		//	Eigen::Matrix3d ajaj = Eigen::Matrix3d::Zero();
-		//	for (int j = 0; j < 3; j++)
-		//	{
-		//		if (j != i)
-		//		{
-		//			Eigen::Vector3d aj = tetSimMesh.deformation_ABD[AI].col(j);
-		//			ajaj += aj.cross(aj);
-		//		}			
-		//	}
-		//	
-		//	Eigen::Vector3d ai_grad = 2 * parameters.ABD_Coeff * tetSimMesh.volume_ABD[AI] * (2 * (ai.dot(ai) - 1) * ai + 2 * ajaj * ai);
-		//	Eigen::Matrix3d aii_hess = 2 * parameters.ABD_Coeff * tetSimMesh.volume_ABD[AI] * (4 * ai.cross(ai) + 2 * (ai.squaredNorm() - 1) * Eigen::Matrix3d::Identity() + 2 * ajaj);
+		Eigen::Matrix3d F = tetSimMesh.deformation_ABD[AI];
+		Eigen::Matrix3d I_ = Eigen::Matrix3d::Identity();
 
-		//	rightHandSide.block(12 * AI + 3 + 3 * i, 0, 3, 1) = ai_grad;
-		//	leftHandSide.block(12 * AI + 3 + 3 * i, 12 * AI + 3 + 3 * i, 3, 3) = aii_hess;
-
-		//	for (int j = 0; j < 3; j++)
-		//	{
-		//		if (j != i)
-		//		{
-		//			Eigen::Vector3d aj = tetSimMesh.deformation_ABD[AI].col(j);
-
-		//			Eigen::Matrix3d aij_hess = 2 * parameters.ABD_Coeff * tetSimMesh.volume_ABD[AI] * ( 2 * (aj * ai.transpose() + ai * aj.transpose()));
-		//			leftHandSide.block(12 * AI + 3 + 3 * i, 12 * AI + 3 + 3 * j, 3, 3) = aij_hess;
-		//		}
-		//	}
-
-		//}
-
-
-		// neo-hookean implementation
-		Eigen::Matrix3d PK1 = parameters.dt * parameters.dt * tetSimMesh.volume_ABD[AI] * parameters.ABD_Coeff / 2 * (tetSimMesh.deformation_ABD[AI] 
-							  + tetSimMesh.deformation_ABD[AI].transpose() - 2 * Eigen::Matrix3d::Identity());;
+		// original implementation
+		Eigen::Matrix3d PK1 = parameters.dt * parameters.dt * tetSimMesh.volume_ABD[AI] * parameters.ABD_Coeff * 4.0 * F *
+							  (F.transpose() * F - Eigen::Matrix3d::Identity());
 		Vector9d grad_E_wrt_F = flatenMatrix3d(PK1);
 
-		//std::cout << "grad_E_wrt_F = " << grad_E_wrt_F.transpose() << std::endl;
-		Eigen::Matrix<double, 9, 9> hess_E_wrt_F = parameters.dt * parameters.dt * tetSimMesh.volume_ABD[AI] * parameters.ABD_Coeff * Eigen::Matrix<double, 9, 9>::Identity();
+
+		Matrix9d matrix_D = Matrix9d::Zero(); // Eq.4.27 in Kim_2022
+		for (int i = 0; i < 3; i++)
+		{
+			Eigen::Vector3d ai = F.col(i);
+			for (int j = 0; j < 3; j++)
+			{
+				Eigen::Vector3d aj = F.col(j);
+				matrix_D.block(i * 3, j * 3, 3, 3) = aj * ai.transpose();
+			}
+		}
+		Matrix9d matrix_H_II = 4.0 * (kroneckerProduct_matrices(I_, F * F.transpose()) + kroneckerProduct_matrices(F.transpose() * F, I_) + matrix_D);
+		Matrix9d hess_E_wrt_F = parameters.dt * parameters.dt * tetSimMesh.volume_ABD[AI] * parameters.ABD_Coeff * 4.0 * (0.25 * matrix_H_II - Matrix9d::Identity());
+
 		for (int i = 0; i < 9; i++)
 		{
 			grad_triplet[startIndex_grad + AI * 9 + i] = { AI * 12 + 3 + i, grad_E_wrt_F[i] };
@@ -354,31 +297,24 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 			}
 		}
 
-	}
 
+		//// Linear ARAP implementation
+		//Eigen::Matrix3d PK1 = parameters.dt * parameters.dt * tetSimMesh.volume_ABD[AI] * parameters.ABD_Coeff / 2 * (tetSimMesh.deformation_ABD[AI] 
+		//					  + tetSimMesh.deformation_ABD[AI].transpose() - 2 * Eigen::Matrix3d::Identity());;
+		//Vector9d grad_E_wrt_F = flatenMatrix3d(PK1);
 
-
-	if(timestep == 200)
-	{
-		//// assemable the left-hand side 
-		//Eigen::SparseMatrix<double> leftHandSide(tetSimMesh.num_meshes * 12, tetSimMesh.num_meshes * 12);
-		//leftHandSide.setFromTriplets(hessian_triplet.begin(), hessian_triplet.end());
-
-		//// assemable the right-hand side 
-		//Eigen::VectorXd rightHandSide = Eigen::VectorXd(tetSimMesh.num_meshes * 12);
-		//rightHandSide.setZero();
-		//for (int i = 0; i < grad_triplet.size(); i++)
+		////std::cout << "grad_E_wrt_F = " << grad_E_wrt_F.transpose() << std::endl;
+		//Eigen::Matrix<double, 9, 9> hess_E_wrt_F = parameters.dt * parameters.dt * tetSimMesh.volume_ABD[AI] * parameters.ABD_Coeff * Eigen::Matrix<double, 9, 9>::Identity();
+		//for (int i = 0; i < 9; i++)
 		//{
-		//	std::pair<int, double> ele = grad_triplet[i];
-		//	rightHandSide[ele.first] += ele.second;
+		//	grad_triplet[startIndex_grad + AI * 9 + i] = { AI * 12 + 3 + i, grad_E_wrt_F[i] };
+		//	for (int j = 0; j < 9; j++)
+		//	{
+		//		hessian_triplet[startIndex_hess + AI * 81 + i * 9 + j] = { 12 * AI + 3 + i, 12 * AI + 3 + j, hess_E_wrt_F(i,j) };
+		//	}
 		//}
 
-		//std::cout << std::scientific << std::setprecision(3) << "rightHandSide_after_def = "  << rightHandSide.norm() << std::endl;
-		//std::cout << std::scientific << std::setprecision(3) << "rightHandSide_after_def = " << std::endl << rightHandSide.transpose() << std::endl;
-		//std::cout << std::scientific << std::setprecision(3) << "leftHandSide_after_def = " << std::endl << leftHandSide.norm() << std::endl;
-		//std::cout << std::scientific << std::setprecision(3) << std::endl;
 	}
-
 
 
 
@@ -505,7 +441,6 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 
 
 
-
 	//double endTime3 = omp_get_wtime();
 	//std::cout << "	Cal grad_hess Time is : " << endTime3 - endTime2 << "s" << std::endl;
 
@@ -530,17 +465,6 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 	Eigen::VectorXd result = solver.solve(-rightHandSide);
 
 	
-
-	//std::cout << std::scientific << std::setprecision(2) << "		rightHandSide = " << std::endl << rightHandSide.transpose() << std::endl<< std::endl;
-	//std::cout << std::scientific << std::setprecision(4) << "leftHandSide = " << std::endl << leftHandSide << std::endl;
-	//std::cout << std::scientific << std::setprecision(4) << "result = " << result << std::endl;
-
-
-
-	//std::cout << "rightHandSide.norm() = " << rightHandSide.norm() << std::endl;
-	//std::cout << "leftHandSide.norm() = " << leftHandSide.norm() << std::endl;
-	//std::cout << "result.norm() = " << result.norm() << std::endl;
-
 
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 	for (int i = 0; i < tetSimMesh.num_meshes; i++)

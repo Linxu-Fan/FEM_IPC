@@ -21,6 +21,7 @@
 #include <Eigen/Eigenvalues>
 #include <unsupported/Eigen/CXX11/Tensor>
 #include <unsupported/Eigen/AutoDiff>
+#include <unsupported/Eigen/KroneckerProduct>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <sstream>
@@ -223,8 +224,8 @@ Eigen::Matrix<double, 3, 12> build_Jx_matrix_for_ABD(const Eigen::Vector3d& pos)
 
 
 
-
-
+// kroneckerProduct of two 3x3 matrices
+Matrix9d kroneckerProduct_matrices(const Eigen::Matrix3d& A, const Eigen::Matrix3d& B);
 
 
 

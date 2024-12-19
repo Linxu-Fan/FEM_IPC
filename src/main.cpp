@@ -12,19 +12,60 @@ int main()
 
 	if (0)
 	{
-		double energyVal = 0;
-		std::vector<double> tv;
-		tv.push_back(1.0);
-		tv.push_back(2.0);
-		tv.push_back(3.0);
 
-		energyVal += std::accumulate(tv.begin(), tv.end(), 0.0);
+		objMeshFormat start;
+		start.readObjFile("./input/surfMesh_0.obj", false);
 
-		std::cout << "energyVal = " << energyVal << std::endl;
+		objMeshFormat end;
+		end.readObjFile("./input/surfMesh_2900.obj", false);
+		std::cout << "start.vertices.size() = " << start.vertices.size() << std::endl;
 
-		energyVal += std::accumulate(tv.begin(), tv.end(), 0.0);
+		std::vector<std::pair<double, double>> displacement;
+		for (int i = 0; i < start.vertices.size(); i++)
+		{
+			Eigen::Vector3d pos = start.vertices[i];
+			if (std::abs(pos[1] + 10) <= 0.0001 && std::abs(pos[2] - 1) <= 0.0001 && pos[0] >= -22)
+			{
+				std::pair<double, double> pa = { pos[0] + 22, -(end.vertices[i][2] - start.vertices[i][2])};
+				displacement.push_back(pa);
+			}
+		}
 
-		std::cout << "energyVal = " << energyVal << std::endl;
+
+		// 使用 std::sort 并提供一个自定义的比较函数
+		std::sort(displacement.begin(), displacement.end(),
+			[](const std::pair<double, double>& a, const std::pair<double, double>& b) {
+				return a.first < b.first; // 按照第一个元素排序
+			});
+
+		// 输出排序后的结果
+		std::cout << "Sorted displacement:" << std::endl;
+		for (const auto& p : displacement) {
+			std::cout << "(" << p.first << ", " << p.second << ")" << std::endl;
+		}
+
+
+
+		std::ofstream outfile9("./output/comp.txt", std::ios::trunc);
+		for (int k = 0; k < displacement.size(); k++)
+		{
+			outfile9 << std::scientific << std::setprecision(8) << displacement[k].first << " " << displacement[k].second << std::endl;
+		}
+		outfile9.close();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 		//Eigen::Vector3d tet_v0 = { 0, 2, 2.8284271247 };
 		//Eigen::Vector3d tet_v1 = { 1.7320508076, - 1, 2.8284271247 };
@@ -1105,9 +1146,14 @@ int main()
 		else if (caseNum == 7)
 		{
 			Material mat1;
-			mat1.density = 2780;
+			mat1.density = 8000;
 			mat1.E = 7.26e12;
 			mat1.updateDenpendecies();
+
+			Material mat2;
+			mat2.density = 800;
+			mat2.E = 7.26e12;
+			mat2.updateDenpendecies();
 
 
 
@@ -1115,27 +1161,32 @@ int main()
 			meshConfiguration m1;
 			m1.filePath = "../input/cube.msh";
 			m1.mesh_material = mat1;
-			
 
-			int count = 0;
-			for (int z = 0; z < 5; z++)
+
+			m1.note = "cube_0";
+			Eigen::Vector3d trans = { -4.5, 2.0, 2.0 };
+			m1.translation = trans;
+			config.push_back(m1);
+
+
+
+
+			int count = 1;
+			for (int z = 0; z < 4; z++)
 			{
-				for (int x = 0; x < 5; x++)
+				for (int x = 0; x < 4; x++)
 				{
-					for (int y = 0; y < 5; y++)
+					for (int y = 0; y < 4; y++)
 					{
 						count += 1;
-						m1.note = "cube_"+std::to_string(count);
-						Eigen::Vector3d trans = {(double)x * 1.1, (double)y * 1.1, (double)z * 1.1 + 0.2 };
+						m1.mesh_material = mat2;
+						m1.note = "cube_" + std::to_string(count);
+						Eigen::Vector3d trans = { (double)x * 1.1, (double)y * 1.1, (double)z * 1.1 + 0.8 };
 						m1.translation = trans;
 						config.push_back(m1);
 					}
 				}
 			}
-
-
-
-
 
 
 
@@ -1148,11 +1199,12 @@ int main()
 				tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
 			}
 			tetSimMesh.createGlobalSimulationMesh_ABD();
-			for (int num = 0; num < tetSimMesh.translation_vel_ABD.size(); num++)
+			for (int num = 1; num < tetSimMesh.translation_vel_ABD.size(); num++)
 			{
 				tetSimMesh.translation_vel_ABD[num] = { 0,0,-3 };
 			}
-			
+			tetSimMesh.translation_vel_ABD[0] = { 3,0,0 };
+
 
 
 			std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
@@ -1164,19 +1216,19 @@ int main()
 			parameters.gravity = { 0, 0, 0 };
 			parameters.num_timesteps = 10000;
 			parameters.numOfThreads = 12;
-			parameters.dt = 1.0e-3;
-			parameters.outputFrequency = 10;
+			parameters.dt = 1.0e-2;
+			parameters.outputFrequency = 1;
 			parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
 			parameters.enableGround = true;
-			parameters.searchResidual = 6.0;
+			parameters.searchResidual = 0.5;
 			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;
 			parameters.IPC_dis = 0.01;
 			parameters.IPC_eta = 0.05;
-			parameters.IPC_kStiffness = 1.0e12;
+			parameters.IPC_kStiffness = 1.0e9;
 			parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
 			parameters.IPC_B3Stiffness = 500;
-			parameters.ABD_Coeff = 1.0e9;
+			parameters.ABD_Coeff = 1.0e10;
 
 
 
