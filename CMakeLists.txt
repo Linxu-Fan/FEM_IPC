@@ -17,6 +17,10 @@ IF(USE_OpenMP)
   ENDIF()
 ENDIF()    
 
+# Find CGAL package
+find_package(CGAL REQUIRED)
+
+
 # 设置Windows的导出符号
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
@@ -25,7 +29,8 @@ set(EXTERN_PROJECTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern)
 
 
 # 设置包含路径
-list (APPEND EXTRA_INCLUDES 
+list (APPEND EXTRA_INCLUDES
+	${EXTERN_PROJECTS_DIR}/libigl/include 
     ${EXTERN_PROJECTS_DIR}/eigen
     ${EXTERN_PROJECTS_DIR}/cppAD/include  # 指向cppAD的include目录
     ${CMAKE_CURRENT_SOURCE_DIR}/include/Energy
@@ -69,6 +74,17 @@ add_executable(
     include/Objects/mesh.h
 )
 
+
+# 添加 libigl 子目录
+set(LIBIGL_WITH_CGAL ON CACHE BOOL "Use CGAL for mesh operations")
+set(LIBIGL_WITH_OPENGL ON CACHE BOOL "Use OpenGL")
+set(LIBIGL_WITH_OPENGL_GLFW ON CACHE BOOL "Use OpenGL with GLFW")
+set(LIBIGL_WITH_OPENGL_GLFW_IMGUI OFF CACHE BOOL "Use ImGui")
+add_subdirectory(${EXTERN_PROJECTS_DIR}/libigl)
+
+
+
+
 # 组织源文件和头文件到Visual Studio的项目组
 source_group("Source Files\\Utils" FILES src/Utils/utils.cpp src/Utils/tools.cpp)
 source_group("Source Files\\Objects" FILES src/Objects/mesh.cpp)
@@ -107,8 +123,16 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_14)
 # 添加包含路径
 target_include_directories(${PROJECT_NAME} PRIVATE ${EXTRA_INCLUDES})
 
-# 链接库，如果有的话
-target_link_libraries (${PROJECT_NAME} ${EXTRA_LIBS}) 
+
+
+# 链接库，包括 libigl
+target_link_libraries(${PROJECT_NAME} PUBLIC 
+    ${EXTRA_LIBS}
+    igl::core
+	CGAL::CGAL
+)
+
+
 
 # 定义预处理宏
 target_compile_definitions(${PROJECT_NAME} PUBLIC -DROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

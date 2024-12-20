@@ -32,6 +32,10 @@
 #include <cfloat>
 #include <complex>
 
+
+#include <igl/readOBJ.h>
+#include <igl/writeOBJ.h>
+#include <igl/copyleft/cgal/mesh_boolean.h>
 //#include <cppad/cppad.hpp>
 
 #define PI_Value 3.14159265358979323846 

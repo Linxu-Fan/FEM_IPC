@@ -10,48 +10,96 @@
 int main()
 {
 
-	if (0)
+	if (1)
 	{
 
-		objMeshFormat start;
-		start.readObjFile("./input/surfMesh_0.obj", false);
 
-		objMeshFormat end;
-		end.readObjFile("./input/surfMesh_2900.obj", false);
-		std::cout << "start.vertices.size() = " << start.vertices.size() << std::endl;
+		// Load meshes
+		Eigen::MatrixXd VA, VB; // Vertices of meshes A and B
+		Eigen::MatrixXi FA, FB; // Faces of meshes A and B
 
-		std::vector<std::pair<double, double>> displacement;
-		for (int i = 0; i < start.vertices.size(); i++)
-		{
-			Eigen::Vector3d pos = start.vertices[i];
-			if (std::abs(pos[1] + 10) <= 0.0001 && std::abs(pos[2] - 1) <= 0.0001 && pos[0] >= -22)
-			{
-				std::pair<double, double> pa = { pos[0] + 22, -(end.vertices[i][2] - start.vertices[i][2])};
-				displacement.push_back(pa);
-			}
+
+		if (!igl::readOBJ("D:/Research/Hydrostatic_object/code/FEM_IPC/input/cube.obj", VB, FB)) {
+			std::cerr << "Failed to load meshB.obj" << std::endl;
+			return -1;
+		}
+
+		if (!igl::readOBJ("D:/Research/Hydrostatic_object/code/FEM_IPC/input/bunny_highRes.obj", VA, FA)) {
+			std::cerr << "Failed to load meshA.obj" << std::endl;
+			return -1;
 		}
 
 
-		// 使用 std::sort 并提供一个自定义的比较函数
-		std::sort(displacement.begin(), displacement.end(),
-			[](const std::pair<double, double>& a, const std::pair<double, double>& b) {
-				return a.first < b.first; // 按照第一个元素排序
-			});
+		// Output result mesh
+		Eigen::MatrixXd VC; // Resulting vertices
+		Eigen::MatrixXi FC; // Resulting faces
 
-		// 输出排序后的结果
-		std::cout << "Sorted displacement:" << std::endl;
-		for (const auto& p : displacement) {
-			std::cout << "(" << p.first << ", " << p.second << ")" << std::endl;
+		// Perform Boolean operation (e.g., UNION)
+		igl::copyleft::cgal::mesh_boolean(VA, FA, VB, FB, igl::MESH_BOOLEAN_TYPE_MINUS, VC, FC);
+
+		std::cout << "Boolean operation completed!" << std::endl;
+
+		// Save the result into an OBJ file
+		if (!igl::writeOBJ("./output/result.obj", VC, FC)) {
+			std::cerr << "Failed to save result.obj" << std::endl;
+			return -1;
 		}
 
+		std::cout << "Result saved to result.obj" << std::endl;
 
 
-		std::ofstream outfile9("./output/comp.txt", std::ios::trunc);
-		for (int k = 0; k < displacement.size(); k++)
-		{
-			outfile9 << std::scientific << std::setprecision(8) << displacement[k].first << " " << displacement[k].second << std::endl;
-		}
-		outfile9.close();
+
+
+
+
+
+
+
+
+
+
+
+
+
+		//objMeshFormat start;
+		//start.readObjFile("./input/surfMesh_0.obj", false);
+
+		//objMeshFormat end;
+		//end.readObjFile("./input/surfMesh_2900.obj", false);
+		//std::cout << "start.vertices.size() = " << start.vertices.size() << std::endl;
+
+		//std::vector<std::pair<double, double>> displacement;
+		//for (int i = 0; i < start.vertices.size(); i++)
+		//{
+		//	Eigen::Vector3d pos = start.vertices[i];
+		//	if (std::abs(pos[1] + 10) <= 0.0001 && std::abs(pos[2] - 1) <= 0.0001 && pos[0] >= -22)
+		//	{
+		//		std::pair<double, double> pa = { pos[0] + 22, -(end.vertices[i][2] - start.vertices[i][2])};
+		//		displacement.push_back(pa);
+		//	}
+		//}
+
+
+		//// 使用 std::sort 并提供一个自定义的比较函数
+		//std::sort(displacement.begin(), displacement.end(),
+		//	[](const std::pair<double, double>& a, const std::pair<double, double>& b) {
+		//		return a.first < b.first; // 按照第一个元素排序
+		//	});
+
+		//// 输出排序后的结果
+		//std::cout << "Sorted displacement:" << std::endl;
+		//for (const auto& p : displacement) {
+		//	std::cout << "(" << p.first << ", " << p.second << ")" << std::endl;
+		//}
+
+
+
+		//std::ofstream outfile9("./output/comp.txt", std::ios::trunc);
+		//for (int k = 0; k < displacement.size(); k++)
+		//{
+		//	outfile9 << std::scientific << std::setprecision(8) << displacement[k].first << " " << displacement[k].second << std::endl;
+		//}
+		//outfile9.close();
 
 
 
