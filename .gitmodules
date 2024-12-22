@@ -7,3 +7,6 @@
 [submodule "extern/libigl"]
 	path = extern/libigl
 	url = https://github.com/libigl/libigl.git
+[submodule "extern/voro++"]
+	path = extern/voro++
+	url = https://github.com/chr1shr/voro.git

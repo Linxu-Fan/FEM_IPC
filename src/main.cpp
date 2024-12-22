@@ -14,38 +14,297 @@ int main()
 	{
 
 
-		// Load meshes
-		Eigen::MatrixXd VA, VB; // Vertices of meshes A and B
-		Eigen::MatrixXi FA, FB; // Faces of meshes A and B
+		// Input .obj file
+		std::string input_filename = "D:/Research/Hydrostatic_object/code/FEM_IPC/input/bunnyCrack.obj";
 
 
-		if (!igl::readOBJ("D:/Research/Hydrostatic_object/code/FEM_IPC/input/cube.obj", VB, FB)) {
-			std::cerr << "Failed to load meshB.obj" << std::endl;
-			return -1;
+		objMeshFormat crackMesh;
+		crackMesh.readObjFile(input_filename, true);
+		crackMesh.triangulate();
+
+		std::vector<openvdb::Vec3s> vertices; 
+		std::vector<openvdb::Vec3I> triangles;
+		crackMesh.to_openVDB_format(vertices, triangles);
+
+		{
+			std::ofstream outfile9("./output/original_surface.obj", std::ios::trunc);
+			for (int k = 0; k < vertices.size(); k++)
+			{
+				openvdb::Vec3s scale = vertices[k];
+				outfile9 << std::scientific << std::setprecision(8) << "v " << scale.x() << " " << scale.y() << " " << scale.z() << std::endl;
+			}
+			for (int k = 0; k < triangles.size(); k++)
+			{
+				openvdb::Vec3I scale = triangles[k];
+				outfile9 << std::scientific << std::setprecision(8) << "f " << scale[0] + 1<< " " << scale[1] + 1 << " " << scale[2] + 1 << std::endl;
+			}
+			outfile9.close();
 		}
 
-		if (!igl::readOBJ("D:/Research/Hydrostatic_object/code/FEM_IPC/input/bunny_highRes.obj", VA, FA)) {
-			std::cerr << "Failed to load meshA.obj" << std::endl;
-			return -1;
+
+
+
+		float voxel_size = 0.005f;
+		// define openvdb linear transformation
+		openvdb::math::Transform::Ptr transform = openvdb::math::Transform::createLinearTransform(voxel_size);
+		openvdb::FloatGrid::Ptr crackLevelSetGrid = openvdb::tools::meshToUnsignedDistanceField<openvdb::FloatGrid>(
+			*transform,
+			vertices,
+			triangles,
+			std::vector<openvdb::Vec4I>(),
+			3);
+
+		for (openvdb::FloatGrid::ValueOnIter iter = crackLevelSetGrid->beginValueOn(); iter; ++iter) {
+			float dist = iter.getValue();
+			float value = dist - std::sqrt(3 * std::pow(voxel_size, 2));
+			iter.setValue(value);
+		}
+		crackLevelSetGrid->setGridClass(openvdb::GRID_LEVEL_SET);
+
+
+		std::vector<openvdb::Vec3s> surfaceVertices; // List of surface vertices
+		std::vector<openvdb::Vec3I> surfaceTriangles;    // List of surface quads (faces)
+
+
+
+
+		{
+			openvdb::tools::VolumeToMesh volumeToMeshHandle;
+			volumeToMeshHandle(*crackLevelSetGrid);
+
+
+			openvdb::tools::PointList* verts = &volumeToMeshHandle.pointList();
+			openvdb::tools::PolygonPoolList* polys = &volumeToMeshHandle.polygonPoolList();
+
+
+
+
+
+			for (size_t i = 0; i < volumeToMeshHandle.pointListSize(); i++) 
+			{
+				openvdb::Vec3s v = (*verts)[i];
+				surfaceVertices.push_back(v);
+			}
+
+			for (size_t i = 0; i < volumeToMeshHandle.polygonPoolListSize(); i++) {
+
+				for (size_t ndx = 0; ndx < (*polys)[i].numTriangles(); ndx++) {
+					openvdb::Vec3I* p = &((*polys)[i].triangle(ndx));
+				}
+
+				for (size_t ndx = 0; ndx < (*polys)[i].numQuads(); ndx++) {
+					openvdb::Vec4I* p = &((*polys)[i].quad(ndx));
+
+					openvdb::Vec3I f0 = { p->z() ,p->y() ,p->x() };
+					openvdb::Vec3I f1 = { p->w() ,p->z() ,p->x() };
+					surfaceTriangles.push_back(f0);
+					surfaceTriangles.push_back(f1);
+				}
+			}
+
+
 		}
 
 
-		// Output result mesh
-		Eigen::MatrixXd VC; // Resulting vertices
-		Eigen::MatrixXi FC; // Resulting faces
 
-		// Perform Boolean operation (e.g., UNION)
-		igl::copyleft::cgal::mesh_boolean(VA, FA, VB, FB, igl::MESH_BOOLEAN_TYPE_MINUS, VC, FC);
 
-		std::cout << "Boolean operation completed!" << std::endl;
-
-		// Save the result into an OBJ file
-		if (!igl::writeOBJ("./output/result.obj", VC, FC)) {
-			std::cerr << "Failed to save result.obj" << std::endl;
-			return -1;
+		{
+			std::ofstream outfile9("./output/reconstructed_surface.obj", std::ios::trunc);
+			for (int k = 0; k < surfaceVertices.size(); k++)
+			{
+				openvdb::Vec3s scale = surfaceVertices[k];
+				outfile9 << std::scientific << std::setprecision(8) << "v " << scale.x() << " " << scale.y() << " " << scale.z() << std::endl;
+			}
+			for (int k = 0; k < surfaceTriangles.size(); k++)
+			{
+				openvdb::Vec3I scale = surfaceTriangles[k];
+				outfile9 << std::scientific << std::setprecision(8) << "f " << scale[0] + 1 << " " << scale[1] + 1 << " " << scale[2] + 1 << std::endl;
+			}
 		}
 
-		std::cout << "Result saved to result.obj" << std::endl;
+
+
+		Eigen::MatrixXd V(surfaceVertices.size(), 3);
+		Eigen::MatrixXi F(surfaceTriangles.size(), 3);
+		{
+			for (int k = 0; k < surfaceVertices.size(); k++)
+			{
+				openvdb::Vec3s scale = surfaceVertices[k];
+				V(k, 0) = scale.x();
+				V(k, 1) = scale.y();
+				V(k, 2) = scale.z();
+			}
+			for (int k = 0; k < surfaceTriangles.size(); k++)
+			{
+				openvdb::Vec3I scale = surfaceTriangles[k];
+				F(k, 0) = scale.x();
+				F(k, 1) = scale.y();
+				F(k, 2) = scale.z();
+			}
+		}
+		// 简化网格
+
+		Eigen::MatrixXd U; // 简化后的顶点
+		Eigen::MatrixXi G; // 简化后的面
+		Eigen::VectorXi J; // 面的映射
+		Eigen::VectorXi I; // 顶点的映射
+		bool block_intersections = false;
+
+		if (!igl::decimate(V, F, 50000, block_intersections, U, G, J, I)) {
+			std::cerr << "Decimation failed!" << std::endl;
+			return 1;
+		}
+
+		std::cout << "Simplified mesh: " << G.rows() << " faces, " << U.rows() << " vertices." << std::endl;
+
+		// 保存简化后的网格
+		if (!igl::writeOBJ("./output/reconstructed_surface_decimated.obj", U, G)) {
+			std::cerr << "Failed to save simplified mesh to " << std::endl;
+			return 1;
+		}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		//float voxel_size = 0.01;
+		//openvdb::math::Transform::Ptr transform = openvdb::math::Transform::createLinearTransform(voxel_size);
+
+
+
+		//openvdb::initialize();
+		//std::vector<openvdb::Vec4I> quads;
+		//// Step 3: Convert the triangular mesh into a signed distance field (SDF)
+		//openvdb::FloatGrid::Ptr sdfGrid = openvdb::tools::meshToSignedDistanceField<openvdb::FloatGrid>
+		//	(*transform,vertices,triangles,quads,1.0,1.0);
+
+
+
+		//// Step 4: Extract the surface mesh from the voxel grid
+		//std::vector<openvdb::Vec3s> surfaceVertices; // List of surface vertices
+		//std::vector<openvdb::Vec3I> surfaceTriangles;    // List of surface quads (faces)
+		//std::vector<openvdb::Vec4I> quads_out;
+
+		//openvdb::tools::volumeToMesh(
+		//	*sdfGrid,         // Input SDF grid
+		//	surfaceVertices,  // Output vertices of the surface mesh
+		//	surfaceTriangles,     // Output quads of the surface mesh
+		//	quads_out,
+		//	0.0,              // Iso-value (surface level set, 0.0 for the zero level set)
+		//	1.0               // Adaptivity (0 = full detail, higher = more simplified mesh)
+		//);
+
+
+
+		//// Step 5: Output the surface mesh (e.g., to a file or console)
+		//std::cout << "Extracted vertices: "<< surfaceVertices.size() << std::endl;
+		//std::cout << "Extracted triangles: "<< surfaceTriangles.size() << std::endl;
+		//std::cout << "Extracted quads_out: "<< quads_out.size() << std::endl;
+
+
+		//{
+		//	std::ofstream outfile9("./output/reconstructed_surface.obj", std::ios::trunc);
+		//	for (int k = 0; k < surfaceVertices.size(); k++)
+		//	{
+		//		openvdb::Vec3s scale = surfaceVertices[k];
+		//		outfile9 << std::scientific << std::setprecision(8) << "v " << scale.x() << " " << scale.y() << " " << scale.z() << std::endl;
+		//	}
+		//	//for (int k = 0; k < surfaceTriangles.size(); k++)
+		//	//{
+		//	//	openvdb::Vec3I scale = surfaceTriangles[k];
+		//	//	outfile9 << std::scientific << std::setprecision(8) << "f " << scale[0] + 1 << " " << scale[1] + 1 << " " << scale[2] + 1 << std::endl;
+		//	//}
+		//	for (int k = 0; k < quads_out.size(); k++)
+		//	{
+		//		openvdb::Vec4I scale = quads_out[k];
+		//		outfile9 << std::scientific << std::setprecision(8) << "f " << scale[0] + 1 << " " << scale[1] + 1 << " " << scale[2] + 1 << " " << scale[3] + 1 << std::endl;
+		//	}
+		//	outfile9.close();
+		//}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		//// Load meshes
+		//Eigen::MatrixXd VA, VB; // Vertices of meshes A and B
+		//Eigen::MatrixXi FA, FB; // Faces of meshes A and B
+
+
+		//if (!igl::readOBJ("D:/Research/Hydrostatic_object/code/FEM_IPC/input/cube.obj", VB, FB)) {
+		//	std::cerr << "Failed to load meshB.obj" << std::endl;
+		//	return -1;
+		//}
+
+		//if (!igl::readOBJ("D:/Research/Hydrostatic_object/code/FEM_IPC/input/bunny_highRes.obj", VA, FA)) {
+		//	std::cerr << "Failed to load meshA.obj" << std::endl;
+		//	return -1;
+		//}
+
+
+		//// Output result mesh
+		//Eigen::MatrixXd VC; // Resulting vertices
+		//Eigen::MatrixXi FC; // Resulting faces
+
+		//// Perform Boolean operation (e.g., UNION)
+		//igl::copyleft::cgal::mesh_boolean(VA, FA, VB, FB, igl::MESH_BOOLEAN_TYPE_MINUS, VC, FC);
+
+		//std::cout << "Boolean operation completed!" << std::endl;
+
+		//// Save the result into an OBJ file
+		//if (!igl::writeOBJ("./output/result.obj", VC, FC)) {
+		//	std::cerr << "Failed to save result.obj" << std::endl;
+		//	return -1;
+		//}
+
+		//std::cout << "Result saved to result.obj" << std::endl;
 
 
 
@@ -80,13 +339,13 @@ int main()
 		//}
 
 
-		//// ʹ�� std::sort ���ṩһ���Զ���ıȽϺ���
+		//// 使用 std::sort 并提供一个自定义的比较函数
 		//std::sort(displacement.begin(), displacement.end(),
 		//	[](const std::pair<double, double>& a, const std::pair<double, double>& b) {
-		//		return a.first < b.first; // ���յ�һ��Ԫ������
+		//		return a.first < b.first; // 按照第一个元素排序
 		//	});
 
-		//// ��������Ľ��
+		//// 输出排序后的结果
 		//std::cout << "Sorted displacement:" << std::endl;
 		//for (const auto& p : displacement) {
 		//	std::cout << "(" << p.first << ", " << p.second << ")" << std::endl;

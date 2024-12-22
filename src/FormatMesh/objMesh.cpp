@@ -448,3 +448,38 @@ bool objMeshFormat::checkIfMeshIntersectWithLine(const Eigen::Vector3d line_pt1,
 	// No intersection found
 	return false;
 }
+
+void objMeshFormat::triangulate()
+{
+	for (int i = 0; i < facesPolygonal.size(); i++)
+	{
+		std::vector<int> facePolygonal = facesPolygonal[i];
+		if (facePolygonal.size() > 3)
+		{
+			for (int j = 1; j < facePolygonal.size() - 1; j++)
+			{
+				Eigen::Vector3i faceTri = { facePolygonal[0], facePolygonal[j], facePolygonal[j + 1] };
+				faces.push_back(faceTri);
+			}
+		}
+		else
+		{
+			Eigen::Vector3i faceTri = { facePolygonal[0], facePolygonal[1], facePolygonal[2] };
+			faces.push_back(faceTri);
+		}
+	}
+}
+
+void objMeshFormat::to_openVDB_format(std::vector<openvdb::Vec3s>& verticesVdb, std::vector<openvdb::Vec3I>& trianglesVdb)
+{
+	verticesVdb.clear();
+	trianglesVdb.clear();
+	for (int i = 0 ; i < vertices.size(); i++)
+	{
+		verticesVdb.push_back({ static_cast<float>(vertices[i][0]),static_cast<float>(vertices[i][1]),static_cast<float>(vertices[i][2]) });
+	}
+	for (int i = 0; i < faces.size(); i++)
+	{
+		trianglesVdb.push_back({ static_cast<uint32_t>(faces[i][0]), static_cast<uint32_t>(faces[i][1]), static_cast<uint32_t>(faces[i][2]) });
+	}
+}

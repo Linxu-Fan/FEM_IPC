@@ -1,4 +1,4 @@
-#include "mesh.h"
+ï»¿#include "mesh.h"
 
 
 double MLSPoints::computeWeight(const Eigen::Vector3d& x_s, 
@@ -101,8 +101,8 @@ void MLSPoints::MLS_approximation(const std::vector<Vector3d>& pos_node_Rest,
         //    {
         //        Eigen::Matrix3d dF_dxi_alpha = Eigen::Matrix3d::Zero();
 
-        //        // Compute w_i * ¦Ä_{a¦Á} * [M_pp_inv * p_tilde_i]_b
-        //        // ¦Ä_{a¦Á} is 1 if a == alpha, 0 otherwise
+        //        // Compute w_i * Î´_{aÎ±} * [M_pp_inv * p_tilde_i]_b
+        //        // Î´_{aÎ±} is 1 if a == alpha, 0 otherwise
         //        for (int a = 0; a < 3; ++a)
         //        {
         //            double delta_a_alpha = (a == alpha) ? 1.0 : 0.0;

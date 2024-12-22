@@ -33,9 +33,30 @@
 #include <complex>
 
 
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Surface_mesh.h>
+#include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
+#include <CGAL/IO/PLY.h>
+#include <CGAL/IO/OFF.h>
+
+typedef CGAL::Simple_cartesian<double> Kernel;
+typedef Kernel::Point_3 Point_3;
+typedef CGAL::Surface_mesh<Point_3> Surface_mesh;
+
+namespace PMP = CGAL::Polygon_mesh_processing;
+
+
+
+#include <openvdb/openvdb.h>
+#include <openvdb/tools/VolumeToMesh.h>
+#include <openvdb/tools/LevelSetUtil.h>
+#include <openvdb/tools/MeshToVolume.h>
+
+
 #include <igl/readOBJ.h>
 #include <igl/writeOBJ.h>
 #include <igl/copyleft/cgal/mesh_boolean.h>
+#include <igl/decimate.h>
 //#include <cppad/cppad.hpp>
 
 #define PI_Value 3.14159265358979323846 

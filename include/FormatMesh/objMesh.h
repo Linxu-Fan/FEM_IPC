@@ -85,6 +85,12 @@ struct objMeshFormat
 
 	bool checkIfMeshIntersectWithLine(const Eigen::Vector3d line_pt1, const Eigen::Vector3d line_pt2); // check if this mesh intersect with a line segment (line_pt1, line_pt2)
 
+	// convert to a pure triangle mesh
+	void triangulate();
+
+	// convert to openvdb format
+	void to_openVDB_format(std::vector<openvdb::Vec3s>& verticesVdb, std::vector<openvdb::Vec3I>& trianglesVdb);
+
 };
 
 
