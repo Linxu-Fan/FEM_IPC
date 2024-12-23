@@ -70,9 +70,15 @@ struct objMeshFormat
 	std::vector<objMeshFormat> componentsSep; // separated connected-components
 	
 
+	// initial velocity of this mesh. It is useful when the mesh is used for simulation
+	Eigen::Vector3d initialVelocity = Eigen::Vector3d::Zero();
+	double volume = 0; // watertight volume of this object
+	
+
 	void clear();
 
-	void readObjFile(std::string fileName, bool polygonal = false); // if polygonal is true, read polygonal mesh
+	void readObjFile(std::string fileName, bool polygonal = false, Eigen::Affine3d rotation = Eigen::Affine3d::Identity(),
+		Eigen::Vector3d scale = Eigen::Vector3d::Ones(), Eigen::Vector3d translation = Eigen::Vector3d::Zero()); // if polygonal is true, read polygonal mesh
 
     void sepConnectedComponents(); // separate connected comonents
 
@@ -90,6 +96,20 @@ struct objMeshFormat
 
 	// convert to openvdb format
 	void to_openVDB_format(std::vector<openvdb::Vec3s>& verticesVdb, std::vector<openvdb::Vec3I>& trianglesVdb);
+
+
+	/**
+	 * @brief convert the vertices and faces into libigl format for further processing
+	 *
+	 */
+	std::pair<Eigen::MatrixXd, Eigen::MatrixXi> to_libigl_mesh();
+
+	/**
+	 * @brief Generate random points inside a closed triangular mesh.
+	 *
+	 * @param num_samples Number of points to sample
+	 */
+	std::vector<Eigen::Vector3d> sample_points_inside_mesh(int num_samples);
 
 };
 

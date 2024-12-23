@@ -7,11 +7,18 @@
 // 2. If the code doesn't work, check line45 of InertiaEnergy.cpp
 
 
+
+
+
+
 int main()
 {
 
 	if (1)
 	{
+
+
+
 
 
 		// Input .obj file
@@ -22,7 +29,7 @@ int main()
 		crackMesh.readObjFile(input_filename, true);
 		crackMesh.triangulate();
 
-		std::vector<openvdb::Vec3s> vertices; 
+		std::vector<openvdb::Vec3s> vertices;
 		std::vector<openvdb::Vec3I> triangles;
 		crackMesh.to_openVDB_format(vertices, triangles);
 
@@ -36,7 +43,7 @@ int main()
 			for (int k = 0; k < triangles.size(); k++)
 			{
 				openvdb::Vec3I scale = triangles[k];
-				outfile9 << std::scientific << std::setprecision(8) << "f " << scale[0] + 1<< " " << scale[1] + 1 << " " << scale[2] + 1 << std::endl;
+				outfile9 << std::scientific << std::setprecision(8) << "f " << scale[0] + 1 << " " << scale[1] + 1 << " " << scale[2] + 1 << std::endl;
 			}
 			outfile9.close();
 		}
@@ -44,7 +51,7 @@ int main()
 
 
 
-		float voxel_size = 0.005f;
+		float voxel_size = 0.04f;
 		// define openvdb linear transformation
 		openvdb::math::Transform::Ptr transform = openvdb::math::Transform::createLinearTransform(voxel_size);
 		openvdb::FloatGrid::Ptr crackLevelSetGrid = openvdb::tools::meshToUnsignedDistanceField<openvdb::FloatGrid>(
@@ -80,7 +87,7 @@ int main()
 
 
 
-			for (size_t i = 0; i < volumeToMeshHandle.pointListSize(); i++) 
+			for (size_t i = 0; i < volumeToMeshHandle.pointListSize(); i++)
 			{
 				openvdb::Vec3s v = (*verts)[i];
 				surfaceVertices.push_back(v);
@@ -107,19 +114,29 @@ int main()
 
 
 
-
+		objMeshFormat rms;
 		{
 			std::ofstream outfile9("./output/reconstructed_surface.obj", std::ios::trunc);
 			for (int k = 0; k < surfaceVertices.size(); k++)
 			{
 				openvdb::Vec3s scale = surfaceVertices[k];
 				outfile9 << std::scientific << std::setprecision(8) << "v " << scale.x() << " " << scale.y() << " " << scale.z() << std::endl;
+
+				Eigen::Vector3d vt = { scale.x() , scale.y() , scale.z() };
+				rms.vertices.push_back(vt);
+
 			}
 			for (int k = 0; k < surfaceTriangles.size(); k++)
 			{
 				openvdb::Vec3I scale = surfaceTriangles[k];
 				outfile9 << std::scientific << std::setprecision(8) << "f " << scale[0] + 1 << " " << scale[1] + 1 << " " << scale[2] + 1 << std::endl;
+
+
+				Eigen::Vector3i ft = { static_cast<int>(scale.x()) , static_cast<int>(scale.y()) ,static_cast<int>(scale.z()) };
+				rms.faces.push_back(ft);
+
 			}
+			outfile9.close();
 		}
 
 
@@ -144,6 +161,18 @@ int main()
 		}
 		// 简化网格
 
+
+		std::vector<Eigen::Vector3d> pts = rms.sample_points_inside_mesh(100000);
+		{
+			std::ofstream outfile9("./output/sampledPoints.obj", std::ios::trunc);
+			for (int k = 0; k < pts.size(); k++)
+			{
+				outfile9 << std::scientific << std::setprecision(8) << "v " << pts[k][0] << " " << pts[k][1] << " " << pts[k][2] << std::endl;
+			}
+			outfile9.close();
+		}
+
+
 		Eigen::MatrixXd U; // 简化后的顶点
 		Eigen::MatrixXi G; // 简化后的面
 		Eigen::VectorXi J; // 面的映射
@@ -162,6 +191,7 @@ int main()
 			std::cerr << "Failed to save simplified mesh to " << std::endl;
 			return 1;
 		}
+
 
 
 
@@ -578,117 +608,117 @@ int main()
 		// 5. Object hanging test to verify element sampling algorithm
 		// 6. Two tetrahedrals collision test to verify the correctness of the solver in ABD 
 		// 7. Cube tower stress test for ABD 
-		int caseNum = 7;
+		int caseNum = 0;
 		if (caseNum == 0)
 		{
-			//Material mat1;
-			//mat1.density = 7880;
-			//mat1.E = 7.26e10;
-			//mat1.updateDenpendecies();
+			Material mat1;
+			mat1.density = 7880;
+			mat1.E = 7.26e10;
+			mat1.updateDenpendecies();
 
 
-			//
-			//std::vector<meshConfiguration> config;			
-			//meshConfiguration m1, m2, m3, m4;
-			//m1.filePath = "../input/beam.msh";
-			//m1.mesh_material = mat1;
-			//m1.scale = {1000, 1000, 1000};
-			//m1.note = "beam";
-			//config.push_back(m1);
+			
+			std::vector<meshConfiguration> config;			
+			meshConfiguration m1, m2, m3, m4;
+			m1.filePath = "../input/beam.msh";
+			m1.mesh_material = mat1;
+			m1.scale = {1000, 1000, 1000};
+			m1.note = "beam";
+			config.push_back(m1);
 
-			//m2 = m1;
-			//m2.filePath = "../input/left_support.msh";
-			//m2.note = "left_support";
-			//m2.translation = { 0, 0, 1.0e-4};
-			////config.push_back(m2);
+			m2 = m1;
+			m2.filePath = "../input/left_support.msh";
+			m2.note = "left_support";
+			m2.translation = { 0, 0, 1.0e-4};
+			//config.push_back(m2);
 
-			//m3 = m1;
-			//m3.filePath = "../input/middle_support.msh";
-			//m3.note = "middle_support";
-			//m3.translation = { 0, 0, -1.0e-4 };
-			////config.push_back(m3);
+			m3 = m1;
+			m3.filePath = "../input/middle_support.msh";
+			m3.note = "middle_support";
+			m3.translation = { 0, 0, -1.0e-4 };
+			//config.push_back(m3);
 
-			//m4 = m1;
-			//m4.filePath = "../input/impactor.msh";
-			//m4.note = "impactor";
-			//m4.translation = { 0, 0, 1.5e-2 };
-			//config.push_back(m4);
-
-
-
-
-			//Mesh tetSimMesh;
-			//for (int i = 0; i < config.size(); i++)
-			//{
-			//	tetMesh msh_tmp;
-			//	msh_tmp.readMesh(config[i]);
-			//	msh_tmp.initializeTetMesh();
-			//	tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
-			//}
-			//tetSimMesh.createGlobalSimulationMesh();
+			m4 = m1;
+			m4.filePath = "../input/impactor.msh";
+			m4.note = "impactor";
+			m4.translation = { 0, 0, 1.5e-2 };
+			config.push_back(m4);
 
 
 
-			//
+
+			Mesh tetSimMesh;
+			for (int i = 0; i < config.size(); i++)
+			{
+				tetMesh msh_tmp;
+				msh_tmp.readMesh(config[i]);
+				msh_tmp.initializeTetMesh();
+				tetSimMesh.objectsTetMesh[msh_tmp.tetMeshNote] = msh_tmp;
+			}
+			tetSimMesh.createGlobalSimulationMesh();
 
 
 
-			//std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
-			//std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
-
-
-			//FEMParamters parameters;
-			//parameters.gravity = { 0, 0, -9.8 };
-			//parameters.num_timesteps = 1000;
-			//parameters.numOfThreads = 12;
-			//parameters.dt = 5.0e-4;
-			//parameters.outputFrequency = 20;
-			//parameters.enableGround = false;
-			//parameters.searchResidual = 5.0;
-			//parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
-			//parameters.rigidMode = true;
-			////parameters.objectNames = objectNames;
-			//parameters.IPC_dis = 0.01;
-			//parameters.IPC_eta = 0.05;
-			//parameters.IPC_kStiffness = 1.0e14;
-			//parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
-			//parameters.IPC_B3Stiffness = 500;
+			
 
 
 
-			//for (int p = 0; p < tetSimMesh.pos_node.size(); p++)
-			//{
-			//	if (tetSimMesh.note_node[p] == "impactor")
-			//	{
-			//		tetSimMesh.boundaryCondition_node[p].type = 1;
-			//		for (int fra = 0; fra < parameters.num_timesteps; fra++)
-			//		{
-			//			double incre = 0.1 / (double)parameters.num_timesteps * (double)fra;
-			//			Eigen::Vector3d inc = {0,0,-incre };
-			//			Eigen::Vector3d desiredPos = inc + tetSimMesh.pos_node[p];
+			std::cout << "tetSimMesh.pos_node.size() = " << tetSimMesh.pos_node.size() << std::endl;
+			std::cout << "tetSimMesh.tetrahedrals.size() = " << tetSimMesh.tetrahedrals.size() << std::endl;
 
-			//			tetSimMesh.boundaryCondition_node[p].location.push_back(desiredPos);
-			//		}
-			//	}
 
-			//	if (tetSimMesh.note_node[p] == "beam")
-			//	{
-			//		if (tetSimMesh.pos_node[p][0] <= -22)
-			//		{
-			//			tetSimMesh.boundaryCondition_node[p].type = 1;
-			//			for (int fra = 0; fra < parameters.num_timesteps; fra++)
-			//			{
-			//				Eigen::Vector3d desiredPos = tetSimMesh.pos_node[p];
-			//				tetSimMesh.boundaryCondition_node[p].location.push_back(desiredPos);
-			//			}
-			//		}
-			//	}
-
-			//}
+			FEMParamters parameters;
+			parameters.gravity = { 0, 0, 0 };
+			parameters.num_timesteps = 1000;
+			parameters.numOfThreads = 12;
+			parameters.dt = 5.0e-4;
+			parameters.outputFrequency = 20;
+			parameters.enableGround = false;
+			parameters.searchResidual = 5.0;
+			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+			parameters.rigidMode = true;
+			//parameters.objectNames = objectNames;
+			parameters.IPC_dis = 0.01;
+			parameters.IPC_eta = 0.05;
+			parameters.IPC_kStiffness = 1.0e14;
+			parameters.IPC_hashSize = tetSimMesh.calLargestEdgeLength() * 1.1;
+			parameters.IPC_B3Stiffness = 500;
 
 
 
-			//implicitFEM(tetSimMesh, parameters);
+			for (int p = 0; p < tetSimMesh.pos_node.size(); p++)
+			{
+				if (tetSimMesh.note_node[p] == "impactor")
+				{
+					tetSimMesh.boundaryCondition_node[p].type = 1;
+					for (int fra = 0; fra < parameters.num_timesteps; fra++)
+					{
+						double incre = 0.1 / (double)parameters.num_timesteps * (double)fra;
+						Eigen::Vector3d inc = {0,0,-incre };
+						Eigen::Vector3d desiredPos = inc + tetSimMesh.pos_node[p];
+
+						tetSimMesh.boundaryCondition_node[p].location.push_back(desiredPos);
+					}
+				}
+
+				if (tetSimMesh.note_node[p] == "beam")
+				{
+					if (tetSimMesh.pos_node[p][0] <= -22)
+					{
+						tetSimMesh.boundaryCondition_node[p].type = 1;
+						for (int fra = 0; fra < parameters.num_timesteps; fra++)
+						{
+							Eigen::Vector3d desiredPos = tetSimMesh.pos_node[p];
+							tetSimMesh.boundaryCondition_node[p].location.push_back(desiredPos);
+						}
+					}
+				}
+
+			}
+
+
+
+			implicitFEM(tetSimMesh, parameters);
 
 
 		}
@@ -1479,11 +1509,11 @@ int main()
 
 
 			int count = 1;
-			for (int z = 0; z < 4; z++)
+			for (int z = 0; z < 3; z++)
 			{
-				for (int x = 0; x < 4; x++)
+				for (int x = 0; x < 3; x++)
 				{
-					for (int y = 0; y < 4; y++)
+					for (int y = 0; y < 3; y++)
 					{
 						count += 1;
 						m1.mesh_material = mat2;

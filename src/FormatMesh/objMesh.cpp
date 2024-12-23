@@ -149,7 +149,8 @@ bool lineSegmentIntersectsTriangle(const Eigen::Vector3d& orig,
 }
 
 
-void objMeshFormat::readObjFile(std::string fileName, bool polygonal)
+void objMeshFormat::readObjFile(std::string fileName, bool polygonal, Eigen::Affine3d rotation,
+	Eigen::Vector3d scale, Eigen::Vector3d translation)
 {
 	clear();
 
@@ -167,7 +168,8 @@ void objMeshFormat::readObjFile(std::string fileName, bool polygonal)
 				std::vector<std::string> vecCoor = split(line, " ");
 				if (vecCoor[0] == "v")
 				{
-					Eigen::Vector3d vt = { std::stod(vecCoor[1]) , std::stod(vecCoor[2]) , std::stod(vecCoor[3]) };
+					Eigen::Vector3d vt = { std::stod(vecCoor[1]) * scale[0] , std::stod(vecCoor[2]) * scale[1] , std::stod(vecCoor[3]) * scale[2] };
+					vt = rotation * vt + translation;
 					vertices.push_back(vt);
 				}
 
@@ -189,7 +191,8 @@ void objMeshFormat::readObjFile(std::string fileName, bool polygonal)
 				std::vector<std::string> vecCoor = split(line, " ");
 				if (vecCoor[0] == "v")
 				{
-					Eigen::Vector3d vt = { std::stod(vecCoor[1]) , std::stod(vecCoor[2]) , std::stod(vecCoor[3]) };
+					Eigen::Vector3d vt = { std::stod(vecCoor[1]) * scale[0] , std::stod(vecCoor[2]) * scale[1] , std::stod(vecCoor[3]) * scale[2] };
+					vt = rotation * vt + translation;
 					vertices.push_back(vt);
 				}
 
@@ -483,3 +486,95 @@ void objMeshFormat::to_openVDB_format(std::vector<openvdb::Vec3s>& verticesVdb, 
 		trianglesVdb.push_back({ static_cast<uint32_t>(faces[i][0]), static_cast<uint32_t>(faces[i][1]), static_cast<uint32_t>(faces[i][2]) });
 	}
 }
+
+std::pair<Eigen::MatrixXd, Eigen::MatrixXi> objMeshFormat::to_libigl_mesh()
+{
+	Eigen::MatrixXd V = Eigen::MatrixXd::Zero(vertices.size(), 3);
+	Eigen::MatrixXi F = Eigen::MatrixXi::Zero(faces.size(), 3);
+
+	for (int k = 0; k < vertices.size(); k++)
+	{
+		V.row(k) = vertices[k];
+	}
+	for (int k = 0; k < faces.size(); k++)
+	{
+		F.row(k) = faces[k];
+	}
+
+	return std::make_pair(V, F);
+}
+
+
+/**
+ * @brief Generate random points inside a closed triangular mesh.
+ *
+ * @param num_samples Number of points to sample
+ */
+std::vector<Eigen::Vector3d> objMeshFormat::sample_points_inside_mesh(int num_samples)
+{
+
+	std::pair<Eigen::MatrixXd, Eigen::MatrixXi> libigl_mesh = to_libigl_mesh();
+	Eigen::MatrixXd V = libigl_mesh.first;
+	Eigen::MatrixXi F = libigl_mesh.second;
+
+
+	// Initialize a random number generator
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<> dis_x(V.col(0).minCoeff(), V.col(0).maxCoeff());
+	std::uniform_real_distribution<> dis_y(V.col(1).minCoeff(), V.col(1).maxCoeff());
+	std::uniform_real_distribution<> dis_z(V.col(2).minCoeff(), V.col(2).maxCoeff());
+
+	// Store sampled points
+	std::vector<Eigen::Vector3d> inside_points;
+
+
+	bool sufficient = false;
+	do
+	{
+		Eigen::VectorXd inside_check = Eigen::VectorXd::Zero(num_samples);
+		std::vector<Eigen::Vector3d> inside_points_tmp(num_samples);
+
+#pragma omp parallel for 
+		for (int i = 0; i < num_samples; ++i) 
+		{
+			Eigen::Vector3d point;
+			point[0] = dis_x(gen);
+			point[1] = dis_y(gen);
+			point[2] = dis_z(gen);
+
+			// Compute the winding number to check if the point is inside the mesh
+			double winding_number;
+			winding_number = igl::winding_number(V, F, point.transpose());
+
+			// If winding number is close to 1, the point is inside
+			if (std::abs(winding_number - 1.0) < 1e-6) 
+			{
+				inside_points_tmp[i] = point;
+				inside_check[i] = 1;
+			}
+		}
+
+		for (int i = 0; i < num_samples; i++)
+		{
+			if (inside_check[i] == 1)
+			{
+				inside_points.push_back(inside_points_tmp[i]);
+			}
+		}
+
+		if (inside_points.size() >= num_samples)
+		{
+			sufficient = true;
+		}
+
+
+	} while (!sufficient);
+
+
+	inside_points.resize(num_samples);
+
+	return inside_points;
+}
+
+

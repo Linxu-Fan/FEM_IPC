@@ -57,7 +57,9 @@ namespace PMP = CGAL::Polygon_mesh_processing;
 #include <igl/writeOBJ.h>
 #include <igl/copyleft/cgal/mesh_boolean.h>
 #include <igl/decimate.h>
-//#include <cppad/cppad.hpp>
+#include <igl/winding_number.h>
+#include <igl/centroid.h>
+
 
 #define PI_Value 3.14159265358979323846 
 

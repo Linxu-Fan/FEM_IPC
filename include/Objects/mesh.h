@@ -19,6 +19,47 @@ struct meshConfiguration
 	std::string note = "";
 };
 
+class ABD_Info
+{
+public:
+
+	// data structure specialized for ABD
+	std::vector<Matrix12d> massMatrix_ABD; // the mass matrix of each mesh if in ABD mode
+	std::vector<Eigen::Vector3d> translation_prev_ABD; // translation of each mesh in previous timestep if in ABD mode
+	std::vector<Eigen::Vector3d> translation_vel_ABD; // translation velocity
+	std::vector<Eigen::Vector3d> translation_ABD; // translation of each mesh if in ABD mode
+	std::vector<Eigen::Matrix3d> deformation_prev_ABD; // deformation of each mesh in previous timestep if in ABD mode
+	std::vector<Eigen::Matrix3d> deformation_vel_ABD; // deformation velocity
+	std::vector<Eigen::Matrix3d> deformation_ABD; // deformation of each mesh if in ABD mode
+	std::vector<double> volume_ABD; // volume of each mesh if in ABD mode
+
+};
+
+class surface_Info
+{
+public:
+
+	//  data structure of boundary elements
+	std::map<int, std::set<int>> boundaryVertices; // int: vertex's index in the original mesh; set<int>: neighbour triangles of this vertex	
+	std::map<int, std::set<int>> boundaryVertices_egde; // int: vertex's index in the original mesh; set<int>: neighbour edges of this vertex	
+	std::vector<int> boundaryVertices_vec; // int: vertex's index in the original mesh
+	std::map<int, double> boundaryVertices_area; // boundary vertex's area (distributed area of this vertex)	
+	std::map<int, std::map<int, Eigen::Vector2i>> boundaryEdges; // 1st (smaller one) & 2nd (larger one) int: edge index containing two vertices in the ORIGINAL mesh; Eigen::Vector2i: triangle indices
+	std::map<int, std::map<int, double>> boundaryEdges_area; // boundary edge's area (distributed area of this edge)
+	std::map<int, std::map<int, int>> boundaryEdge_index; // 1st (smaller one) & 2nd (larger one) int: edge index containing two vertices in the ORIGINAL mesh; 3rd int: index of this edge
+	std::map<int, Eigen::Vector2i> index_boundaryEdge; // 1st int: index of this edge; Eigen::Vector2i two vertices in the ORIGINAL mesh
+	std::vector<int> index_boundaryEdge_vec; // 1st int: index of this edge
+	std::vector<Eigen::Vector3i> boundaryTriangles;
+	std::vector<double> boundaryTriangles_area; // boundary triangle's area
+
+	// update the boundary information given a surface mesh
+	void updateBEInfo(std::vector<Eigen::Vector3d>& vertices, std::vector<Eigen::Vector3i>& faces);
+
+};
+
+//////////////////////////////////////////////
+// Tetrahedral mesh for simulation
+//////////////////////////////////////////////
 
 // tetrahedral mesh class
 class tetMesh
@@ -66,8 +107,7 @@ public:
 
 };
 
-
-class Mesh : public tetMesh
+class Mesh : public tetMesh, public surface_Info
 {
 public:
 	std::map<std::string, tetMesh> objectsTetMesh; // store all objects' tetrahedral meshes in the scene
@@ -86,28 +126,11 @@ public:
 
 	std::map<int, std::vector<MLSPoints>> MLSPoints_tet_map; // int: index of the tetrahedral; std::vector<MLSPoints>: MLS points in this tetrahedral
 
-	//  data structure of boundary elements
-	std::map<int, std::set<int>> boundaryVertices; // int: vertex's index in the original mesh; set<int>: neighbour triangles of this vertex	
-	std::map<int, std::set<int>> boundaryVertices_egde; // int: vertex's index in the original mesh; set<int>: neighbour edges of this vertex	
-	std::vector<int> boundaryVertices_vec; // int: vertex's index in the original mesh
-	std::map<int, double> boundaryVertices_area; // boundary vertex's area (distributed area of this vertex)	
-	std::map<int, std::map<int, Eigen::Vector2i>> boundaryEdges; // 1st (smaller one) & 2nd (larger one) int: edge index containing two vertices in the ORIGINAL mesh; Eigen::Vector2i: triangle indices
-	std::map<int, std::map<int, double>> boundaryEdges_area; // boundary edge's area (distributed area of this edge)
-	std::map<int, std::map<int, int>> boundaryEdge_index; // 1st (smaller one) & 2nd (larger one) int: edge index containing two vertices in the ORIGINAL mesh; 3rd int: index of this edge
-	std::map<int, Eigen::Vector2i> index_boundaryEdge; // 1st int: index of this edge; Eigen::Vector2i two vertices in the ORIGINAL mesh
-	std::vector<int> index_boundaryEdge_vec; // 1st int: index of this edge
-	std::vector<Eigen::Vector3i> boundaryTriangles;
-	std::vector<double> boundaryTriangles_area; // boundary triangle's area
-
 
 	// create a global mesh that is suitable for simulation
 	void createGlobalSimulationMesh(); 
 	// calculate the bounding box of the mesh
 	std::pair<Eigen::Vector3d, Eigen::Vector3d> calculateBoundingBox();
-	// find boundary elements including vertices, edges and triangles
-	void findBoundaryElements();
-	// update boundary elements' information: area
-	void updateBoundaryElementsInfo();
 	// check the largest edge length
 	double calLargestEdgeLength();
 	// calculate the boundingbox's diagonal size
@@ -125,24 +148,72 @@ public:
 
 };
 
-
-class Mesh_ABD : public Mesh
+class Mesh_ABD : public Mesh, public ABD_Info
 {
-public: 
-	// data structure specialized for ABD
-	std::vector<Matrix12d> massMatrix_ABD; // the mass matrix of each mesh if in ABD mode
-	std::vector<Eigen::Vector3d> translation_prev_ABD; // translation of each mesh in previous timestep if in ABD mode
-	std::vector<Eigen::Vector3d> translation_vel_ABD; // translation velocity
-	std::vector<Eigen::Vector3d> translation_ABD; // translation of each mesh if in ABD mode
-	std::vector<Eigen::Matrix3d> deformation_prev_ABD; // deformation of each mesh in previous timestep if in ABD mode
-	std::vector<Eigen::Matrix3d> deformation_vel_ABD; // deformation velocity
-	std::vector<Eigen::Matrix3d> deformation_ABD; // deformation of each mesh if in ABD mode
-	std::vector<double> volume_ABD; // volume of each mesh if in ABD mode
-
-
+public:
 	void createGlobalSimulationMesh_ABD();
 };
 
+
+
+
+
+
+//////////////////////////////////////////////
+// Triangular mesh for simulation
+//////////////////////////////////////////////
+
+class triMesh : public ABD_Info, public surface_Info
+{
+public:
+	std::vector<std::string> triMeshNote;                                                                                      // **********
+	std::vector<Material> materialMesh; // materials(materialMesh) used in each ABD body                                       // **********
+	std::vector<objMeshFormat> objectSurfaceMeshes; // store all objects' triangular meshes in the scene                       // **********
+	int num_meshes = 0; // number of independant ABD objects                                                                   // **********
+
+
+	std::vector<Eigen::Vector3d> pos_node_surface; // position of each point on the surface                                    // **********
+	std::vector<Eigen::Vector3d> pos_node_Rest_surface; // rest position of each point on the surface                          // **********
+	std::vector<int> index_node_surface; // int: index of the ABD object that this surface node belongs to                     // **********
+	objMeshFormat surfaceMeshGlobal; // use global index of vertex                                                             // **********
+
+
+	std::vector<Eigen::Vector3d> pos_node_interior; // position of each point in the interior                                  // **********
+	std::vector<Eigen::Vector3d> pos_node_Rest_interior; // rest position of each point in the interiorc                       // **********
+	std::vector<int> index_node_interior; // int: index of the ABD object that this interior node belongs to                   // **********
+	std::vector<double> mass_node_interior; // mass of each node in the interior	                                           // **********
+	std::vector<double> vol_node_interior; // volume of each node in the interior	                                           // **********
+
+
+	/**
+	 * @brief create the simulation mesh
+	 *
+	 */
+	void createGlobalSimulationTriMesh_ABD(std::vector<meshConfiguration>& configs, const double& per_point_volume);
+
+
+	// read meshes from file
+	void readMeshes(std::vector<meshConfiguration>& configs);
+
+	// build up the surface information 
+	void build_surface_mesh();
+
+	/**
+	 * @brief sample points inside of each ABD body
+	 *
+	 * @param per_point_volume  the volume of each sampled points. 
+	 * @return void
+	 * @note The number of points sampled in each object equals to vol_obj / per_point_volume
+	 */
+	void sample_points_inside(double per_point_volume); 
+
+	/**
+	 * @brief update the ABD system information
+	 *
+	 */
+	void update_ABD_info();
+
+};
 
 
 

@@ -1,9 +1,135 @@
 #include "mesh.h"
 
 
+void surface_Info::updateBEInfo(std::vector<Eigen::Vector3d>& vertices, std::vector<Eigen::Vector3i>& faces)
+{
+	boundaryTriangles = faces;
+
+
+	std::set<std::string> allEdges;
+	// find boundary vertices
+	for (int h = 0; h < boundaryTriangles.size(); h++)
+	{
+		Eigen::Vector3i tri = boundaryTriangles[h];
+		boundaryVertices[tri[0]].insert(h);
+		boundaryVertices[tri[1]].insert(h);
+		boundaryVertices[tri[2]].insert(h);
+
+
+		// find all edges
+		std::string edge1 = std::to_string(std::min(tri[0], tri[1])) + "#"
+			+ std::to_string(std::max(tri[0], tri[1]));
+		std::string edge2 = std::to_string(std::min(tri[1], tri[2])) + "#"
+			+ std::to_string(std::max(tri[1], tri[2]));
+		std::string edge3 = std::to_string(std::min(tri[2], tri[0])) + "#"
+			+ std::to_string(std::max(tri[2], tri[0]));
+		allEdges.insert(edge1);
+		allEdges.insert(edge2);
+		allEdges.insert(edge3);
+	}
+
+
+	// find boundary edges
+	// give each edge an unique index
+	int edgeIndex = 0;
+	for (std::set<std::string>::iterator it = allEdges.begin(); it != allEdges.end(); it++)
+	{
+		std::string edge = *it;
+		std::vector<std::string> seg = split(edge, "#");
+		int v1 = std::stoi(seg[0]);
+		int v2 = std::stoi(seg[1]);
+		Eigen::Vector2i edg = { v1, v2 };
+
+		std::set<int> v1Tris = boundaryVertices[v1], v2Tris = boundaryVertices[v2];
+		std::vector<int> edgeTris;
+		std::set_intersection(v1Tris.begin(), v1Tris.end(), v2Tris.begin(),
+			v2Tris.end(), std::back_inserter(edgeTris));
+		Eigen::Vector2i tris = { edgeTris[0], edgeTris[1] };
+
+
+		int emin = std::min(v1, v2), emax = std::max(v1, v2);
+		boundaryEdges[emin][emax] = tris;
+		boundaryVertices_egde[v1].insert(edgeIndex);
+		boundaryVertices_egde[v2].insert(edgeIndex);
+		boundaryEdge_index[emin][emax] = edgeIndex;
+		edgeIndex += 1;
+	}
+	// reverse index
+	for (std::map<int, std::map<int, int>>::iterator it1 = boundaryEdge_index.begin();
+		it1 != boundaryEdge_index.end(); it1++)
+	{
+		for (std::map<int, int>::iterator it2 = it1->second.begin();
+			it2 != it1->second.end(); it2++)
+		{
+			Eigen::Vector2i ed = { it1->first, it2->first };
+			int index = it2->second;
+			index_boundaryEdge[index] = ed;
+			index_boundaryEdge_vec.push_back(index);
+		}
+	}
+
+
+	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin();
+		it != boundaryVertices.end(); it++)
+	{
+		boundaryVertices_vec.push_back(it->first);
+	}
+
+
+	// calculate the area of each triangle
+	for (int i = 0; i < boundaryTriangles.size(); i++)
+	{
+		Eigen::Vector3i triangle = boundaryTriangles[i];
+		Eigen::Vector3d t1Coor = vertices[triangle[0]], t2Coor = vertices[triangle[1]],
+			t3Coor = vertices[triangle[2]];
+		Eigen::Vector3d t1t2 = t2Coor - t1Coor, t1t3 = t3Coor - t1Coor;
+		double triArea = 1.0 / 2.0 * (t1t2.cross(t1t3)).norm();
+		boundaryTriangles_area.push_back(triArea);
+	}
+
+	// calculate the distributed area of each vertex
+	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin();
+		it != boundaryVertices.end(); it++)
+	{
+		std::set<int> incidentTriangles = it->second;
+		double vertArea = 0;
+		for (std::set<int>::iterator it = incidentTriangles.begin();
+			it != incidentTriangles.end(); it++)
+		{
+			vertArea += boundaryTriangles_area[*it];
+		}
+		boundaryVertices_area[it->first] = vertArea;
+	}
+
+	// calculate the distributed area of each edge
+	for (std::map<int, std::map<int, Eigen::Vector2i>>::iterator it1 = boundaryEdges.begin();
+		it1 != boundaryEdges.end(); it1++)
+	{
+		int v1 = it1->first;
+		std::map<int, Eigen::Vector2i> trisInd = it1->second;
+		for (std::map<int, Eigen::Vector2i>::iterator it2 = trisInd.begin(); it2 != trisInd.end(); it2++)
+		{
+			int v2 = it2->first;
+			double edgeArea = 0;
+			edgeArea += boundaryTriangles_area[it2->second[0]];
+			edgeArea += boundaryTriangles_area[it2->second[1]];
+			boundaryEdges_area[v1][v2] = edgeArea;
+		}
+	}
+
+
+
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 // Is it possible that node and element are not placed in order? If possible, then the reading code may crash.
 ////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////
+// Tetrahedral mesh for simulation
+//////////////////////////////////////////////
+
 // read .msh mesh file
 void tetMesh::readMesh(meshConfiguration& config)
 {
@@ -370,192 +496,12 @@ void Mesh::createGlobalSimulationMesh()
 	}
 
 	// find boundary
-	findBoundaryElements();
-	updateBoundaryElementsInfo();
 	findSurfaceMesh();
+	updateBEInfo(surfaceMesh.vertices, surfaceMesh.faces);
 	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin(); 
 		it != boundaryVertices.end(); it++)
 	{
 		index_node[it->first][1] = 1;
-	}
-
-}
-
-// find boundary elements including vertices, edges and triangles
-void Mesh::findBoundaryElements()
-{
-	surfaceMesh.clear();
-	surfaceMesh.vertices = pos_node;
-
-	std::map<TriangleFace, std::pair<int, std::vector<int>>> faceCount;
-	for (const auto& tetr : tetrahedrals)
-	{
-		std::vector<TriangleFace> faces = {
-			TriangleFace(tetr[0], tetr[1], tetr[2]),
-			TriangleFace(tetr[0], tetr[3], tetr[1]),
-			TriangleFace(tetr[3], tetr[2], tetr[1]),
-			TriangleFace(tetr[0], tetr[2], tetr[3])
-		};
-		for (int i = 0; i < 4; i++)
-		{
-			faceCount[faces[i]].first++;
-			if (i == 0)
-			{
-				faceCount[faces[i]].second.push_back(tetr[0]);
-				faceCount[faces[i]].second.push_back(tetr[1]);
-				faceCount[faces[i]].second.push_back(tetr[2]);
-			}
-			else if (i == 1)
-			{
-				faceCount[faces[i]].second.push_back(tetr[0]);
-				faceCount[faces[i]].second.push_back(tetr[3]);
-				faceCount[faces[i]].second.push_back(tetr[1]);
-			}
-			else if (i == 2)
-			{
-				faceCount[faces[i]].second.push_back(tetr[3]);
-				faceCount[faces[i]].second.push_back(tetr[2]);
-				faceCount[faces[i]].second.push_back(tetr[1]);
-			}
-			else if (i == 3)
-			{
-				faceCount[faces[i]].second.push_back(tetr[0]);
-				faceCount[faces[i]].second.push_back(tetr[2]);
-				faceCount[faces[i]].second.push_back(tetr[3]);
-			}
-
-		}
-	}
-	for (const auto& pair : faceCount)
-	{
-		if (pair.second.first == 1)
-		{
-			
-
-			Eigen::Vector3i tri = { pair.second.second[0], pair.second.second[1], pair.second.second[2]};
-			boundaryTriangles.push_back(tri);
-			surfaceMesh.faces.push_back(tri);
-		}
-	}
-
-	std::set<std::string> allEdges;
-	// find boundary vertices
-	for (int h = 0; h < boundaryTriangles.size(); h++)
-	{
-		Eigen::Vector3i tri = boundaryTriangles[h];
-		boundaryVertices[tri[0]].insert(h);
-		boundaryVertices[tri[1]].insert(h);
-		boundaryVertices[tri[2]].insert(h);
-
-
-		// find all edges
-		std::string edge1 = std::to_string(std::min(tri[0], tri[1])) + "#" 
-			+ std::to_string(std::max(tri[0], tri[1]));
-		std::string edge2 = std::to_string(std::min(tri[1], tri[2])) + "#" 
-			+ std::to_string(std::max(tri[1], tri[2]));
-		std::string edge3 = std::to_string(std::min(tri[2], tri[0])) + "#" 
-			+ std::to_string(std::max(tri[2], tri[0]));
-		allEdges.insert(edge1);
-		allEdges.insert(edge2);
-		allEdges.insert(edge3);
-	}
-
-
-	// find boundary edges
-	// give each edge an unique index
-	int edgeIndex = 0;
-	for (std::set<std::string>::iterator it = allEdges.begin(); it != allEdges.end(); it++)
-	{
-		std::string edge = *it;
-		std::vector<std::string> seg = split(edge, "#");
-		int v1 = std::stoi(seg[0]);
-		int v2 = std::stoi(seg[1]);
-		Eigen::Vector2i edg = {v1, v2};
-
-		std::set<int> v1Tris = boundaryVertices[v1], v2Tris = boundaryVertices[v2];
-		std::vector<int> edgeTris;
-		std::set_intersection(v1Tris.begin(), v1Tris.end(), v2Tris.begin(), 
-			v2Tris.end(),std::back_inserter(edgeTris));
-		Eigen::Vector2i tris = { edgeTris[0], edgeTris[1]};
-
-
-		int emin = std::min(v1, v2), emax = std::max(v1, v2);
-		boundaryEdges[emin][emax] = tris;
-		boundaryVertices_egde[v1].insert(edgeIndex);
-		boundaryVertices_egde[v2].insert(edgeIndex);
-		boundaryEdge_index[emin][emax] = edgeIndex;
-		edgeIndex += 1;
-	}
-	// reverse index
-	for (std::map<int, std::map<int, int>>::iterator it1 = boundaryEdge_index.begin(); 
-		it1 != boundaryEdge_index.end(); it1++)
-	{
-		for (std::map<int, int>::iterator it2 = it1->second.begin(); 
-			it2 != it1->second.end(); it2++)
-		{
-			Eigen::Vector2i ed = {it1->first, it2->first};
-			int index = it2->second;
-			index_boundaryEdge[index] = ed;
-			index_boundaryEdge_vec.push_back(index);
-		}
-	}
-
-
-	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin(); 
-		it != boundaryVertices.end(); it++)
-	{
-		boundaryVertices_vec.push_back(it->first);
-		index_node[it->first][1] = 1;
-	}
-
-}
-
-// update boundary elements' information: area
-void Mesh::updateBoundaryElementsInfo()
-{
-	boundaryVertices_area.clear();
-	boundaryEdges_area.clear();
-	boundaryTriangles_area.clear();
-
-	// calculate the area of each triangle
-	for (int i = 0; i < boundaryTriangles.size(); i++)
-	{
-		Eigen::Vector3i triangle = boundaryTriangles[i];
-		Eigen::Vector3d t1Coor = pos_node[triangle[0]], t2Coor = pos_node[triangle[1]], 
-			t3Coor = pos_node[triangle[2]];
-		Eigen::Vector3d t1t2 = t2Coor - t1Coor, t1t3 = t3Coor - t1Coor;
-		double triArea = 1.0 / 2.0 * (t1t2.cross(t1t3)).norm();
-		boundaryTriangles_area.push_back(triArea);
-	}
-
-	// calculate the distributed area of each vertex
-	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin();
-		it != boundaryVertices.end(); it++)
-	{
-		std::set<int> incidentTriangles = it->second;
-		double vertArea = 0;
-		for (std::set<int>::iterator it = incidentTriangles.begin(); 
-			it != incidentTriangles.end(); it++)
-		{
-			vertArea += boundaryTriangles_area[*it];
-		}
-		boundaryVertices_area[it->first] = vertArea;
-	}
-
-	// calculate the distributed area of each edge
-	for (std::map<int, std::map<int, Eigen::Vector2i>>::iterator it1 = boundaryEdges.begin(); 
-		it1 != boundaryEdges.end(); it1++)
-	{
-		int v1 = it1->first;
-		std::map<int, Eigen::Vector2i> trisInd = it1->second;	
-		for (std::map<int, Eigen::Vector2i>::iterator it2 = trisInd.begin(); it2 != trisInd.end(); it2++)
-		{
-			int v2 = it2->first;	
-			double edgeArea = 0;
-			edgeArea += boundaryTriangles_area[it2->second[0]];
-			edgeArea += boundaryTriangles_area[it2->second[1]];
-			boundaryEdges_area[v1][v2] = edgeArea;
-		}
 	}
 
 }
@@ -752,6 +698,151 @@ void Mesh_ABD::createGlobalSimulationMesh_ABD()
 		int vtInd = tetrahedrals[i][0];
 		int ABInd = index_node[vtInd][0];
 		volume_ABD[ABInd] += tetra_vol[i];
+	}
+
+
+}
+
+
+
+
+//////////////////////////////////////////////
+// Triangular mesh for simulation
+//////////////////////////////////////////////
+
+
+void triMesh::createGlobalSimulationTriMesh_ABD(std::vector<meshConfiguration>& configs, const double& per_point_volume)
+{
+	readMeshes(configs);
+	build_surface_mesh();
+	sample_points_inside(per_point_volume);
+	update_ABD_info();
+
+}
+
+void triMesh::readMeshes(std::vector<meshConfiguration>& configs)
+{
+	num_meshes = configs.size();
+	// read the 
+	for (int i = 0; i < configs.size(); i++)
+	{
+		meshConfiguration config = configs[i];
+
+		materialMesh.push_back(config.mesh_material);
+		triMeshNote.push_back(config.note);
+
+		
+		Eigen::Vector3d scale = config.scale;
+		Eigen::Vector3d translation = config.translation;
+		// Create a transformation matrix
+		Eigen::Affine3d rotation = Eigen::Affine3d::Identity();
+		rotation.translate(-config.rotation_point)
+			.rotate(Eigen::AngleAxisd(config.rotation_angle[0], Eigen::Vector3d::UnitX()))
+			.rotate(Eigen::AngleAxisd(config.rotation_angle[1], Eigen::Vector3d::UnitY()))
+			.rotate(Eigen::AngleAxisd(config.rotation_angle[2], Eigen::Vector3d::UnitZ()))
+			.translate(config.rotation_point);
+
+		objMeshFormat triMesh_;
+		triMesh_.readObjFile(config.filePath, false, rotation, scale, translation);
+		triMesh_.initialVelocity = config.velocity;
+		objectSurfaceMeshes.push_back(triMesh_);
+	}
+
+}
+
+
+void triMesh::build_surface_mesh()
+{
+	// surface points
+	for (int i = 0; i < objectSurfaceMeshes.size(); i++)
+	{
+		pos_node_surface.insert(pos_node_surface.end(), objectSurfaceMeshes[i].vertices.begin(), objectSurfaceMeshes[i].vertices.end());
+		index_node_surface.push_back(i);
+	}
+	pos_node_Rest_surface = pos_node_surface;
+
+	// surface triangles
+	int countNodeNum = 0;
+	for (int i = 0; i < objectSurfaceMeshes.size(); i++)
+	{
+		for (int j = 0; j < objectSurfaceMeshes[i].faces.size(); j++)
+		{
+			Eigen::Vector3i face = objectSurfaceMeshes[i].faces[j];
+			face += Eigen::Vector3i::Ones() * countNodeNum;
+			surfaceMeshGlobal.faces.push_back(face);
+		}
+		countNodeNum += objectSurfaceMeshes[i].vertices.size();
+	}
+	surfaceMeshGlobal.vertices = pos_node_surface;
+
+	updateBEInfo(surfaceMeshGlobal.vertices, surfaceMeshGlobal.faces);
+
+}
+
+
+void triMesh::sample_points_inside(double per_point_volume)
+{
+	// sample points inside first
+	for (int i = 0; i < objectSurfaceMeshes.size(); i++)
+	{
+		objMeshFormat ABD_obj_mesh = objectSurfaceMeshes[i];
+		std::pair<Eigen::MatrixXd, Eigen::MatrixXi> libigl_mesh = ABD_obj_mesh.to_libigl_mesh();
+
+
+		Eigen::Vector3d center = Eigen::Vector3d::Zero();
+		double volume = 0;
+		igl::centroid(libigl_mesh.first, libigl_mesh.second, center, volume);
+		objectSurfaceMeshes[i].volume = volume;
+
+
+		int num_points = std::floor(volume / per_point_volume);
+		std::vector<Eigen::Vector3d> pts = ABD_obj_mesh.sample_points_inside_mesh(num_points);
+
+		pos_node_interior.insert(pos_node_interior.end(), pts.begin(), pts.end());
+
+		vol_node_interior.push_back(per_point_volume);
+		mass_node_interior.push_back(per_point_volume * materialMesh[i].density);
+
+
+		// node index
+		std::vector<int> index_node_interior_(num_points, i);
+		index_node_interior.insert(index_node_interior.end(), index_node_interior_.begin(), index_node_interior_.end());
+
+	}
+	pos_node_Rest_interior = pos_node_interior;
+
+}
+
+
+void triMesh::update_ABD_info()
+{
+	massMatrix_ABD.resize(num_meshes, Eigen::Matrix<double, 12, 12>::Zero());
+
+	translation_prev_ABD.resize(num_meshes, Eigen::Vector3d::Zero());
+	translation_ABD.resize(num_meshes, Eigen::Vector3d::Zero());
+	translation_vel_ABD.resize(num_meshes, Eigen::Vector3d::Zero());
+
+	deformation_prev_ABD.resize(num_meshes, Eigen::Matrix3d::Identity());
+	deformation_ABD.resize(num_meshes, Eigen::Matrix3d::Identity());
+	deformation_vel_ABD.resize(num_meshes, Eigen::Matrix3d::Zero());
+
+	// update the initial velocity if any
+	for (int i = 0; i < objectSurfaceMeshes.size(); i++)
+	{
+		translation_vel_ABD[i] = objectSurfaceMeshes[i].initialVelocity;
+	}
+
+	for (int i = 0; i < pos_node_Rest_interior.size(); i++)
+	{
+		Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(pos_node_Rest_interior[i]);
+
+		int AB_index = index_node_interior[i];
+		massMatrix_ABD[AB_index] += mass_node_interior[i] * Jx.transpose() * Jx;
+	}
+	
+	for (int i = 0; i < objectSurfaceMeshes.size(); i++)
+	{
+		volume_ABD[i] = objectSurfaceMeshes[i].volume;
 	}
 
 
