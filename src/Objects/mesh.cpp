@@ -497,9 +497,9 @@ void Mesh::createGlobalSimulationMesh()
 
 	// find boundary
 	findSurfaceMesh();
-	updateBEInfo(surfaceMesh.vertices, surfaceMesh.faces);
-	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin(); 
-		it != boundaryVertices.end(); it++)
+	surfaceInfo.updateBEInfo(surfaceMesh.vertices, surfaceMesh.faces);
+	for (std::map<int, std::set<int>>::iterator it = surfaceInfo.boundaryVertices.begin();
+		it != surfaceInfo.boundaryVertices.end(); it++)
 	{
 		index_node[it->first][1] = 1;
 	}
@@ -529,8 +529,8 @@ std::pair<Eigen::Vector3d, Eigen::Vector3d> Mesh::calculateBoundingBox()
 double Mesh::calLargestEdgeLength()
 {
 	double largestLength = -1.0E9;
-	for (std::map<int, Eigen::Vector2i>::iterator it = index_boundaryEdge.begin(); 
-		it != index_boundaryEdge.end(); it++)
+	for (std::map<int, Eigen::Vector2i>::iterator it = surfaceInfo.index_boundaryEdge.begin();
+		it != surfaceInfo.index_boundaryEdge.end(); it++)
 	{
 		int v1_index = it->second[0], v2_index = it->second[1];
 		Eigen::Vector3d v1 = pos_node[v1_index], v2 = pos_node[v2_index];
@@ -845,5 +845,17 @@ void triMesh::update_ABD_info()
 		volume_ABD[i] = objectSurfaceMeshes[i].volume;
 	}
 
+
+	// add boundary conditions
+	for (int i = 0; i < pos_node_interior.size(); i++)
+	{
+		boundaryCondition bc;
+		boundaryCondition_node_interior.push_back(bc);
+	}
+	for (int i = 0; i < pos_node_surface.size(); i++)
+	{
+		boundaryCondition bc;
+		boundaryCondition_node_surface.push_back(bc);
+	}
 
 }

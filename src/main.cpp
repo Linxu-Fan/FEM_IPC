@@ -14,7 +14,7 @@
 int main()
 {
 
-	if (1)
+	if (0)
 	{
 
 
@@ -608,7 +608,7 @@ int main()
 		// 5. Object hanging test to verify element sampling algorithm
 		// 6. Two tetrahedrals collision test to verify the correctness of the solver in ABD 
 		// 7. Cube tower stress test for ABD 
-		int caseNum = 0;
+		int caseNum = 7;
 		if (caseNum == 0)
 		{
 			Material mat1;
@@ -669,7 +669,7 @@ int main()
 
 			FEMParamters parameters;
 			parameters.gravity = { 0, 0, 0 };
-			parameters.num_timesteps = 1000;
+			parameters.num_timesteps = 500;
 			parameters.numOfThreads = 12;
 			parameters.dt = 5.0e-4;
 			parameters.outputFrequency = 20;
@@ -1501,7 +1501,7 @@ int main()
 
 
 			m1.note = "cube_0";
-			Eigen::Vector3d trans = { -4.5, 2.0, 2.0 };
+			Eigen::Vector3d trans = { -7.5, 2.0, 2.0 };
 			m1.translation = trans;
 			config.push_back(m1);
 
@@ -1550,11 +1550,11 @@ int main()
 
 
 			FEMParamters parameters;
-			parameters.gravity = { 0, 0, 0 };
+			parameters.gravity = { 0, 0, -9.8};
 			parameters.num_timesteps = 10000;
 			parameters.numOfThreads = 12;
 			parameters.dt = 1.0e-2;
-			parameters.outputFrequency = 1;
+			parameters.outputFrequency = 20;
 			parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
 			parameters.enableGround = true;
 			parameters.searchResidual = 0.5;

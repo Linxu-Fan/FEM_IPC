@@ -53,7 +53,14 @@ void implicitFEM_ABD(Mesh_ABD& tetSimMesh, FEMParamters& parameters)
 			}
 
 			std::cout << "			Calculate step size;" << std::endl;
-			double step = calMaxStepSize(tetSimMesh, parameters, timestep, position_direction);
+			double step = calMaxStepSize(
+				parameters,
+				tetSimMesh.surfaceInfo,
+				position_direction,
+				tetSimMesh.pos_node,
+				tetSimMesh.note_node,
+				tetSimMesh.tetMeshIndex,
+				timestep);
 			//step = 1.0;
 			std::cout << "			Step forward = " << step << std::endl;
 			step_forward_ABD(parameters, tetSimMesh, current_ABD_translation, current_ABD_deformation, direction_ABD, currentPosition, step);
@@ -135,7 +142,7 @@ double compute_IP_energy_ABD(Mesh_ABD& tetSimMesh, FEMParamters& parameters, int
 			Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(tetSimMesh.pos_node_Rest[i].transpose());
 
 			int AB_index = tetSimMesh.index_node[i][0];
-			Eigen::Vector3d ext_force = compute_external_force(tetSimMesh, i, timestep);
+			Eigen::Vector3d ext_force = compute_external_force(tetSimMesh.boundaryCondition_node, i, timestep);
 			Vector12d affine_force_node = Jx.transpose() * ext_force;
 
 			affine_force[AB_index] += affine_force_node;		
@@ -178,7 +185,14 @@ double compute_IP_energy_ABD(Mesh_ABD& tetSimMesh, FEMParamters& parameters, int
 
 
 	// energy contribution from barrier
-	energyVal += compute_Barrier_energy(tetSimMesh, parameters, timestep);
+	energyVal += compute_Barrier_energy(
+		parameters,
+		tetSimMesh.surfaceInfo,
+		tetSimMesh.pos_node,
+		tetSimMesh.pos_node_Rest,
+		tetSimMesh.note_node,
+		tetSimMesh.tetMeshIndex,
+		timestep);
 
 
 	return energyVal;
@@ -195,7 +209,13 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 	// contribution from contact
 	//		calculate contacts
 	std::vector<Vector5i> PG_PG, PT_PP, PT_PE, PT_PT, EE_EE;
-	calContactInfo(tetSimMesh, parameters, timestep, PG_PG, PT_PP, PT_PE, PT_PT, EE_EE);
+	calContactInfo(parameters,
+		tetSimMesh.surfaceInfo,
+		tetSimMesh.pos_node,
+		tetSimMesh.note_node,
+		tetSimMesh.tetMeshIndex,
+		timestep, PG_PG, PT_PP,
+		PT_PE, PT_PT, EE_EE);
 
 
 	std::cout << "			PT_PP.size() = " << PT_PP.size();
@@ -223,7 +243,7 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 			Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(tetSimMesh.pos_node_Rest[i].transpose());
 
 			int AB_index = tetSimMesh.index_node[i][0];
-			Eigen::Vector3d ext_force = compute_external_force(tetSimMesh, i, timestep);
+			Eigen::Vector3d ext_force = compute_external_force(tetSimMesh.boundaryCondition_node, i, timestep);
 			Vector12d affine_force_node = Jx.transpose() * ext_force;
 
 			affine_force[AB_index] += affine_force_node;
@@ -331,9 +351,19 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 			int actualStartIndex_hess = startIndex_hess + i * 144,
 				actualStartIndex_grad = startIndex_grad + i * 12;
 			double z2 = P[2] * P[2];
-			Ground::gradAndHess(hessian_triplet, grad_triplet, actualStartIndex_hess,
-				actualStartIndex_grad, tetSimMesh, ptInd,
-				z2, tetSimMesh.boundaryVertices_area[ptInd], parameters, true);
+			Ground::gradAndHess(
+				hessian_triplet,
+				grad_triplet,
+				actualStartIndex_hess,
+				actualStartIndex_grad,
+				tetSimMesh.pos_node,
+				tetSimMesh.pos_node_Rest,
+				tetSimMesh.index_node,
+				ptInd,
+				z2,
+				tetSimMesh.surfaceInfo.boundaryVertices_area[ptInd],
+				parameters, 
+				true);
 		}
 
 		startIndex_grad += PG_PG.size() * 12, startIndex_hess += PG_PG.size() * 144;
@@ -344,7 +374,7 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 
 			int ptInd = cont_PT[1];
 			Eigen::Vector3d P = tetSimMesh.pos_node[ptInd];
-			Eigen::Vector3i tri = tetSimMesh.boundaryTriangles[cont_PT[2]];
+			Eigen::Vector3i tri = tetSimMesh.surfaceInfo.boundaryTriangles[cont_PT[2]];
 			Eigen::Vector3d A = tetSimMesh.pos_node[tri[0]];
 			Eigen::Vector3d B = tetSimMesh.pos_node[tri[1]];
 			Eigen::Vector3d C = tetSimMesh.pos_node[tri[2]];
@@ -355,9 +385,21 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 			Eigen::Vector4i ptIndices = { ptInd , tri[0] , tri[1] , tri[2] };
 			int actualStartIndex_hess = startIndex_hess + i * 144 * 4,
 				actualStartIndex_grad = startIndex_grad + i * 24;
-			BarrierEnergy::gradAndHess_PT(hessian_triplet, grad_triplet, actualStartIndex_hess,
-				actualStartIndex_grad, ptIndices, type,
-				dis2, tetSimMesh, parameters, true);
+			double contactArea = tetSimMesh.surfaceInfo.boundaryVertices_area[ptInd];
+			BarrierEnergy::gradAndHess_PT(
+				contactArea,
+				hessian_triplet,
+				grad_triplet,
+				actualStartIndex_hess,
+				actualStartIndex_grad,
+				ptIndices,
+				type,
+				dis2,
+				tetSimMesh.pos_node,
+				tetSimMesh.pos_node_Rest,
+				tetSimMesh.index_node,
+				parameters,
+				true);
 
 		}
 
@@ -369,7 +411,7 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 
 			int ptInd = cont_PT[1];
 			Eigen::Vector3d P = tetSimMesh.pos_node[ptInd];
-			Eigen::Vector3i tri = tetSimMesh.boundaryTriangles[cont_PT[2]];
+			Eigen::Vector3i tri = tetSimMesh.surfaceInfo.boundaryTriangles[cont_PT[2]];
 			Eigen::Vector3d A = tetSimMesh.pos_node[tri[0]];
 			Eigen::Vector3d B = tetSimMesh.pos_node[tri[1]];
 			Eigen::Vector3d C = tetSimMesh.pos_node[tri[2]];
@@ -380,9 +422,21 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 			Eigen::Vector4i ptIndices = { ptInd , tri[0] , tri[1] , tri[2] };
 			int actualStartIndex_hess = startIndex_hess + i * 144 * 9,
 				actualStartIndex_grad = startIndex_grad + i * 36;
-			BarrierEnergy::gradAndHess_PT(hessian_triplet, grad_triplet, actualStartIndex_hess,
-				actualStartIndex_grad, ptIndices, type,
-				dis2, tetSimMesh, parameters, true);
+			double contactArea = tetSimMesh.surfaceInfo.boundaryVertices_area[ptInd];
+			BarrierEnergy::gradAndHess_PT(
+				contactArea,
+				hessian_triplet,
+				grad_triplet,
+				actualStartIndex_hess,
+				actualStartIndex_grad,
+				ptIndices,
+				type,
+				dis2,
+				tetSimMesh.pos_node,
+				tetSimMesh.pos_node_Rest,
+				tetSimMesh.index_node,
+				parameters,
+				true);
 
 		}
 
@@ -394,7 +448,7 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 
 			int ptInd = cont_PT[1];
 			Eigen::Vector3d P = tetSimMesh.pos_node[ptInd];
-			Eigen::Vector3i tri = tetSimMesh.boundaryTriangles[cont_PT[2]];
+			Eigen::Vector3i tri = tetSimMesh.surfaceInfo.boundaryTriangles[cont_PT[2]];
 			Eigen::Vector3d A = tetSimMesh.pos_node[tri[0]];
 			Eigen::Vector3d B = tetSimMesh.pos_node[tri[1]];
 			Eigen::Vector3d C = tetSimMesh.pos_node[tri[2]];
@@ -405,9 +459,21 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 			Eigen::Vector4i ptIndices = { ptInd , tri[0] , tri[1] , tri[2] };
 			int actualStartIndex_hess = startIndex_hess + i * 144 * 16,
 				actualStartIndex_grad = startIndex_grad + i * 48;
-			BarrierEnergy::gradAndHess_PT(hessian_triplet, grad_triplet, actualStartIndex_hess,
-				actualStartIndex_grad, ptIndices, type,
-				dis2, tetSimMesh, parameters, true);
+			double contactArea = tetSimMesh.surfaceInfo.boundaryVertices_area[ptInd];
+			BarrierEnergy::gradAndHess_PT(
+				contactArea,
+				hessian_triplet,
+				grad_triplet,
+				actualStartIndex_hess,
+				actualStartIndex_grad,
+				ptIndices,
+				type,
+				dis2,
+				tetSimMesh.pos_node,
+				tetSimMesh.pos_node_Rest,
+				tetSimMesh.index_node,
+				parameters,
+				true);
 
 		}
 
@@ -417,8 +483,8 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 		{
 			Vector5i cont_EE = EE_EE[i];
 			int E1 = cont_EE[1], E2 = cont_EE[2];
-			int e1p1 = tetSimMesh.index_boundaryEdge[E1][0], e1p2 = tetSimMesh.index_boundaryEdge[E1][1],
-				e2p1 = tetSimMesh.index_boundaryEdge[E2][0], e2p2 = tetSimMesh.index_boundaryEdge[E2][1];
+			int e1p1 = tetSimMesh.surfaceInfo.index_boundaryEdge[E1][0], e1p2 = tetSimMesh.surfaceInfo.index_boundaryEdge[E1][1],
+				e2p1 = tetSimMesh.surfaceInfo.index_boundaryEdge[E2][0], e2p2 = tetSimMesh.surfaceInfo.index_boundaryEdge[E2][1];
 
 			Eigen::Vector3d P1 = tetSimMesh.pos_node[e1p1];
 			Eigen::Vector3d P2 = tetSimMesh.pos_node[e1p2];
@@ -431,9 +497,24 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 			Eigen::Vector4i ptIndices = { e1p1 , e1p2 , e2p1 , e2p2 };
 			int actualStartIndex_hess = startIndex_hess + i * 144 * 16,
 				actualStartIndex_grad = startIndex_grad + i * 48;
-			BarrierEnergy::gradAndHess_EE(hessian_triplet, grad_triplet, actualStartIndex_hess,
-				actualStartIndex_grad, ptIndices, type,
-				dis2, tetSimMesh, parameters, true);
+
+			int emin = std::min(ptIndices[0], ptIndices[1]), emax = std::max(ptIndices[0], ptIndices[1]);
+			double contactArea = tetSimMesh.surfaceInfo.boundaryEdges_area[emin][emax];
+
+			BarrierEnergy::gradAndHess_EE(
+				contactArea,
+				hessian_triplet,
+				grad_triplet,
+				actualStartIndex_hess,
+				actualStartIndex_grad,
+				ptIndices,
+				type,
+				dis2,
+				tetSimMesh.pos_node,
+				tetSimMesh.pos_node_Rest,
+				tetSimMesh.index_node,
+				parameters,
+				true);
 
 		}
 

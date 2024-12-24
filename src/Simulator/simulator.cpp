@@ -10,7 +10,7 @@ void explicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 		for (int j = 0; j < 4; j++)
 		{
 			int nodeInd = tetSimMesh.tetrahedrals[eleInd][j];
-			Eigen::Vector2i indices = { eleInd , j};
+			Eigen::Vector2i indices = { eleInd , j };
 			nodeSharedByElement[nodeInd].push_back(indices);
 		}
 	}
@@ -48,7 +48,7 @@ void explicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 					Eigen::Vector3d pos = 0.25 * (tetSimMesh.pos_node[tet[0]] + tetSimMesh.pos_node[tet[1]] + tetSimMesh.pos_node[tet[2]] + tetSimMesh.pos_node[tet[3]]);
 
 					outfile9 << std::scientific << std::setprecision(8) << pos[0] << " " << pos[1] << " " << pos[2] << " " << maxEigenValue << " " << tetSimMesh.Dp[nf] << std::endl;
-				}				
+				}
 				outfile9.close();
 			}
 
@@ -63,7 +63,7 @@ void explicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 		for (int nf = 0; nf < tetSimMesh.elastForce_node.size(); nf++)
 		{
-			Eigen::Vector3d f_node = compute_external_force(tetSimMesh, nf, timestep);
+			Eigen::Vector3d f_node = compute_external_force(tetSimMesh.boundaryCondition_node, nf, timestep);
 			f_node += tetSimMesh.mass_node[nf] * parameters.gravity;
 			tetSimMesh.elastForce_node[nf] += f_node;
 		}
@@ -178,7 +178,7 @@ void explicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 				int tetIndex = indices[0], nodeIndex = indices[1];
 				if (nodeIndex == 0)
 				{
-					tetSimMesh.elastForce_node[nf] += -(tetrahedralStress[tetIndex].col(0)+ tetrahedralStress[tetIndex].col(1)+ tetrahedralStress[tetIndex].col(2));
+					tetSimMesh.elastForce_node[nf] += -(tetrahedralStress[tetIndex].col(0) + tetrahedralStress[tetIndex].col(1) + tetrahedralStress[tetIndex].col(2));
 				}
 				else
 				{
@@ -218,7 +218,7 @@ void implicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 			tetSimMesh.exportSurfaceMesh("surfMesh", timestep);
 
 			{
-				std::ofstream outfile2("./output/MLS-Pts"+std::to_string(timestep) + ".obj", std::ios::trunc);
+				std::ofstream outfile2("./output/MLS-Pts" + std::to_string(timestep) + ".obj", std::ios::trunc);
 				for (std::map<int, std::vector<MLSPoints>>::iterator it = tetSimMesh.MLSPoints_tet_map.begin();
 					it != tetSimMesh.MLSPoints_tet_map.end(); it++) // each tetrahedral that is replaced by MLS points
 				{
@@ -260,9 +260,9 @@ void implicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 			}*/
 
 
-			
-			std::cout << std::scientific << std::setprecision(4) << "			dist_to_converge = " 
-				<< dist_to_converge / parameters.dt << "m/s; threshold = " << parameters.searchResidual 
+
+			std::cout << std::scientific << std::setprecision(4) << "			dist_to_converge = "
+				<< dist_to_converge / parameters.dt << "m/s; threshold = " << parameters.searchResidual
 				<< "m/s" << std::endl;
 			if (ite && (dist_to_converge / parameters.dt < parameters.searchResidual))
 			{
@@ -270,13 +270,20 @@ void implicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 			}
 
 			std::cout << "			Calculate step size;" << std::endl;
-			double step = calMaxStepSize(tetSimMesh, parameters, timestep, direction);
+			double step = calMaxStepSize(
+				parameters,
+				tetSimMesh.surfaceInfo,
+				direction,
+				tetSimMesh.pos_node,
+				tetSimMesh.note_node,
+				tetSimMesh.tetMeshIndex,
+				timestep);
 			//step = 1.0;
 			std::cout << "			Step forward = " << step << std::endl;
 			step_forward(parameters, tetSimMesh, currentPosition, direction, step);
 			double newEnergyVal = compute_IP_energy(tetSimMesh, parameters, timestep);
-			std::cout << std::scientific << std::setprecision(4) << "			step = " 
-				<< step << "; newEnergyVal = " << newEnergyVal << "; dis = " 
+			std::cout << std::scientific << std::setprecision(4) << "			step = "
+				<< step << "; newEnergyVal = " << newEnergyVal << "; dis = "
 				<< tetSimMesh.pos_node[7][2] - tetSimMesh.pos_node[0][2] << std::endl;
 			while (newEnergyVal > lastEnergyVal && step >= 1.0e-5)
 			{
@@ -284,7 +291,7 @@ void implicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 
 				step_forward(parameters, tetSimMesh, currentPosition, direction, step);
 				newEnergyVal = compute_IP_energy(tetSimMesh, parameters, timestep);
-				std::cout << "				step = " << step << "; newEnergyVal = " 
+				std::cout << "				step = " << step << "; newEnergyVal = "
 					<< newEnergyVal << "; dis = " << tetSimMesh.pos_node[7][2] - tetSimMesh.pos_node[0][2]
 					<< std::endl;
 				if (std::abs(newEnergyVal - lastEnergyVal) / lastEnergyVal < 0.001) // traped in the local mimima
@@ -313,16 +320,16 @@ void implicitFEM(Mesh& tetSimMesh, FEMParamters& parameters)
 }
 
 // compute external force excluding gravity
-Eigen::Vector3d compute_external_force(Mesh& tetSimMesh, int vertInd, int timestep)
+Eigen::Vector3d compute_external_force(std::vector<boundaryCondition>& boundaryCondition_node, int vertInd, int timestep)
 {
 	Eigen::Vector3d extForce = Eigen::Vector3d::Zero();
 
-	if (tetSimMesh.boundaryCondition_node[vertInd].type == 2)
+	if (boundaryCondition_node[vertInd].type == 2)
 	{
-		if (timestep >= tetSimMesh.boundaryCondition_node[vertInd].appliedTime[0] 
-			&& timestep <= tetSimMesh.boundaryCondition_node[vertInd].appliedTime[1])
+		if (timestep >= boundaryCondition_node[vertInd].appliedTime[0]
+			&& timestep <= boundaryCondition_node[vertInd].appliedTime[1])
 		{
-			extForce = tetSimMesh.boundaryCondition_node[vertInd].force[timestep];
+			extForce = boundaryCondition_node[vertInd].force[timestep];
 		}
 	}
 
@@ -331,7 +338,7 @@ Eigen::Vector3d compute_external_force(Mesh& tetSimMesh, int vertInd, int timest
 
 void updateMLS_after_advection(Mesh& tetSimMesh, FEMParamters& parameters)
 {
-	for (std::map<int, std::vector<MLSPoints>>::iterator it = tetSimMesh.MLSPoints_tet_map.begin(); 
+	for (std::map<int, std::vector<MLSPoints>>::iterator it = tetSimMesh.MLSPoints_tet_map.begin();
 		it != tetSimMesh.MLSPoints_tet_map.end(); it++) // each tetrahedral that is replaced by MLS points
 	{
 #pragma omp parallel for num_threads(parameters.numOfThreads)
@@ -358,14 +365,14 @@ double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timeste
 		Eigen::Vector3d xt = tetSimMesh.pos_node_prev[vI];
 		Eigen::Vector3d v = tetSimMesh.vel_node[vI];
 		Eigen::Vector3d x = tetSimMesh.pos_node[vI];
-		Eigen::Vector3d extForce = compute_external_force(tetSimMesh, vI, timestep);
+		Eigen::Vector3d extForce = compute_external_force(tetSimMesh.boundaryCondition_node, vI, timestep);
 
 		// the external energy contribution
 		double eng = 0;
 		eng += ExternalEnergy::Val(nodeMass, parameters.dt, x, parameters, extForce);
 
 		// the inertia energy contribution
-		eng += InertiaEnergy::Val(nodeMass, parameters.dt, xt, v, x, extForce, parameters, 
+		eng += InertiaEnergy::Val(nodeMass, parameters.dt, xt, v, x, extForce, parameters,
 			vI, tetSimMesh.boundaryCondition_node, timestep);
 		node_ext_ine_energy_vec[vI] = eng;
 
@@ -386,22 +393,22 @@ double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timeste
 		int matInd = tetSimMesh.materialInd[eI];
 		if (tetSimMesh.MLSPoints_tet_map.find(eI) == tetSimMesh.MLSPoints_tet_map.end()) // if this tetrahedral is not replaced by MLS points
 		{
-			tex_est_energy_vec[eI] = ElasticEnergy::Val(tetSimMesh.materialMesh[matInd], 
-				parameters.model, tetSimMesh.tetra_F[eI], parameters.dt, tetSimMesh.tetra_vol[eI]);	
+			tex_est_energy_vec[eI] = ElasticEnergy::Val(tetSimMesh.materialMesh[matInd],
+				parameters.model, tetSimMesh.tetra_F[eI], parameters.dt, tetSimMesh.tetra_vol[eI]);
 
 			if (tetSimMesh.tetra_F[eI].determinant() <= 0)
 			{
 				numEleDeg += 1;
 			}
-			
+
 		}
 		else
 		{
 			double energyMLS_tmp = 0;
 			for (int m = 0; m < tetSimMesh.MLSPoints_tet_map[eI].size(); m++)
 			{
-				energyMLS_tmp += ElasticEnergy::Val(tetSimMesh.materialMesh[matInd], 
-					parameters.model, tetSimMesh.MLSPoints_tet_map[eI][m].F, parameters.dt, 
+				energyMLS_tmp += ElasticEnergy::Val(tetSimMesh.materialMesh[matInd],
+					parameters.model, tetSimMesh.MLSPoints_tet_map[eI][m].F, parameters.dt,
 					tetSimMesh.MLSPoints_tet_map[eI][m].volume);
 
 				if (tetSimMesh.MLSPoints_tet_map[eI][m].F.determinant() <= 0)
@@ -411,45 +418,64 @@ double compute_IP_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timeste
 			}
 			tex_est_energy_vec[eI] = energyMLS_tmp;
 		}
-		
+
 	}
 	energyVal += std::accumulate(tex_est_energy_vec.begin(), tex_est_energy_vec.end(), 0.0);
 
 	//std::cout << "		Element energy = " << std::accumulate(tex_est_energy_vec.begin(), tex_est_energy_vec.end(), 0.0) << std::endl;
-	
+
 	if (numEleDeg + numMLSDeg > 0)
 	{
 		std::cout << "		numEleDeg = " << numEleDeg << "; numMLSDeg = " << numMLSDeg << std::endl;
 		std::cout << std::endl;
 	}
-	
+
 
 	// energy contribution from barrier
-	energyVal += compute_Barrier_energy(tetSimMesh, parameters, timestep);
+	energyVal += compute_Barrier_energy(
+		parameters,
+		tetSimMesh.surfaceInfo,
+		tetSimMesh.pos_node,
+		tetSimMesh.pos_node_Rest,
+		tetSimMesh.note_node,
+		tetSimMesh.tetMeshIndex,
+		timestep);
 
 	//std::cout << "		Barrier energy = " << compute_Barrier_energy(tetSimMesh, parameters, timestep) << std::endl;
 
 	return energyVal;
 }
 
-double compute_Barrier_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timestep)
+double compute_Barrier_energy(FEMParamters& parameters,
+	surface_Info& surfaceInfo,
+	const std::vector<Eigen::Vector3d>& pos_node,
+	const std::vector<Eigen::Vector3d>& pos_node_Rest,
+	const std::vector<std::string>& note_node,
+	std::map<std::string, int>& tetMeshIndex,
+	const int timestep)
 {
 	std::vector<Vector5i> PG_PG, PT_PP, PT_PE, PT_PT, EE_EE;
-	calContactInfo(tetSimMesh, parameters, timestep, PG_PG, 
-		PT_PP, PT_PE, PT_PT, EE_EE);
+	calContactInfo(
+		parameters,
+		surfaceInfo,
+		pos_node,
+		note_node,
+		tetMeshIndex,
+		timestep,
+		PG_PG, PT_PP, PT_PE, PT_PT, EE_EE);
 
 
 	double barrierEnergy = 0;
-	std::vector<double> energy_PT_PP(PT_PP.size(),0), energy_PT_PE(PT_PE.size(),0), 
-		energy_PT_PT(PT_PT.size(),0), energy_EE_EE(EE_EE.size(),0), energy_PG_PG(PG_PG.size(),0);
+	std::vector<double> energy_PT_PP(PT_PP.size(), 0), energy_PT_PE(PT_PE.size(), 0),
+		energy_PT_PT(PT_PT.size(), 0), energy_EE_EE(EE_EE.size(), 0), energy_PG_PG(PG_PG.size(), 0);
 	{
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 		for (int i = 0; i < PG_PG.size(); i++)
 		{
 			int ptInd = PG_PG[i][1];
-			Eigen::Vector3d P = tetSimMesh.pos_node[ptInd];
+			Eigen::Vector3d P = pos_node[ptInd];
 			double z2 = P[2] * P[2];
-			energy_PG_PG[i] = Ground::val(z2,tetSimMesh.boundaryVertices_area[ptInd], parameters);
+			energy_PG_PG[i] = Ground::val(z2, surfaceInfo.boundaryVertices_area[ptInd], parameters);
 		}
 		barrierEnergy += std::accumulate(energy_PG_PG.begin(), energy_PG_PG.end(), 0.0);
 
@@ -460,15 +486,15 @@ double compute_Barrier_energy(Mesh& tetSimMesh, FEMParamters& parameters, int ti
 			Vector5i cont_PT = PT_PP[i];
 
 			int ptInd = cont_PT[1];
-			Eigen::Vector3d P = tetSimMesh.pos_node[ptInd];
-			Eigen::Vector3i tri = tetSimMesh.boundaryTriangles[cont_PT[2]];
-			Eigen::Vector3d A = tetSimMesh.pos_node[tri[0]];
-			Eigen::Vector3d B = tetSimMesh.pos_node[tri[1]];
-			Eigen::Vector3d C = tetSimMesh.pos_node[tri[2]];
+			Eigen::Vector3d P = pos_node[ptInd];
+			Eigen::Vector3i tri = surfaceInfo.boundaryTriangles[cont_PT[2]];
+			Eigen::Vector3d A = pos_node[tri[0]];
+			Eigen::Vector3d B = pos_node[tri[1]];
+			Eigen::Vector3d C = pos_node[tri[2]];
 
 			double dis2 = 0;
 			DIS::computePointTriD(P, A, B, C, dis2, cont_PT[3]);
-			energy_PT_PP[i] = BarrierEnergy::val_PT(tetSimMesh.boundaryVertices_area[ptInd], dis2, parameters);
+			energy_PT_PP[i] = BarrierEnergy::val_PT(surfaceInfo.boundaryVertices_area[ptInd], dis2, parameters);
 		}
 		barrierEnergy += std::accumulate(energy_PT_PP.begin(), energy_PT_PP.end(), 0.0);
 
@@ -479,15 +505,15 @@ double compute_Barrier_energy(Mesh& tetSimMesh, FEMParamters& parameters, int ti
 			Vector5i cont_PT = PT_PE[i];
 
 			int ptInd = cont_PT[1];
-			Eigen::Vector3d P = tetSimMesh.pos_node[ptInd];
-			Eigen::Vector3i tri = tetSimMesh.boundaryTriangles[cont_PT[2]];
-			Eigen::Vector3d A = tetSimMesh.pos_node[tri[0]];
-			Eigen::Vector3d B = tetSimMesh.pos_node[tri[1]];
-			Eigen::Vector3d C = tetSimMesh.pos_node[tri[2]];
+			Eigen::Vector3d P = pos_node[ptInd];
+			Eigen::Vector3i tri = surfaceInfo.boundaryTriangles[cont_PT[2]];
+			Eigen::Vector3d A = pos_node[tri[0]];
+			Eigen::Vector3d B = pos_node[tri[1]];
+			Eigen::Vector3d C = pos_node[tri[2]];
 
 			double dis2 = 0;
 			DIS::computePointTriD(P, A, B, C, dis2, cont_PT[3]);
-			energy_PT_PE[i] = BarrierEnergy::val_PT(tetSimMesh.boundaryVertices_area[ptInd], dis2, parameters);
+			energy_PT_PE[i] = BarrierEnergy::val_PT(surfaceInfo.boundaryVertices_area[ptInd], dis2, parameters);
 
 		}
 		barrierEnergy += std::accumulate(energy_PT_PE.begin(), energy_PT_PE.end(), 0.0);
@@ -499,15 +525,15 @@ double compute_Barrier_energy(Mesh& tetSimMesh, FEMParamters& parameters, int ti
 			Vector5i cont_PT = PT_PT[i];
 
 			int ptInd = cont_PT[1];
-			Eigen::Vector3d P = tetSimMesh.pos_node[ptInd];
-			Eigen::Vector3i tri = tetSimMesh.boundaryTriangles[cont_PT[2]];
-			Eigen::Vector3d A = tetSimMesh.pos_node[tri[0]];
-			Eigen::Vector3d B = tetSimMesh.pos_node[tri[1]];
-			Eigen::Vector3d C = tetSimMesh.pos_node[tri[2]];
+			Eigen::Vector3d P = pos_node[ptInd];
+			Eigen::Vector3i tri = surfaceInfo.boundaryTriangles[cont_PT[2]];
+			Eigen::Vector3d A = pos_node[tri[0]];
+			Eigen::Vector3d B = pos_node[tri[1]];
+			Eigen::Vector3d C = pos_node[tri[2]];
 
 			double dis2 = 0;
 			DIS::computePointTriD(P, A, B, C, dis2, cont_PT[3]);
-			energy_PT_PT[i] = BarrierEnergy::val_PT(tetSimMesh.boundaryVertices_area[ptInd], dis2, parameters);
+			energy_PT_PT[i] = BarrierEnergy::val_PT(surfaceInfo.boundaryVertices_area[ptInd], dis2, parameters);
 
 		}
 		barrierEnergy += std::accumulate(energy_PT_PT.begin(), energy_PT_PT.end(), 0.0);
@@ -518,19 +544,19 @@ double compute_Barrier_energy(Mesh& tetSimMesh, FEMParamters& parameters, int ti
 		{
 			Vector5i cont_EE = EE_EE[i];
 			int E1 = cont_EE[1], E2 = cont_EE[2];
-			int e1p1 = tetSimMesh.index_boundaryEdge[E1][0], e1p2 = tetSimMesh.index_boundaryEdge[E1][1], 
-				e2p1 = tetSimMesh.index_boundaryEdge[E2][0], e2p2 = tetSimMesh.index_boundaryEdge[E2][1];
+			int e1p1 = surfaceInfo.index_boundaryEdge[E1][0], e1p2 = surfaceInfo.index_boundaryEdge[E1][1],
+				e2p1 = surfaceInfo.index_boundaryEdge[E2][0], e2p2 = surfaceInfo.index_boundaryEdge[E2][1];
 
-			Eigen::Vector3d P1 = tetSimMesh.pos_node[e1p1];
-			Eigen::Vector3d P2 = tetSimMesh.pos_node[e1p2];
-			Eigen::Vector3d Q1 = tetSimMesh.pos_node[e2p1];
-			Eigen::Vector3d Q2 = tetSimMesh.pos_node[e2p2];
+			Eigen::Vector3d P1 = pos_node[e1p1];
+			Eigen::Vector3d P2 = pos_node[e1p2];
+			Eigen::Vector3d Q1 = pos_node[e2p1];
+			Eigen::Vector3d Q2 = pos_node[e2p2];
 
 			double dis2 = 0;
 			DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2, cont_EE[3]);
 			Eigen::Vector4i ptIndices = { e1p1 , e1p2 , e2p1 , e2p2 };
-			energy_EE_EE[i] = BarrierEnergy::val_EE(tetSimMesh.boundaryEdges_area[e1p1][e1p2], 
-				dis2, tetSimMesh, ptIndices, parameters);
+			energy_EE_EE[i] = BarrierEnergy::val_EE(surfaceInfo.boundaryEdges_area[e1p1][e1p2],
+				dis2, pos_node, pos_node_Rest, ptIndices, parameters);
 
 		}
 		barrierEnergy += std::accumulate(energy_EE_EE.begin(), energy_EE_EE.end(), 0.0);
@@ -548,7 +574,7 @@ std::pair<std::vector<Eigen::Vector2i>, int> cal_temporary_MLS_tet_vector(Mesh& 
 	int num_MLS_tet = 0;
 	int totalNodes_tets = 0;
 
-	for (std::map<int, std::vector<MLSPoints>>::iterator it = tetSimMesh.MLSPoints_tet_map.begin(); 
+	for (std::map<int, std::vector<MLSPoints>>::iterator it = tetSimMesh.MLSPoints_tet_map.begin();
 		it != tetSimMesh.MLSPoints_tet_map.end(); it++) // each tetrahedral that is replaced by MLS points
 	{
 		temp_MLS_tet_vector[num_MLS_tet][0] = it->first;
@@ -577,7 +603,13 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 	//startTime1 = omp_get_wtime();
 
 	std::vector<Vector5i> PG_PG, PT_PP, PT_PE, PT_PT, EE_EE;
-	calContactInfo(tetSimMesh, parameters, timestep, PG_PG, PT_PP, PT_PE, PT_PT, EE_EE);
+	calContactInfo(parameters,
+		tetSimMesh.surfaceInfo,
+		tetSimMesh.pos_node,
+		tetSimMesh.note_node,
+		tetSimMesh.tetMeshIndex,
+		timestep , PG_PG, PT_PP, 
+		PT_PE, PT_PT, EE_EE);
 
 	std::cout << "			PT_PP.size() = " << PT_PP.size();
 	std::cout << "; PT_PE.size() = " << PT_PE.size();
@@ -612,21 +644,21 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 		Eigen::Vector3d xt = tetSimMesh.pos_node_prev[vI];
 		Eigen::Vector3d v = tetSimMesh.vel_node[vI];
 		Eigen::Vector3d x = tetSimMesh.pos_node[vI];
-		Eigen::Vector3d extForce = compute_external_force(tetSimMesh, vI, timestep);
+		Eigen::Vector3d extForce = compute_external_force(tetSimMesh.boundaryCondition_node, vI, timestep);
 
 		// !!!! The order is very important. "InertiaEnergy" must be the first and "ExternalEnergy" the second
 
 		// the inertia energy contribution
 		int actGradIndex = vI * 6;
-		InertiaEnergy::Grad(grad_triplet, actGradIndex, nodeMass, parameters.dt, 
+		InertiaEnergy::Grad(grad_triplet, actGradIndex, nodeMass, parameters.dt,
 			xt, v, x, extForce, vI, parameters, tetSimMesh.boundaryCondition_node, timestep);
 		int actHessIndex = vI * 3;
-		InertiaEnergy::Hess(hessian_triplet, actHessIndex, nodeMass, vI, 
+		InertiaEnergy::Hess(hessian_triplet, actHessIndex, nodeMass, vI,
 			tetSimMesh.boundaryCondition_node, timestep, parameters);
 
 		// the external energy contribution
 		actGradIndex = vI * 6 + 3;
-		ExternalEnergy::Grad(grad_triplet, actGradIndex, nodeMass, parameters.dt, 
+		ExternalEnergy::Grad(grad_triplet, actGradIndex, nodeMass, parameters.dt,
 			x, parameters, extForce, vI, tetSimMesh.boundaryCondition_node[vI].type);
 
 	}
@@ -650,12 +682,12 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 			// the internal elastic energy contribution
 			int matInd = tetSimMesh.materialInd[eI];
 			Eigen::Matrix<double, 9, 12> dFdx = ElasticEnergy::dF_wrt_dx(tetSimMesh.tetra_DM_inv[eI]);
-			int actualStartIndex_hess = startIndex_hess + eI * 144, 
+			int actualStartIndex_hess = startIndex_hess + eI * 144,
 				actualStartIndex_grad = startIndex_grad + eI * 12;
-			ElasticEnergy::Grad(grad_triplet, actualStartIndex_grad, tetSimMesh.materialMesh[matInd], 
-				parameters.model, tetSimMesh.tetra_F[eI], parameters.dt, tetSimMesh.tetra_vol[eI], dFdx, 
+			ElasticEnergy::Grad(grad_triplet, actualStartIndex_grad, tetSimMesh.materialMesh[matInd],
+				parameters.model, tetSimMesh.tetra_F[eI], parameters.dt, tetSimMesh.tetra_vol[eI], dFdx,
 				tetSimMesh.tetrahedrals[eI], tetVertInd_BC);
-			ElasticEnergy::Hess(hessian_triplet, actualStartIndex_hess, tetSimMesh.materialMesh[matInd], 
+			ElasticEnergy::Hess(hessian_triplet, actualStartIndex_hess, tetSimMesh.materialMesh[matInd],
 				parameters.model, tetSimMesh.tetra_F[eI], parameters.dt, tetSimMesh.tetra_vol[eI], dFdx,
 				tetSimMesh.tetrahedrals[eI], tetVertInd_BC);
 
@@ -665,7 +697,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 			Eigen::Triplet<double> pa = { 0, 0, 0.0 };
 			for (int empi = 0; empi < 12; empi++)
 			{
-				grad_triplet[startIndex_grad + empi] = {0, 0.0 };
+				grad_triplet[startIndex_grad + empi] = { 0, 0.0 };
 				for (int empj = 0; empj < 12; empj++)
 				{
 					hessian_triplet[startIndex_hess + empi * 12 + empj] = pa;
@@ -684,19 +716,28 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 
 	// calculate the barrier gradient and hessian
 	{
-		startIndex_grad += tetSimMesh.tetrahedrals.size() * 12, 
+		startIndex_grad += tetSimMesh.tetrahedrals.size() * 12,
 			startIndex_hess += tetSimMesh.tetrahedrals.size() * 144;
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 		for (int i = 0; i < PG_PG.size(); i++)
 		{
 			int ptInd = PG_PG[i][1];
 			Eigen::Vector3d P = tetSimMesh.pos_node[ptInd];
-			int actualStartIndex_hess = startIndex_hess + i * 9, 
+			int actualStartIndex_hess = startIndex_hess + i * 9,
 				actualStartIndex_grad = startIndex_grad + i * 3;
 			double z2 = P[2] * P[2];
-			Ground::gradAndHess(hessian_triplet, grad_triplet, actualStartIndex_hess, 
-				actualStartIndex_grad, tetSimMesh, ptInd,
-				z2, tetSimMesh.boundaryVertices_area[ptInd],parameters);
+			Ground::gradAndHess(
+				hessian_triplet, 
+				grad_triplet, 
+				actualStartIndex_hess,
+				actualStartIndex_grad, 
+				tetSimMesh.pos_node,
+				tetSimMesh.pos_node_Rest,
+				tetSimMesh.index_node, 
+				ptInd,
+				z2, 
+				tetSimMesh.surfaceInfo.boundaryVertices_area[ptInd], 
+				parameters);
 		}
 
 		startIndex_grad += PG_PG.size() * 3, startIndex_hess += PG_PG.size() * 9;
@@ -707,7 +748,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 
 			int ptInd = cont_PT[1];
 			Eigen::Vector3d P = tetSimMesh.pos_node[ptInd];
-			Eigen::Vector3i tri = tetSimMesh.boundaryTriangles[cont_PT[2]];
+			Eigen::Vector3i tri = tetSimMesh.surfaceInfo.boundaryTriangles[cont_PT[2]];
 			Eigen::Vector3d A = tetSimMesh.pos_node[tri[0]];
 			Eigen::Vector3d B = tetSimMesh.pos_node[tri[1]];
 			Eigen::Vector3d C = tetSimMesh.pos_node[tri[2]];
@@ -716,11 +757,22 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 			double dis2 = 0;
 			DIS::computePointTriD(P, A, B, C, dis2);
 			Eigen::Vector4i ptIndices = { ptInd , tri[0] , tri[1] , tri[2] };
-			int actualStartIndex_hess = startIndex_hess + i * 36, 
+			int actualStartIndex_hess = startIndex_hess + i * 36,
 				actualStartIndex_grad = startIndex_grad + i * 6;
-			BarrierEnergy::gradAndHess_PT(hessian_triplet, grad_triplet, actualStartIndex_hess, 
-				actualStartIndex_grad, ptIndices, type, 
-				dis2, tetSimMesh, parameters);
+			double contactArea = tetSimMesh.surfaceInfo.boundaryVertices_area[ptInd];
+			BarrierEnergy::gradAndHess_PT(
+				contactArea,
+				hessian_triplet, 
+				grad_triplet, 
+				actualStartIndex_hess,
+				actualStartIndex_grad, 
+				ptIndices, 
+				type,
+				dis2, 
+				tetSimMesh.pos_node,
+				tetSimMesh.pos_node_Rest,
+				tetSimMesh.index_node, 
+				parameters);
 
 		}
 
@@ -732,7 +784,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 
 			int ptInd = cont_PT[1];
 			Eigen::Vector3d P = tetSimMesh.pos_node[ptInd];
-			Eigen::Vector3i tri = tetSimMesh.boundaryTriangles[cont_PT[2]];
+			Eigen::Vector3i tri = tetSimMesh.surfaceInfo.boundaryTriangles[cont_PT[2]];
 			Eigen::Vector3d A = tetSimMesh.pos_node[tri[0]];
 			Eigen::Vector3d B = tetSimMesh.pos_node[tri[1]];
 			Eigen::Vector3d C = tetSimMesh.pos_node[tri[2]];
@@ -743,9 +795,20 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 			Eigen::Vector4i ptIndices = { ptInd , tri[0] , tri[1] , tri[2] };
 			int actualStartIndex_hess = startIndex_hess + i * 81,
 				actualStartIndex_grad = startIndex_grad + i * 9;
-			BarrierEnergy::gradAndHess_PT(hessian_triplet, grad_triplet, actualStartIndex_hess, 
-				actualStartIndex_grad, ptIndices, type, 
-				dis2, tetSimMesh, parameters);
+			double contactArea = tetSimMesh.surfaceInfo.boundaryVertices_area[ptInd];
+			BarrierEnergy::gradAndHess_PT(
+				contactArea,
+				hessian_triplet,
+				grad_triplet,
+				actualStartIndex_hess,
+				actualStartIndex_grad,
+				ptIndices,
+				type,
+				dis2,
+				tetSimMesh.pos_node,
+				tetSimMesh.pos_node_Rest,
+				tetSimMesh.index_node,
+				parameters);
 
 		}
 
@@ -757,7 +820,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 
 			int ptInd = cont_PT[1];
 			Eigen::Vector3d P = tetSimMesh.pos_node[ptInd];
-			Eigen::Vector3i tri = tetSimMesh.boundaryTriangles[cont_PT[2]];
+			Eigen::Vector3i tri = tetSimMesh.surfaceInfo.boundaryTriangles[cont_PT[2]];
 			Eigen::Vector3d A = tetSimMesh.pos_node[tri[0]];
 			Eigen::Vector3d B = tetSimMesh.pos_node[tri[1]];
 			Eigen::Vector3d C = tetSimMesh.pos_node[tri[2]];
@@ -766,11 +829,22 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 			double dis2 = 0;
 			DIS::computePointTriD(P, A, B, C, dis2);
 			Eigen::Vector4i ptIndices = { ptInd , tri[0] , tri[1] , tri[2] };
-			int actualStartIndex_hess = startIndex_hess + i * 144, 
+			int actualStartIndex_hess = startIndex_hess + i * 144,
 				actualStartIndex_grad = startIndex_grad + i * 12;
-			BarrierEnergy::gradAndHess_PT(hessian_triplet, grad_triplet, actualStartIndex_hess, 
-				actualStartIndex_grad, ptIndices, type, 
-				dis2, tetSimMesh, parameters);
+			double contactArea = tetSimMesh.surfaceInfo.boundaryVertices_area[ptInd];
+			BarrierEnergy::gradAndHess_PT(
+				contactArea,
+				hessian_triplet,
+				grad_triplet,
+				actualStartIndex_hess,
+				actualStartIndex_grad,
+				ptIndices,
+				type,
+				dis2,
+				tetSimMesh.pos_node,
+				tetSimMesh.pos_node_Rest,
+				tetSimMesh.index_node,
+				parameters);
 
 		}
 
@@ -780,8 +854,8 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 		{
 			Vector5i cont_EE = EE_EE[i];
 			int E1 = cont_EE[1], E2 = cont_EE[2];
-			int e1p1 = tetSimMesh.index_boundaryEdge[E1][0], e1p2 = tetSimMesh.index_boundaryEdge[E1][1], 
-				e2p1 = tetSimMesh.index_boundaryEdge[E2][0], e2p2 = tetSimMesh.index_boundaryEdge[E2][1];
+			int e1p1 = tetSimMesh.surfaceInfo.index_boundaryEdge[E1][0], e1p2 = tetSimMesh.surfaceInfo.index_boundaryEdge[E1][1],
+				e2p1 = tetSimMesh.surfaceInfo.index_boundaryEdge[E2][0], e2p2 = tetSimMesh.surfaceInfo.index_boundaryEdge[E2][1];
 
 			Eigen::Vector3d P1 = tetSimMesh.pos_node[e1p1];
 			Eigen::Vector3d P2 = tetSimMesh.pos_node[e1p2];
@@ -792,11 +866,26 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 			double dis2 = 0;
 			DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
 			Eigen::Vector4i ptIndices = { e1p1 , e1p2 , e2p1 , e2p2 };
-			int actualStartIndex_hess = startIndex_hess + i * 144, 
+			int actualStartIndex_hess = startIndex_hess + i * 144,
 				actualStartIndex_grad = startIndex_grad + i * 12;
-			BarrierEnergy::gradAndHess_EE(hessian_triplet, grad_triplet, actualStartIndex_hess, 
-				actualStartIndex_grad, ptIndices, type, 
-				dis2, tetSimMesh, parameters);
+
+
+			int emin = std::min(ptIndices[0], ptIndices[1]), emax = std::max(ptIndices[0], ptIndices[1]);
+			double contactArea = tetSimMesh.surfaceInfo.boundaryEdges_area[emin][emax];
+
+			BarrierEnergy::gradAndHess_EE(
+				contactArea, 
+				hessian_triplet, 
+				grad_triplet, 
+				actualStartIndex_hess,
+				actualStartIndex_grad, 
+				ptIndices, 
+				type,
+				dis2, 
+				tetSimMesh.pos_node,
+				tetSimMesh.pos_node_Rest,
+				tetSimMesh.index_node, 
+				parameters);
 
 		}
 
@@ -816,10 +905,10 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 		for (int j = 0; j < tetSimMesh.MLSPoints_tet_map[tetInd].size(); j++)
 		{
 			MLSPoints mp = tetSimMesh.MLSPoints_tet_map[tetInd][j];
-			
+
 			Eigen::Matrix3d PK1 = ElasticEnergy::calPK1(tetSimMesh.materialMesh[matInd], parameters.model, mp.F);
 			Vector9d grad_tmp = flatenMatrix3d(PK1);
-			Eigen::Matrix<double, 9, 9> hess_tmp = ElasticEnergy::calPK1_wrt_F(tetSimMesh.materialMesh[matInd], 
+			Eigen::Matrix<double, 9, 9> hess_tmp = ElasticEnergy::calPK1_wrt_F(tetSimMesh.materialMesh[matInd],
 				parameters.model, mp.F);
 
 			// calculate gradient & hessian
@@ -832,13 +921,13 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 				for (int xd = 0; xd < 3; xd++)
 				{
 					int currentNode_grad_Index = gradSize_beforeMLS + relativeIndex * 3 + totalNodes_per_tet * 3;
-					grad_triplet[currentNode_grad_Index + xd] = { nodeInd * 3 + xd, grad_MLS_node[xd]};
+					grad_triplet[currentNode_grad_Index + xd] = { nodeInd * 3 + xd, grad_MLS_node[xd] };
 
-					int currentNode_hess_Index = hessSize_beforeMLS + relativeIndex * 9 
+					int currentNode_hess_Index = hessSize_beforeMLS + relativeIndex * 9
 						+ totalNodes_per_tet * 9 + xd * 3;
 					for (int yd = 0; yd < 3; yd++)
-					{						
-						Eigen::Triplet<double> pa = { nodeInd * 3 + xd, nodeInd * 3 + yd, hess_MLS_node(xd, yd)};
+					{
+						Eigen::Triplet<double> pa = { nodeInd * 3 + xd, nodeInd * 3 + yd, hess_MLS_node(xd, yd) };
 						hessian_triplet[currentNode_hess_Index + yd] = pa;
 					}
 				}
@@ -875,7 +964,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 	solver.compute(leftHandSide);
 	Eigen::VectorXd result = solver.solve(-rightHandSide);
 
-	
+
 
 	//double endTime5 = omp_get_wtime();
 	//std::cout << "	Solve grad_hess Time is : " << endTime5 - endTime4 << "s" << std::endl;
@@ -893,7 +982,7 @@ std::vector<Eigen::Vector3d> solve_linear_system(Mesh& tetSimMesh, FEMParamters&
 }
 
 // move points' position according to the direction; Note this is a trial movement
-void step_forward(FEMParamters& parameters, Mesh& tetSimMesh, std::vector<Eigen::Vector3d>& currentPosition, 
+void step_forward(FEMParamters& parameters, Mesh& tetSimMesh, std::vector<Eigen::Vector3d>& currentPosition,
 	std::vector<Eigen::Vector3d>& direction, double step)
 {
 #pragma omp parallel for num_threads(parameters.numOfThreads)
@@ -905,15 +994,22 @@ void step_forward(FEMParamters& parameters, Mesh& tetSimMesh, std::vector<Eigen:
 	updateMLS_after_advection(tetSimMesh, parameters);
 }
 
-void calContactInfo(Mesh& tetSimMesh, FEMParamters& parameters, int timestep, 
-	std::vector<Vector5i>& PG_PG, std::vector<Vector5i>& PT_PP, std::vector<Vector5i>& PT_PE,
-	std::vector<Vector5i>& PT_PT, std::vector<Vector5i>& EE_EE)
+void calContactInfo(
+	FEMParamters& parameters,
+	surface_Info& surfaceInfo,
+	const std::vector<Eigen::Vector3d>& pos_node,
+	const std::vector<std::string>& note_node,
+	std::map<std::string, int>& tetMeshIndex,
+	const int timestep,
+	std::vector<Vector5i>& PG_PG, std::vector<Vector5i>& PT_PP, 
+	std::vector<Vector5i>& PT_PE,std::vector<Vector5i>& PT_PT, 
+	std::vector<Vector5i>& EE_EE)
 {
 	std::vector<spatialHashCellData> spatialHash_vec;
 	std::map<std::string, int> hashNameIndex;
-	std::vector<Eigen::Vector3d> direction(tetSimMesh.pos_node.size(), Eigen::Vector3d::Zero());
-	initSpatialHash(false, parameters, tetSimMesh, direction, parameters.IPC_hashSize, 
-		spatialHash_vec, hashNameIndex, timestep);
+	std::vector<Eigen::Vector3d> direction(pos_node.size(), Eigen::Vector3d::Zero());
+	initSpatialHash(false, parameters, surfaceInfo, direction,
+		spatialHash_vec, hashNameIndex, pos_node, note_node, tetMeshIndex, timestep);
 
 
 
@@ -942,17 +1038,17 @@ void calContactInfo(Mesh& tetSimMesh, FEMParamters& parameters, int timestep,
 								itT != spatialHash_vec[neigHashIndex].triaIndices.end(); itT++)
 							{
 								int vert = *itP, tri = *itT;
-								if (tetSimMesh.note_node[vert] 
-									!= tetSimMesh.note_node[tetSimMesh.boundaryTriangles[tri][0]])
+								if (note_node[vert]
+									!= note_node[surfaceInfo.boundaryTriangles[tri][0]])
 								{
-									if (tetSimMesh.boundaryVertices[vert].find(tri) 
-										== tetSimMesh.boundaryVertices[vert].end()) // this triangle is not incident with the point
+									if (surfaceInfo.boundaryVertices[vert].find(tri)
+										== surfaceInfo.boundaryVertices[vert].end()) // this triangle is not incident with the point
 									{
-										Eigen::Vector3i triVerts = tetSimMesh.boundaryTriangles[tri];
-										Eigen::Vector3d P = tetSimMesh.pos_node[vert];
-										Eigen::Vector3d A = tetSimMesh.pos_node[triVerts[0]];
-										Eigen::Vector3d B = tetSimMesh.pos_node[triVerts[1]];
-										Eigen::Vector3d C = tetSimMesh.pos_node[triVerts[2]];
+										Eigen::Vector3i triVerts = surfaceInfo.boundaryTriangles[tri];
+										Eigen::Vector3d P = pos_node[vert];
+										Eigen::Vector3d A = pos_node[triVerts[0]];
+										Eigen::Vector3d B = pos_node[triVerts[1]];
+										Eigen::Vector3d C = pos_node[triVerts[2]];
 
 										if (pointTriangleCCDBroadphase(P, A, B, C, parameters.IPC_dis))
 										{
@@ -989,7 +1085,7 @@ void calContactInfo(Mesh& tetSimMesh, FEMParamters& parameters, int timestep,
 			}
 		}
 
-		for (std::set<int>::iterator itE1 = spatialHash_vec[y].edgeIndices.begin(); 
+		for (std::set<int>::iterator itE1 = spatialHash_vec[y].edgeIndices.begin();
 			itE1 != spatialHash_vec[y].edgeIndices.end(); itE1++)
 		{
 			Eigen::Vector3i bottomLeftCorner = spatialHash_vec[y].bottomLeftCorner;
@@ -1004,22 +1100,22 @@ void calContactInfo(Mesh& tetSimMesh, FEMParamters& parameters, int timestep,
 						if (hashNameIndex.find(ID) != hashNameIndex.end())
 						{
 							int neigHashIndex = hashNameIndex[ID];
-							for (std::set<int>::iterator itE2 = spatialHash_vec[neigHashIndex].edgeIndices.begin(); 
+							for (std::set<int>::iterator itE2 = spatialHash_vec[neigHashIndex].edgeIndices.begin();
 								itE2 != spatialHash_vec[neigHashIndex].edgeIndices.end(); itE2++)
 							{
 								if (*itE1 != *itE2)
 								{
-									Eigen::Vector2i E1 = tetSimMesh.index_boundaryEdge[*itE1], 
-										E2 = tetSimMesh.index_boundaryEdge[*itE2];
+									Eigen::Vector2i E1 = surfaceInfo.index_boundaryEdge[*itE1],
+										E2 = surfaceInfo.index_boundaryEdge[*itE2];
 									int P1I = E1[0], P2I = E1[1], Q1I = E2[0], Q2I = E2[1];
-									if (tetSimMesh.note_node[P1I] != tetSimMesh.note_node[Q2I])
+									if (note_node[P1I] != note_node[Q2I])
 									{
 										if (P1I != Q1I && P1I != Q2I && P2I != Q1I && P2I != Q2I) // not duplicated and incident edges
 										{
-											Eigen::Vector3d P1 = tetSimMesh.pos_node[P1I];
-											Eigen::Vector3d P2 = tetSimMesh.pos_node[P2I];
-											Eigen::Vector3d Q1 = tetSimMesh.pos_node[Q1I];
-											Eigen::Vector3d Q2 = tetSimMesh.pos_node[Q2I];
+											Eigen::Vector3d P1 = pos_node[P1I];
+											Eigen::Vector3d P2 = pos_node[P2I];
+											Eigen::Vector3d Q1 = pos_node[Q1I];
+											Eigen::Vector3d Q2 = pos_node[Q2I];
 
 											if (edgeEdgeCCDBroadphase(P1, P2, Q1, Q2, parameters.IPC_dis))
 											{
@@ -1070,8 +1166,8 @@ void calContactInfo(Mesh& tetSimMesh, FEMParamters& parameters, int timestep,
 			}
 			else
 			{
-				std::string EEPair = std::to_string(std::min(cont_pair_vec[i][j][1], 
-					cont_pair_vec[i][j][2])) + "#" + std::to_string(std::max(cont_pair_vec[i][j][1], 
+				std::string EEPair = std::to_string(std::min(cont_pair_vec[i][j][1],
+					cont_pair_vec[i][j][2])) + "#" + std::to_string(std::max(cont_pair_vec[i][j][1],
 						cont_pair_vec[i][j][2]));
 				if (storedEEPairs.find(EEPair) == storedEEPairs.end())
 				{
@@ -1086,10 +1182,10 @@ void calContactInfo(Mesh& tetSimMesh, FEMParamters& parameters, int timestep,
 	// Step 3: find ground contact pairs if any
 	if (parameters.enableGround == true)
 	{
-		for (int ft = 0; ft < tetSimMesh.boundaryVertices_vec.size(); ft++)
+		for (int ft = 0; ft < surfaceInfo.boundaryVertices_vec.size(); ft++)
 		{
-			int ptInd = tetSimMesh.boundaryVertices_vec[ft];
-			if (tetSimMesh.pos_node[ptInd][2] <= parameters.IPC_dis)
+			int ptInd = surfaceInfo.boundaryVertices_vec[ft];
+			if (pos_node[ptInd][2] <= parameters.IPC_dis)
 			{
 				Vector5i ct = { 2 , ptInd , 0 , 0 , 0 };
 				PG_PG.push_back(ct);
@@ -1101,8 +1197,14 @@ void calContactInfo(Mesh& tetSimMesh, FEMParamters& parameters, int timestep,
 }
 
 // calculate the maximum feasible step size
-double calMaxStepSize(Mesh& tetSimMesh, FEMParamters& parameters, int timestep, 
-	std::vector<Eigen::Vector3d>& direction)
+double calMaxStepSize(
+	FEMParamters& parameters,
+	surface_Info& surfaceInfo,
+	const std::vector<Eigen::Vector3d>& direction,
+	const std::vector<Eigen::Vector3d>& pos_node,
+	const std::vector<std::string>& note_node,
+	std::map<std::string, int>& tetMeshIndex,
+	const int timestep)
 {
 	////std::cout << "Calculating maximum step!" << std::endl;
 	//std::set<int> culledSet; // vertices who are in a contact
@@ -1197,18 +1299,24 @@ double calMaxStepSize(Mesh& tetSimMesh, FEMParamters& parameters, int timestep,
 	//}
 	//else // use spatial hash to calculate the actual full CCD
 	{
-		double CCD_step = calMaxStep_spatialHash(parameters, tetSimMesh, direction,
-			parameters.IPC_hashSize, parameters.IPC_dis, parameters.IPC_eta);
+		double CCD_step = calMaxStep_spatialHash(
+			parameters,
+			surfaceInfo,
+			direction,
+			pos_node,
+			note_node,
+			tetMeshIndex,
+			timestep);
 		if (parameters.enableGround == true)
 		{
 			double stepGround = 1.0;
-			for (std::map<int, std::set<int>>::iterator it = tetSimMesh.boundaryVertices.begin(); 
-				it != tetSimMesh.boundaryVertices.end(); it++)
+			for (std::map<int, std::set<int>>::iterator it = surfaceInfo.boundaryVertices.begin();
+				it != surfaceInfo.boundaryVertices.end(); it++)
 			{
 				int ptInd = it->first;
 				if (direction[ptInd][2] < 0)
 				{
-					double coor_z = tetSimMesh.pos_node[ptInd][2];
+					double coor_z = pos_node[ptInd][2];
 					stepGround = std::min(stepGround, coor_z * (1.0 - parameters.IPC_eta) / std::abs(direction[ptInd][2]));
 				}
 

@@ -79,6 +79,7 @@ add_executable(
     src/Energy/ElasticEnergy.cpp
     src/Simulator/simulator.cpp
     src/Simulator/simulator_ABD.cpp
+	src/Simulator/simulator_ABD_triMesh.cpp
     src/Energy/ExternalEnergy.cpp
     src/Energy/BarrierEnergy.cpp
     src/IPC/distance.cpp
@@ -123,7 +124,8 @@ source_group("Source Files\\Energy" FILES
     src/Energy/BarrierEnergy.cpp)
 source_group("Source Files\\Simulator" FILES 
     src/Simulator/simulator.cpp 
-    src/Simulator/simulator_ABD.cpp)
+    src/Simulator/simulator_ABD.cpp
+	src/Simulator/simulator_ABD_triMesh.cpp)
 source_group("Source Files\\IPC" FILES src/IPC/distance.cpp src/IPC/CCD.cpp)
 source_group("Source Files\\FormatMesh" FILES src/FormatMesh/objMesh.cpp)
 source_group("Source Files\\MLS" FILES src/MLS/MLS.cpp)

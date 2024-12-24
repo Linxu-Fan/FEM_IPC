@@ -1,7 +1,10 @@
 ﻿#include "BarrierEnergy.h"
 
 // compute the energy gradient and hessian 
-double BarrierEnergy::val_PT(double& contactArea, double& dis2, FEMParamters& parameters)
+double BarrierEnergy::val_PT(
+    double& contactArea, 
+    double& dis2, 
+    FEMParamters& parameters)
 {
     //contactArea = 1.0;
     double d_hat2 = squaredDouble(parameters.IPC_dis);
@@ -9,21 +12,24 @@ double BarrierEnergy::val_PT(double& contactArea, double& dis2, FEMParamters& pa
 }
 
 // compute the energy gradient and hessian 
-double BarrierEnergy::val_EE(double& contactArea, double& dis2, Mesh& tetSimMesh,
-    Eigen::Vector4i& ptIndices, FEMParamters& parameters)
+double BarrierEnergy::val_EE(
+    double& contactArea, 
+    double& dis2, 
+    const std::vector<Eigen::Vector3d>& pos_node, 
+    const std::vector<Eigen::Vector3d>& pos_node_Rest,
+    Eigen::Vector4i& ptIndices, 
+    FEMParamters& parameters)
 {
-    //contactArea = 1.0;
     double d_hat2 = squaredDouble(parameters.IPC_dis);
 
     // the partial derivative of barrier energy b wrt distance d
     double val_b = compute_b(dis2, d_hat2);
 
     int P1 = ptIndices[0], P2 = ptIndices[1], Q1 = ptIndices[2], Q2 = ptIndices[3];
-    int emin = std::min(P1, P2), emax = std::max(P1, P2);
-    Eigen::Vector3d P1Coor = tetSimMesh.pos_node[P1], P2Coor = tetSimMesh.pos_node[P2], 
-        Q1Coor = tetSimMesh.pos_node[Q1], Q2Coor = tetSimMesh.pos_node[Q2];
-    Eigen::Vector3d P1Coor_Rest = tetSimMesh.pos_node_Rest[P1], P2Coor_Rest = tetSimMesh.pos_node_Rest[P2], 
-        Q1Coor_Rest = tetSimMesh.pos_node_Rest[Q1], Q2Coor_Rest = tetSimMesh.pos_node_Rest[Q2];
+    Eigen::Vector3d P1Coor = pos_node[P1], P2Coor = pos_node[P2], 
+        Q1Coor = pos_node[Q1], Q2Coor = pos_node[Q2];
+    Eigen::Vector3d P1Coor_Rest = pos_node_Rest[P1], P2Coor_Rest = pos_node_Rest[P2], 
+        Q1Coor_Rest = pos_node_Rest[Q1], Q2Coor_Rest = pos_node_Rest[Q2];
 
     // the following codes calculate the mollifier-related value
     double eps_x = DIS::cal_EEM_eps_x(P1Coor_Rest, P2Coor_Rest, Q1Coor_Rest, Q2Coor_Rest);
@@ -34,17 +40,25 @@ double BarrierEnergy::val_EE(double& contactArea, double& dis2, Mesh& tetSimMesh
 
 
 // compute the energy gradient and hessian 
-void BarrierEnergy::gradAndHess_PT(std::vector<Eigen::Triplet<double>>& hessian_triplet, 
-    std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, 
-    int& startIndex_grad, Eigen::Vector4i& ptIndices, int& type, double& dis2, Mesh& tetSimMesh,
-    FEMParamters& parameters, bool ABD)
+void BarrierEnergy::gradAndHess_PT(
+    double& contactArea,
+    std::vector<Eigen::Triplet<double>>& hessian_triplet, 
+    std::vector<std::pair<int, double>>& grad_triplet, 
+    int& startIndex_hess, 
+    int& startIndex_grad, 
+    Eigen::Vector4i& ptIndices, 
+    int& type, 
+    double& dis2, 
+    const std::vector<Eigen::Vector3d>& pos_node,
+    const std::vector<Eigen::Vector3d>& pos_node_Rest,
+    const std::vector<Eigen::Vector2i>& index_node,
+    FEMParamters& parameters,
+    bool ABD)
 {
     double d_hat2 = squaredDouble(parameters.IPC_dis);
     // the partial derivative of barrier energy b wrt distance d
     double g_bd = compute_g_b(dis2, d_hat2); // 3
     double h_bd = compute_H_b(dis2, d_hat2); // 1  
-    double contactArea = tetSimMesh.boundaryVertices_area[ptIndices[0]];
-    //contactArea = 1.0;
 
 
     switch (type)
@@ -53,7 +67,9 @@ void BarrierEnergy::gradAndHess_PT(std::vector<Eigen::Triplet<double>>& hessian_
     {
         std::vector<int> activePtsLocalInd = { ptIndices[0] , ptIndices[1] };
         BarrierEnergy::cal_and_assemble_gradAndHess(hessian_triplet, grad_triplet, startIndex_hess,
-            activePtsLocalInd,startIndex_grad, tetSimMesh,
+            activePtsLocalInd,startIndex_grad, pos_node,
+            pos_node_Rest,
+            index_node,
             parameters, contactArea, g_bd, h_bd, ABD);
     }
     break;
@@ -62,7 +78,9 @@ void BarrierEnergy::gradAndHess_PT(std::vector<Eigen::Triplet<double>>& hessian_
     {
         std::vector<int> activePtsLocalInd = { ptIndices[0] , ptIndices[2] };
         BarrierEnergy::cal_and_assemble_gradAndHess(hessian_triplet, grad_triplet, startIndex_hess,
-            activePtsLocalInd, startIndex_grad, tetSimMesh,
+            activePtsLocalInd, startIndex_grad, pos_node,
+            pos_node_Rest,
+            index_node,
             parameters, contactArea, g_bd, h_bd, ABD);
     }
     break;
@@ -71,7 +89,9 @@ void BarrierEnergy::gradAndHess_PT(std::vector<Eigen::Triplet<double>>& hessian_
     {
         std::vector<int> activePtsLocalInd = { ptIndices[0] , ptIndices[3] };
         BarrierEnergy::cal_and_assemble_gradAndHess(hessian_triplet, grad_triplet, startIndex_hess,
-            activePtsLocalInd, startIndex_grad, tetSimMesh,
+            activePtsLocalInd, startIndex_grad, pos_node,
+            pos_node_Rest,
+            index_node,
             parameters, contactArea, g_bd, h_bd, ABD);
     }
     break;
@@ -80,7 +100,9 @@ void BarrierEnergy::gradAndHess_PT(std::vector<Eigen::Triplet<double>>& hessian_
     {
         std::vector<int> activePtsLocalInd = { ptIndices[0] , ptIndices[1], ptIndices[2] };
         BarrierEnergy::cal_and_assemble_gradAndHess(hessian_triplet, grad_triplet, startIndex_hess,
-            activePtsLocalInd, startIndex_grad, tetSimMesh,
+            activePtsLocalInd, startIndex_grad, pos_node,
+            pos_node_Rest,
+            index_node,
             parameters, contactArea, g_bd, h_bd, ABD);
     }
     break;
@@ -89,7 +111,9 @@ void BarrierEnergy::gradAndHess_PT(std::vector<Eigen::Triplet<double>>& hessian_
     {
         std::vector<int> activePtsLocalInd = { ptIndices[0] , ptIndices[2] , ptIndices[3] };
         BarrierEnergy::cal_and_assemble_gradAndHess(hessian_triplet, grad_triplet, startIndex_hess,
-            activePtsLocalInd, startIndex_grad, tetSimMesh,
+            activePtsLocalInd, startIndex_grad, pos_node,
+            pos_node_Rest,
+            index_node,
             parameters, contactArea, g_bd, h_bd, ABD);
     }
     break;
@@ -98,7 +122,9 @@ void BarrierEnergy::gradAndHess_PT(std::vector<Eigen::Triplet<double>>& hessian_
     {
         std::vector<int> activePtsLocalInd = { ptIndices[0] , ptIndices[3] , ptIndices[1] };
         BarrierEnergy::cal_and_assemble_gradAndHess(hessian_triplet, grad_triplet, startIndex_hess,
-            activePtsLocalInd, startIndex_grad, tetSimMesh,
+            activePtsLocalInd, startIndex_grad, pos_node,
+            pos_node_Rest,
+            index_node,
             parameters, contactArea, g_bd, h_bd, ABD);
     }
     break;
@@ -107,7 +133,9 @@ void BarrierEnergy::gradAndHess_PT(std::vector<Eigen::Triplet<double>>& hessian_
     {
         std::vector<int> activePtsLocalInd = { ptIndices[0] , ptIndices[1] , ptIndices[2] , ptIndices[3] };
         BarrierEnergy::cal_and_assemble_gradAndHess(hessian_triplet, grad_triplet, startIndex_hess,
-            activePtsLocalInd, startIndex_grad, tetSimMesh,
+            activePtsLocalInd, startIndex_grad, pos_node,
+            pos_node_Rest,
+            index_node,
             parameters, contactArea, g_bd, h_bd, ABD);
     }
     break;
@@ -117,49 +145,80 @@ void BarrierEnergy::gradAndHess_PT(std::vector<Eigen::Triplet<double>>& hessian_
 
 }
 
-void BarrierEnergy::cal_and_assemble_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
-    std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess,
+void BarrierEnergy::cal_and_assemble_gradAndHess(
+    std::vector<Eigen::Triplet<double>>& hessian_triplet,
+    std::vector<std::pair<int, double>>& grad_triplet, 
+    int& startIndex_hess,
     std::vector<int>& activePtsLocalInd,
-    int& startIndex_grad, Mesh& tetSimMesh,
-    FEMParamters& parameters, double& contactArea, double& g_bd, double& h_bd, bool ABD)
+    int& startIndex_grad, 
+    const std::vector<Eigen::Vector3d>& pos_node,
+    const std::vector<Eigen::Vector3d>& pos_node_Rest,
+    const std::vector<Eigen::Vector2i>& index_node,
+    FEMParamters& parameters, 
+    double& contactArea, 
+    double& g_bd, 
+    double& h_bd, 
+    bool ABD)
 {
     if (activePtsLocalInd.size() == 2)
     {
         Vector6d g_dx = Vector6d::Zero();
         Matrix6d h_dx = Matrix6d::Zero();
-        DIS::g_PP(tetSimMesh.pos_node[activePtsLocalInd[0]], tetSimMesh.pos_node[activePtsLocalInd[1]], g_dx); // 2
+        DIS::g_PP(pos_node[activePtsLocalInd[0]], pos_node[activePtsLocalInd[1]], g_dx); // 2
         DIS::H_PP(h_dx); // 4
 
         Vector6d grad = parameters.dt * parameters.dt * parameters.IPC_kStiffness * contactArea * g_dx * g_bd;
         Matrix6d hessian = parameters.dt * parameters.dt * parameters.IPC_kStiffness * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 6>(hessian);
-        assemble_gradAndHess<2>(hessian_triplet,grad_triplet, startIndex_hess, activePtsLocalInd,grad, hessian, startIndex_grad,tetSimMesh, ABD);
+        if (!ABD)
+        {
+            assemble_gradAndHess<2>(hessian_triplet, grad_triplet, startIndex_hess, activePtsLocalInd, grad, hessian, startIndex_grad);
+        }
+        else
+        {
+            assemble_gradAndHess_ABD<2>(hessian_triplet, grad_triplet, startIndex_hess, activePtsLocalInd, grad, hessian, startIndex_grad, pos_node, pos_node_Rest, index_node);
+        }
+
    
     }
     else if (activePtsLocalInd.size() == 3)
     {
         Vector9d g_dx = Vector9d::Zero();
         Matrix9d h_dx = Matrix9d::Zero();
-        DIS::g_PE(tetSimMesh.pos_node[activePtsLocalInd[0]], tetSimMesh.pos_node[activePtsLocalInd[1]], tetSimMesh.pos_node[activePtsLocalInd[2]], g_dx); // 2
-        DIS::H_PE(tetSimMesh.pos_node[activePtsLocalInd[0]], tetSimMesh.pos_node[activePtsLocalInd[1]], tetSimMesh.pos_node[activePtsLocalInd[2]], h_dx); // 4
+        DIS::g_PE(pos_node[activePtsLocalInd[0]], pos_node[activePtsLocalInd[1]], pos_node[activePtsLocalInd[2]], g_dx); // 2
+        DIS::H_PE(pos_node[activePtsLocalInd[0]], pos_node[activePtsLocalInd[1]], pos_node[activePtsLocalInd[2]], h_dx); // 4
 
         Vector9d grad = parameters.dt * parameters.dt * parameters.IPC_kStiffness * contactArea * g_dx * g_bd;
         Matrix9d hessian = parameters.dt * parameters.dt * parameters.IPC_kStiffness * contactArea *
             (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 9>(hessian);
-        assemble_gradAndHess<3>(hessian_triplet, grad_triplet, startIndex_hess, activePtsLocalInd, grad, hessian, startIndex_grad, tetSimMesh, ABD);
+        if (!ABD)
+        {
+            assemble_gradAndHess<3>(hessian_triplet, grad_triplet, startIndex_hess, activePtsLocalInd, grad, hessian, startIndex_grad);
+        }
+        else
+        {
+            assemble_gradAndHess_ABD<3>(hessian_triplet, grad_triplet, startIndex_hess, activePtsLocalInd, grad, hessian, startIndex_grad, pos_node, pos_node_Rest, index_node);
+        }
     }
     else if (activePtsLocalInd.size() == 4)
     {
         Vector12d g_dx = Vector12d::Zero();
         Matrix12d h_dx = Matrix12d::Zero();
-        DIS::g_PT(tetSimMesh.pos_node[activePtsLocalInd[0]], tetSimMesh.pos_node[activePtsLocalInd[1]], tetSimMesh.pos_node[activePtsLocalInd[2]], tetSimMesh.pos_node[activePtsLocalInd[3]], g_dx); // 2
-        DIS::H_PT(tetSimMesh.pos_node[activePtsLocalInd[0]], tetSimMesh.pos_node[activePtsLocalInd[1]], tetSimMesh.pos_node[activePtsLocalInd[2]], tetSimMesh.pos_node[activePtsLocalInd[3]], h_dx); // 4
+        DIS::g_PT(pos_node[activePtsLocalInd[0]], pos_node[activePtsLocalInd[1]], pos_node[activePtsLocalInd[2]], pos_node[activePtsLocalInd[3]], g_dx); // 2
+        DIS::H_PT(pos_node[activePtsLocalInd[0]], pos_node[activePtsLocalInd[1]], pos_node[activePtsLocalInd[2]], pos_node[activePtsLocalInd[3]], h_dx); // 4
 
         Vector12d grad = parameters.dt * parameters.dt * parameters.IPC_kStiffness * contactArea * g_dx * g_bd;
         Matrix12d hessian = parameters.dt * parameters.dt * parameters.IPC_kStiffness * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
         makePD<double, 12>(hessian);
-        assemble_gradAndHess<4>(hessian_triplet, grad_triplet, startIndex_hess, activePtsLocalInd, grad, hessian, startIndex_grad, tetSimMesh, ABD);
+        if (!ABD)
+        {
+            assemble_gradAndHess<4>(hessian_triplet, grad_triplet, startIndex_hess, activePtsLocalInd, grad, hessian, startIndex_grad);
+        }
+        else
+        {
+            assemble_gradAndHess_ABD<4>(hessian_triplet, grad_triplet, startIndex_hess, activePtsLocalInd, grad, hessian, startIndex_grad, pos_node, pos_node_Rest, index_node);
+        }
     }
 
    
@@ -169,109 +228,116 @@ void BarrierEnergy::cal_and_assemble_gradAndHess(std::vector<Eigen::Triplet<doub
 
 
 template <int size>
-void assemble_gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
-    std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess,
-    std::vector<int>& activePts, Eigen::Matrix<double, size * 3, 1>& grad_, Eigen::Matrix<double, size * 3, size * 3>& hess_,
-    int& startIndex_grad, Mesh& tetSimMesh, bool ABD)
+void assemble_gradAndHess(
+    std::vector<Eigen::Triplet<double>>& hessian_triplet,
+    std::vector<std::pair<int, double>>& grad_triplet, 
+    int& startIndex_hess,
+    std::vector<int>& activePts, 
+    Eigen::Matrix<double, size * 3, 1>& grad_, 
+    Eigen::Matrix<double, size * 3, size * 3>& hess_,
+    int& startIndex_grad)
 {
 
-    if (!ABD)
+
+    for (int j = 0; j < activePts.size(); j++)
     {
-        for (int j = 0; j < activePts.size(); j++)
+        int pt1 = activePts[j];
+        for (int xd = 0; xd < 3; xd++)
         {
-            int pt1 = activePts[j];
+            double value = grad_[j * 3 + xd];
+            grad_triplet[startIndex_grad + j * 3 + xd] = { pt1 * 3 + xd, value };
+        }
+
+        for (int q = 0; q < activePts.size(); q++)
+        {
+            int pt2 = activePts[q];
+
             for (int xd = 0; xd < 3; xd++)
             {
-                double value = grad_[j * 3 + xd];
-                grad_triplet[startIndex_grad + j * 3 + xd] = { pt1 * 3 + xd, value };
-            }
-
-            for (int q = 0; q < activePts.size(); q++)
-            {
-                int pt2 = activePts[q];
-
-                for (int xd = 0; xd < 3; xd++)
+                for (int yd = 0; yd < 3; yd++)
                 {
-                    for (int yd = 0; yd < 3; yd++)
-                    {
-                        hessian_triplet[startIndex_hess + activePts.size() * j * 9 + q * 9 + xd * 3 + yd] = { pt1 * 3 + xd, pt2 * 3 + yd, hess_(j * 3 + xd, q * 3 + yd) };
-                    }
-                }
-            }
-
-
-        }
-    }
-    else
-    {
-        //std::cout << "hess = " << std::endl;
-        //std::cout << hess_ << std::endl;
-
-        
-
-        for (int j = 0; j < activePts.size(); j++)
-        {
-            int pt1 = activePts[j];
-            //std::cout << "tetSimMesh.pos_node_Rest[pt1] = " << tetSimMesh.pos_node_Rest[pt1].transpose() << std::endl;
-            Eigen::Matrix<double, 3, 12> Jx1 = build_Jx_matrix_for_ABD(tetSimMesh.pos_node_Rest[pt1]);
-            Vector12d energy_wrt_q_grad = Jx1.transpose() * grad_.block(j * 3, 0, 3, 1);
-            int AB_index_1 = tetSimMesh.index_node[pt1][0]; // the ABD object's index
-
-            // assemble gradient
-            for (int xd = 0; xd < 12; xd++)
-            {
-                double value = energy_wrt_q_grad[xd];
-                grad_triplet[startIndex_grad + j * 12 + xd] = { AB_index_1 * 12 + xd, value };
-            }
-
-            // assemble hessian
-            for (int q = 0; q < activePts.size(); q++)
-            {
-                int pt2 = activePts[q];
-                //std::cout << "tetSimMesh.pos_node_Rest[pt2] = "<< tetSimMesh.pos_node_Rest[pt2].transpose() << std::endl;
-                Eigen::Matrix<double, 3, 12> Jx2 = build_Jx_matrix_for_ABD(tetSimMesh.pos_node_Rest[pt2]);               
-                Matrix12d energy_wrt_q_hess = Jx1.transpose() * hess_.block(j * 3, q * 3, 3, 3) * Jx2; 
-                int AB_index_2 = tetSimMesh.index_node[pt2][0]; // the ABD object's index
-
-
-                //std::cout << "pt1 = " << pt1 << "; pt2 = " << pt2 << std::endl;
-                //std::cout << "Jx1 = " << std::endl;
-                //std::cout << Jx1 << std::endl;
-                //std::cout << "Jx2 = " << std::endl;
-                //std::cout << Jx2 << std::endl;
-                //std::cout<< "; energy_wrt_q_hess = " << std::endl;
-                //std::cout << energy_wrt_q_hess << std::endl;
-                //std::cout << "hess = " << std::endl;
-
-
-                for (int xd = 0; xd < 12; xd++)
-                {
-                    for (int yd = 0; yd < 12; yd++)
-                    {
-                        hessian_triplet[startIndex_hess + j * activePts.size() * 144 + q * 144 + xd * 12 + yd] = { AB_index_1 * 12 + xd, AB_index_2 * 12 + yd, energy_wrt_q_hess(xd, yd) };
-                    }
+                    hessian_triplet[startIndex_hess + activePts.size() * j * 9 + q * 9 + xd * 3 + yd] = { pt1 * 3 + xd, pt2 * 3 + yd, hess_(j * 3 + xd, q * 3 + yd) };
                 }
             }
         }
 
-    
 
     }
 
-    
-    
 
 }
 
 
 
+template <int size>
+void assemble_gradAndHess_ABD(
+    std::vector<Eigen::Triplet<double>>& hessian_triplet,
+    std::vector<std::pair<int, double>>& grad_triplet, 
+    int& startIndex_hess,
+    std::vector<int>& activePts, 
+    Eigen::Matrix<double, size * 3, 1>& grad_, 
+    Eigen::Matrix<double, size * 3, size * 3>& hess_,
+    int& startIndex_grad, 
+    const std::vector<Eigen::Vector3d>& pos_node, 
+    const std::vector<Eigen::Vector3d>& pos_node_Rest, 
+    const std::vector<Eigen::Vector2i>& index_node)
+{
+
+    for (int j = 0; j < activePts.size(); j++)
+    {
+        int pt1 = activePts[j];
+        Eigen::Matrix<double, 3, 12> Jx1 = build_Jx_matrix_for_ABD(pos_node_Rest[pt1]);
+        Vector12d energy_wrt_q_grad = Jx1.transpose() * grad_.block(j * 3, 0, 3, 1);
+        int AB_index_1 = index_node[pt1][0]; // the ABD object's index
+
+        // assemble gradient
+        for (int xd = 0; xd < 12; xd++)
+        {
+            double value = energy_wrt_q_grad[xd];
+            grad_triplet[startIndex_grad + j * 12 + xd] = { AB_index_1 * 12 + xd, value };
+        }
+
+        // assemble hessian
+        for (int q = 0; q < activePts.size(); q++)
+        {
+            int pt2 = activePts[q];
+            Eigen::Matrix<double, 3, 12> Jx2 = build_Jx_matrix_for_ABD(pos_node_Rest[pt2]);
+            Matrix12d energy_wrt_q_hess = Jx1.transpose() * hess_.block(j * 3, q * 3, 3, 3) * Jx2;
+            int AB_index_2 = index_node[pt2][0]; // the ABD object's index
+
+
+            for (int xd = 0; xd < 12; xd++)
+            {
+                for (int yd = 0; yd < 12; yd++)
+                {
+                    hessian_triplet[startIndex_hess + j * activePts.size() * 144 + q * 144 + xd * 12 + yd] = { AB_index_1 * 12 + xd, AB_index_2 * 12 + yd, energy_wrt_q_hess(xd, yd) };
+                }
+            }
+        }
+    }
+
+
+
+
+}
+
+
 
 // compute the energy gradient and hessian 
-void BarrierEnergy::gradAndHess_EE(std::vector<Eigen::Triplet<double>>& hessian_triplet, 
-    std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, 
+void BarrierEnergy::gradAndHess_EE(
+    double contactArea,
+    std::vector<Eigen::Triplet<double>>& hessian_triplet, 
+    std::vector<std::pair<int, double>>& grad_triplet, 
+    int& startIndex_hess, 
     int& startIndex_grad, 
-    Eigen::Vector4i& ptIndices, int& type, double& dis2, Mesh& tetSimMesh,
-    FEMParamters& parameters, bool ABD)
+    Eigen::Vector4i& ptIndices, 
+    int& type, 
+    double& dis2, 
+    const std::vector<Eigen::Vector3d>& pos_node,
+    const std::vector<Eigen::Vector3d>& pos_node_Rest,
+    const std::vector<Eigen::Vector2i>& index_node,
+    FEMParamters& parameters, 
+    bool ABD)
 {
     double d_hat2 = squaredDouble(parameters.IPC_dis);
     // the partial derivative of barrier energy b wrt distance d
@@ -279,11 +345,9 @@ void BarrierEnergy::gradAndHess_EE(std::vector<Eigen::Triplet<double>>& hessian_
     double h_bd = compute_H_b(dis2, d_hat2); // 1     
 
     int P1 = ptIndices[0], P2 = ptIndices[1], Q1 = ptIndices[2], Q2 = ptIndices[3];
-    int emin = std::min(P1, P2), emax = std::max(P1, P2);
-    Eigen::Vector3d P1Coor = tetSimMesh.pos_node[P1], P2Coor = tetSimMesh.pos_node[P2], Q1Coor = tetSimMesh.pos_node[Q1], Q2Coor = tetSimMesh.pos_node[Q2];
-    Eigen::Vector3d P1Coor_Rest = tetSimMesh.pos_node_Rest[P1], P2Coor_Rest = tetSimMesh.pos_node_Rest[P2], Q1Coor_Rest = tetSimMesh.pos_node_Rest[Q1], Q2Coor_Rest = tetSimMesh.pos_node_Rest[Q2];
+    Eigen::Vector3d P1Coor = pos_node[P1], P2Coor = pos_node[P2], Q1Coor = pos_node[Q1], Q2Coor = pos_node[Q2];
+    Eigen::Vector3d P1Coor_Rest = pos_node_Rest[P1], P2Coor_Rest = pos_node_Rest[P2], Q1Coor_Rest = pos_node_Rest[Q1], Q2Coor_Rest = pos_node_Rest[Q2];
 
-    double contactArea = tetSimMesh.boundaryEdges_area[emin][emax];
     //contactArea = 1.0;
     double val_b = compute_b(dis2, d_hat2);
     Vector12d grad_b = Vector12d::Zero();
@@ -492,8 +556,16 @@ void BarrierEnergy::gradAndHess_EE(std::vector<Eigen::Triplet<double>>& hessian_
     }
 
     std::vector<int> activePtsLocalInd = { ptIndices[0] , ptIndices[1] , ptIndices[2] , ptIndices[3] };
-    assemble_gradAndHess<4>(hessian_triplet, grad_triplet, startIndex_hess, activePtsLocalInd, grad, hessian, startIndex_grad, tetSimMesh, ABD);
-   
+
+
+    if (!ABD)
+    {
+        assemble_gradAndHess<4>(hessian_triplet, grad_triplet, startIndex_hess, activePtsLocalInd, grad, hessian, startIndex_grad);
+    }
+    else
+    {
+        assemble_gradAndHess_ABD<4>(hessian_triplet, grad_triplet, startIndex_hess, activePtsLocalInd, grad, hessian, startIndex_grad, pos_node, pos_node_Rest, index_node);
+    }
 
 }
 
@@ -552,10 +624,16 @@ double Ground::val(double& coor_z2, double& contactArea, FEMParamters& parameter
     return parameters.dt * parameters.dt * parameters.IPC_kStiffness * contactArea * BarrierEnergy::compute_b(coor_z2, d_hat2);
 }
 
-void Ground::gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet, 
-    std::vector<std::pair<int, double>>& grad_triplet, int& startIndex_hess, 
-    int& startIndex_grad, Mesh& tetSimMesh,
-    int& index_i, double& coor_z2, double& contactArea, FEMParamters& parameters, bool ABD)
+void Ground::gradAndHess(
+    std::vector<Eigen::Triplet<double>>& hessian_triplet, 
+    std::vector<std::pair<int, double>>& grad_triplet, 
+    int& startIndex_hess, 
+    int& startIndex_grad, 
+    const std::vector<Eigen::Vector3d>& pos_node,
+    const std::vector<Eigen::Vector3d>& pos_node_Rest,
+    const std::vector<Eigen::Vector2i>& index_node,
+    int& index_i, double& coor_z2, double& contactArea, 
+    FEMParamters& parameters, bool ABD)
 {
     double d_hat2 = parameters.IPC_dis * parameters.IPC_dis;
     double g_bd = BarrierEnergy::compute_g_b(coor_z2, d_hat2); // 3
@@ -570,7 +648,15 @@ void Ground::gradAndHess(std::vector<Eigen::Triplet<double>>& hessian_triplet,
     Matrix3d hessian = parameters.dt * parameters.dt * parameters.IPC_kStiffness * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
     makePD<double, 3>(hessian);
     std::vector<int> activePtsLocalInd = { index_i };
-    assemble_gradAndHess<1>(hessian_triplet, grad_triplet, startIndex_hess, activePtsLocalInd, grad, hessian, startIndex_grad, tetSimMesh, ABD);
+    if (!ABD)
+    {
+        assemble_gradAndHess<1>(hessian_triplet, grad_triplet, startIndex_hess, activePtsLocalInd, grad, hessian, startIndex_grad);
+    }
+    else
+    {
+        assemble_gradAndHess_ABD<1>(hessian_triplet, grad_triplet, startIndex_hess, activePtsLocalInd, grad, hessian, startIndex_grad, pos_node,pos_node_Rest,index_node);
+    }
+    
 
 
 

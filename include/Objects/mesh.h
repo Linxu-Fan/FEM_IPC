@@ -107,7 +107,7 @@ public:
 
 };
 
-class Mesh : public tetMesh, public surface_Info
+class Mesh : public tetMesh
 {
 public:
 	std::map<std::string, tetMesh> objectsTetMesh; // store all objects' tetrahedral meshes in the scene
@@ -125,6 +125,9 @@ public:
 	std::vector<Material> materialMesh; // all materials used in the simulation
 
 	std::map<int, std::vector<MLSPoints>> MLSPoints_tet_map; // int: index of the tetrahedral; std::vector<MLSPoints>: MLS points in this tetrahedral
+
+
+	surface_Info surfaceInfo; // store the surface information of the mesh
 
 
 	// create a global mesh that is suitable for simulation
@@ -148,7 +151,7 @@ public:
 
 };
 
-class Mesh_ABD : public Mesh, public ABD_Info
+class Mesh_ABD : public Mesh , public ABD_Info
 {
 public:
 	void createGlobalSimulationMesh_ABD();
@@ -175,12 +178,14 @@ public:
 	std::vector<Eigen::Vector3d> pos_node_surface; // position of each point on the surface                                    // **********
 	std::vector<Eigen::Vector3d> pos_node_Rest_surface; // rest position of each point on the surface                          // **********
 	std::vector<int> index_node_surface; // int: index of the ABD object that this surface node belongs to                     // **********
+	std::vector<boundaryCondition> boundaryCondition_node_surface;  // the respective boundary condition of each node on the surface    // **********
 	objMeshFormat surfaceMeshGlobal; // use global index of vertex                                                             // **********
 
 
 	std::vector<Eigen::Vector3d> pos_node_interior; // position of each point in the interior                                  // **********
 	std::vector<Eigen::Vector3d> pos_node_Rest_interior; // rest position of each point in the interiorc                       // **********
 	std::vector<int> index_node_interior; // int: index of the ABD object that this interior node belongs to                   // **********
+	std::vector<boundaryCondition> boundaryCondition_node_interior;  // the respective boundary condition of each node on the interior    // **********
 	std::vector<double> mass_node_interior; // mass of each node in the interior	                                           // **********
 	std::vector<double> vol_node_interior; // volume of each node in the interior	                                           // **********
 

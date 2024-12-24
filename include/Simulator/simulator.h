@@ -21,7 +21,7 @@ void explicitFEM(Mesh& tetSimMesh, FEMParamters& parameters);
 void implicitFEM(Mesh& tetSimMesh, FEMParamters& parameters);
 
 // compute external force excluding gravity
-Eigen::Vector3d compute_external_force(Mesh& tetSimMesh, int vertInd, int timestep);
+Eigen::Vector3d compute_external_force(std::vector<boundaryCondition>& boundaryCondition_node, int vertInd, int timestep);
 
 // update the MLS points' information after advection
 void updateMLS_after_advection(Mesh& tetSimMesh, FEMParamters& parameters);
@@ -40,16 +40,37 @@ void step_forward(FEMParamters& parameters, Mesh& tetSimMesh,
 	std::vector<Eigen::Vector3d>& currentPosition, std::vector<Eigen::Vector3d>& direction, double step);
 
 // calculate the barrier energy of contact
-double compute_Barrier_energy(Mesh& tetSimMesh, FEMParamters& parameters, int timestep);
+double compute_Barrier_energy(
+	FEMParamters& parameters,
+	surface_Info& surfaceInfo,
+	const std::vector<Eigen::Vector3d>& pos_node,
+	const std::vector<Eigen::Vector3d>& pos_node_Rest,
+	const std::vector<std::string>& note_node,
+	std::map<std::string, int>& tetMeshIndex,
+	const int timestep);
 
 // calculate the contact info: a) contact or not; b) contact type; 3) contact energy, derivative and hessian; 
-void calContactInfo(Mesh& tetSimMesh, FEMParamters& parameters, int timestep, 
-	std::vector<Vector5i>& PG_PG, std::vector<Vector5i>& PT_PP, 
-	std::vector<Vector5i>& PT_PE, std::vector<Vector5i>& PT_PT, std::vector<Vector5i>& EE_EE);
+void calContactInfo(
+	FEMParamters& parameters,
+	surface_Info& surfaceInfo,
+	const std::vector<Eigen::Vector3d>& pos_node,
+	const std::vector<std::string>& note_node,
+	std::map<std::string, int>& tetMeshIndex,
+	const int timestep,
+	std::vector<Vector5i>& PG_PG, std::vector<Vector5i>& PT_PP,
+	std::vector<Vector5i>& PT_PE, std::vector<Vector5i>& PT_PT,
+	std::vector<Vector5i>& EE_EE);
+
 
 // calculate the maximum feasible step size
-double calMaxStepSize(Mesh& tetSimMesh, FEMParamters& parameters, int timestep,  
-	std::vector<Eigen::Vector3d>& direction);
+double calMaxStepSize(
+	FEMParamters& parameters,
+	surface_Info& surfaceInfo,
+	const std::vector<Eigen::Vector3d>& direction,
+	const std::vector<Eigen::Vector3d>& pos_node,
+	const std::vector<std::string>& note_node,
+	std::map<std::string, int>& tetMeshIndex,
+	const int timestep);
 
 
 
@@ -79,6 +100,10 @@ void step_forward_ABD(FEMParamters& parameters, Mesh_ABD& tetSimMesh, std::vecto
 
 // convert the ABD state update to position update direction
 void convert_to_position_direction(FEMParamters& parameters, Mesh_ABD& tetSimMesh, std::vector<Vector12d>& direction_ABD, std::vector<Eigen::Vector3d>& position_direction);
+
+
+
+
 
 
 #endif
