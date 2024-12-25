@@ -217,6 +217,33 @@ void objMeshFormat::readObjFile(std::string fileName, bool polygonal, Eigen::Aff
 
 	in.close();
 
+
+	// check if the mesh is outward or not. If not, flip the surface
+	std::pair<Eigen::MatrixXd, Eigen::MatrixXi> libigl_mesh = to_libigl_mesh();
+	Eigen::Vector3d center = Eigen::Vector3d::Zero();
+	double volume_ = 0;
+	igl::centroid(libigl_mesh.first, libigl_mesh.second, center, volume_);
+	if (volume_ < 0.0)
+	{
+		std::cout << "Warning: the normal is not outward. flip it!" << std::endl;
+		if (!polygonal)
+		{
+			for (int f =0; f < faces.size(); f++)
+			{
+				Eigen::Vector3i tmp = { faces[f][2],faces[f][1],faces[f][0] };
+				faces[f] = tmp;
+			}
+		}
+		else
+		{
+			for (int f = 0; f < facesPolygonal.size(); f++)
+			{
+				std::reverse(facesPolygonal[f].begin(), facesPolygonal[f].end());
+			}
+		}
+
+	}
+
 	//std::cout << "ct = " << ct << std::endl;
 
 	findVertFaces_Edges();

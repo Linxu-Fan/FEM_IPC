@@ -81,6 +81,13 @@ void implicitFEM_ABD(Mesh_ABD& tetSimMesh, FEMParamters& parameters)
 					break;
 				}
 			}
+
+			// The energy has been greatly minimized. It is time to stop
+			if (newEnergyVal / lastEnergyVal < 0.001)
+			{
+				break;
+			}
+
 			lastEnergyVal = newEnergyVal;
 
 

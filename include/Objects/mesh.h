@@ -166,25 +166,31 @@ public:
 // Triangular mesh for simulation
 //////////////////////////////////////////////
 
-class triMesh : public ABD_Info, public surface_Info
+class triMesh : public ABD_Info
 {
 public:
 	std::vector<std::string> triMeshNote;                                                                                      // **********
+	std::map<std::string, int> triMeshIndex; // std::string: mesh name; int: mesh index
 	std::vector<Material> materialMesh; // materials(materialMesh) used in each ABD body                                       // **********
 	std::vector<objMeshFormat> objectSurfaceMeshes; // store all objects' triangular meshes in the scene                       // **********
 	int num_meshes = 0; // number of independant ABD objects                                                                   // **********
 
 
+	std::vector<std::string> note_node_surface;
 	std::vector<Eigen::Vector3d> pos_node_surface; // position of each point on the surface                                    // **********
 	std::vector<Eigen::Vector3d> pos_node_Rest_surface; // rest position of each point on the surface                          // **********
-	std::vector<int> index_node_surface; // int: index of the ABD object that this surface node belongs to                     // **********
+	std::vector<Eigen::Vector3d> pos_node_prev_surface; // previous position of each point on the surface                      // **********
+	std::vector<Eigen::Vector2i> index_node_surface; // To reuse the code of previous implementation, we keep the same data structure of Class Mesh                    // **********
 	std::vector<boundaryCondition> boundaryCondition_node_surface;  // the respective boundary condition of each node on the surface    // **********
 	objMeshFormat surfaceMeshGlobal; // use global index of vertex                                                             // **********
+	
+	surface_Info surfaceInfo; // store the surface information of the mesh
 
 
+	std::vector<std::string> note_node_interior;
 	std::vector<Eigen::Vector3d> pos_node_interior; // position of each point in the interior                                  // **********
 	std::vector<Eigen::Vector3d> pos_node_Rest_interior; // rest position of each point in the interiorc                       // **********
-	std::vector<int> index_node_interior; // int: index of the ABD object that this interior node belongs to                   // **********
+	std::vector<Eigen::Vector2i> index_node_interior; // To reuse the code of previous implementation, we keep the same data structure of Class Mesh                   // **********
 	std::vector<boundaryCondition> boundaryCondition_node_interior;  // the respective boundary condition of each node on the interior    // **********
 	std::vector<double> mass_node_interior; // mass of each node in the interior	                                           // **********
 	std::vector<double> vol_node_interior; // volume of each node in the interior	                                           // **********
@@ -217,6 +223,18 @@ public:
 	 *
 	 */
 	void update_ABD_info();
+
+	/**
+	 * @brief export the surface mesh
+	 *
+	 */
+	void exportSurfaceMesh(std::string fileName, int timestep);
+
+	/**
+	 * @brief largest edge length of the triangular surface mesh
+	 *
+	 */
+	double calLargestEdgeLength();
 
 };
 

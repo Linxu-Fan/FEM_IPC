@@ -31,6 +31,7 @@
 #include <cstring>
 #include <cfloat>
 #include <complex>
+#include <cstdlib>
 
 
 #include <CGAL/Simple_cartesian.h>

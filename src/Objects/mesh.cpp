@@ -258,7 +258,8 @@ void tetMesh::update_F(int numOfThreads)
 		assert(tetra_F[i].determinant() > 0);
 		if (tetra_F[i].determinant() < 0)
 		{
-			//std::cout << "Tetrahedral reverse!" << std::endl;
+			std::cout << "Tetrahedral reverse!" << std::endl;
+			exit(0);
 		}
 
 	}
@@ -730,6 +731,7 @@ void triMesh::readMeshes(std::vector<meshConfiguration>& configs)
 
 		materialMesh.push_back(config.mesh_material);
 		triMeshNote.push_back(config.note);
+		triMeshIndex[config.note] = i;
 
 		
 		Eigen::Vector3d scale = config.scale;
@@ -748,6 +750,14 @@ void triMesh::readMeshes(std::vector<meshConfiguration>& configs)
 		objectSurfaceMeshes.push_back(triMesh_);
 	}
 
+
+
+	if (triMeshIndex.size() != triMeshNote.size()) // check if there exists identical object names
+	{
+		std::cout << "Identical object names exist! Please change the object's name!" << std::endl;
+		exit(0);
+	}
+
 }
 
 
@@ -757,7 +767,15 @@ void triMesh::build_surface_mesh()
 	for (int i = 0; i < objectSurfaceMeshes.size(); i++)
 	{
 		pos_node_surface.insert(pos_node_surface.end(), objectSurfaceMeshes[i].vertices.begin(), objectSurfaceMeshes[i].vertices.end());
-		index_node_surface.push_back(i);
+
+
+		Eigen::Vector2i index_vert = { i , 1 };
+		// store the note infor of each object
+		for (int n = 0; n < objectSurfaceMeshes[i].vertices.size(); n++)
+		{
+			note_node_surface.push_back(triMeshNote[i]);
+			index_node_surface.push_back(index_vert);
+		}
 	}
 	pos_node_Rest_surface = pos_node_surface;
 
@@ -775,7 +793,7 @@ void triMesh::build_surface_mesh()
 	}
 	surfaceMeshGlobal.vertices = pos_node_surface;
 
-	updateBEInfo(surfaceMeshGlobal.vertices, surfaceMeshGlobal.faces);
+	surfaceInfo.updateBEInfo(surfaceMeshGlobal.vertices, surfaceMeshGlobal.faces);
 
 }
 
@@ -790,23 +808,33 @@ void triMesh::sample_points_inside(double per_point_volume)
 
 
 		Eigen::Vector3d center = Eigen::Vector3d::Zero();
-		double volume = 0;
-		igl::centroid(libigl_mesh.first, libigl_mesh.second, center, volume);
+		double volume_ = 0;
+		igl::centroid(libigl_mesh.first, libigl_mesh.second, center, volume_);
+		double volume = std::abs(volume_);
 		objectSurfaceMeshes[i].volume = volume;
 
 
 		int num_points = std::floor(volume / per_point_volume);
+		//std::cout << "num_points = " << num_points << std::endl;
 		std::vector<Eigen::Vector3d> pts = ABD_obj_mesh.sample_points_inside_mesh(num_points);
+
+		//std::cout << "fff = " << num_points << std::endl;
 
 		pos_node_interior.insert(pos_node_interior.end(), pts.begin(), pts.end());
 
-		vol_node_interior.push_back(per_point_volume);
-		mass_node_interior.push_back(per_point_volume * materialMesh[i].density);
+		//std::cout << "eee = " << num_points << std::endl;
 
+		Eigen::Vector2i index_vert = { i , 0 };
+		// store the note infor of each object
+		for (int n = 0; n < pts.size(); n++)
+		{
+			note_node_interior.push_back(triMeshNote[i]);
+			index_node_interior.push_back(index_vert);
+			vol_node_interior.push_back(per_point_volume);
+			mass_node_interior.push_back(per_point_volume * materialMesh[i].density);
+		}
 
-		// node index
-		std::vector<int> index_node_interior_(num_points, i);
-		index_node_interior.insert(index_node_interior.end(), index_node_interior_.begin(), index_node_interior_.end());
+		//std::cout << "ggg = " << num_points << std::endl;
 
 	}
 	pos_node_Rest_interior = pos_node_interior;
@@ -817,6 +845,7 @@ void triMesh::sample_points_inside(double per_point_volume)
 void triMesh::update_ABD_info()
 {
 	massMatrix_ABD.resize(num_meshes, Eigen::Matrix<double, 12, 12>::Zero());
+	volume_ABD.resize(num_meshes, 0);
 
 	translation_prev_ABD.resize(num_meshes, Eigen::Vector3d::Zero());
 	translation_ABD.resize(num_meshes, Eigen::Vector3d::Zero());
@@ -836,7 +865,7 @@ void triMesh::update_ABD_info()
 	{
 		Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(pos_node_Rest_interior[i]);
 
-		int AB_index = index_node_interior[i];
+		int AB_index = index_node_interior[i][0];
 		massMatrix_ABD[AB_index] += mass_node_interior[i] * Jx.transpose() * Jx;
 	}
 	
@@ -846,16 +875,38 @@ void triMesh::update_ABD_info()
 	}
 
 
+	boundaryCondition bc;
 	// add boundary conditions
 	for (int i = 0; i < pos_node_interior.size(); i++)
-	{
-		boundaryCondition bc;
+	{	
 		boundaryCondition_node_interior.push_back(bc);
 	}
 	for (int i = 0; i < pos_node_surface.size(); i++)
 	{
-		boundaryCondition bc;
 		boundaryCondition_node_surface.push_back(bc);
 	}
 
+}
+
+void triMesh::exportSurfaceMesh(std::string fileName, int timestep)
+{
+	surfaceMeshGlobal.vertices = pos_node_surface;
+	surfaceMeshGlobal.outputFile(fileName, timestep);
+}
+
+double triMesh::calLargestEdgeLength()
+{
+	double largestLength = -1.0E9;
+	for (std::map<int, Eigen::Vector2i>::iterator it = surfaceInfo.index_boundaryEdge.begin();
+		it != surfaceInfo.index_boundaryEdge.end(); it++)
+	{
+		int v1_index = it->second[0], v2_index = it->second[1];
+		Eigen::Vector3d v1 = pos_node_surface[v1_index], v2 = pos_node_surface[v2_index];
+		double length = (v1 - v2).norm();
+		if (largestLength < length)
+		{
+			largestLength = length;
+		}
+	}
+	return largestLength;
 }
