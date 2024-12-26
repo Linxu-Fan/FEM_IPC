@@ -347,7 +347,11 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 
 
 	// calculate the barrier gradient and hessian
+	if (PG_PG.size() + PT_PP.size() + PT_PE.size() + PT_PT.size() + EE_EE.size() != 0)
 	{
+		// clear historical force
+		std::fill(tetSimMesh.contactForce_node.begin(), tetSimMesh.contactForce_node.end(), Eigen::Vector3d::Zero());
+
 		startIndex_grad += tetSimMesh.num_meshes * 9,
 			startIndex_hess += tetSimMesh.num_meshes * 81;
 #pragma omp parallel for num_threads(parameters.numOfThreads)
@@ -369,6 +373,7 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 				ptInd,
 				z2,
 				tetSimMesh.surfaceInfo.boundaryVertices_area[ptInd],
+				tetSimMesh.contactForce_node,
 				parameters, 
 				true);
 		}
@@ -405,6 +410,7 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 				tetSimMesh.pos_node,
 				tetSimMesh.pos_node_Rest,
 				tetSimMesh.index_node,
+				tetSimMesh.contactForce_node,
 				parameters,
 				true);
 
@@ -442,6 +448,7 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 				tetSimMesh.pos_node,
 				tetSimMesh.pos_node_Rest,
 				tetSimMesh.index_node,
+				tetSimMesh.contactForce_node,
 				parameters,
 				true);
 
@@ -479,6 +486,7 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 				tetSimMesh.pos_node,
 				tetSimMesh.pos_node_Rest,
 				tetSimMesh.index_node,
+				tetSimMesh.contactForce_node,
 				parameters,
 				true);
 
@@ -520,6 +528,7 @@ std::vector<Vector12d> solve_linear_system_ABD(Mesh_ABD& tetSimMesh, FEMParamter
 				tetSimMesh.pos_node,
 				tetSimMesh.pos_node_Rest,
 				tetSimMesh.index_node,
+				tetSimMesh.contactForce_node,
 				parameters,
 				true);
 

@@ -9,6 +9,7 @@
 struct meshConfiguration
 {
 	std::string filePath = "";
+	bool breakable = false;
 	Material mesh_material;
 	Eigen::Vector3d velocity = {0, 0, 0};
 	Eigen::Vector3d scale = {1.0, 1.0, 1.0 };
@@ -22,6 +23,7 @@ struct meshConfiguration
 class ABD_Info
 {
 public:
+	std::vector<bool> breakable; // if this object is breakable or not
 
 	// data structure specialized for ABD
 	std::vector<Matrix12d> massMatrix_ABD; // the mass matrix of each mesh if in ABD mode
@@ -119,6 +121,7 @@ public:
 	std::vector<double> Dp; // damage value of the tetrahedral!!!!!!!
 	std::vector<std::string> note_node; // note of each node
 	std::vector<Eigen::Vector3d> elastForce_node; // elastic force of each node
+	std::vector<Eigen::Vector3d> contactForce_node; // contact force applied to the surface node
 	std::vector<Eigen::Vector3d> pos_node_prev; // tetrahedral node's previous position
 	std::vector<std::vector<int>> tetrahedrals_node; // tetrahedrals that contains this node
 	std::vector<int> materialInd; // index of the materials(materialMesh) used in this tetrahedral
@@ -173,10 +176,12 @@ public:
 	std::map<std::string, int> triMeshIndex; // std::string: mesh name; int: mesh index
 	std::vector<Material> materialMesh; // materials(materialMesh) used in each ABD body                                       // **********
 	std::vector<objMeshFormat> objectSurfaceMeshes; // store all objects' triangular meshes in the scene                       // **********
+	std::vector<Eigen::Vector2i> objectSurfaceMeshes_node_start_end; // start and end node of this surface mesh in pos_node_surface (end node index is one smaller)   // **********
 	int num_meshes = 0; // number of independant ABD objects                                                                   // **********
 
 
 	std::vector<std::string> note_node_surface;
+	std::vector<Eigen::Vector3d> contactForce_node_surface; // contact force applied to the surface node                       // **********
 	std::vector<Eigen::Vector3d> pos_node_surface; // position of each point on the surface                                    // **********
 	std::vector<Eigen::Vector3d> pos_node_Rest_surface; // rest position of each point on the surface                          // **********
 	std::vector<Eigen::Vector3d> pos_node_prev_surface; // previous position of each point on the surface                      // **********
@@ -235,6 +240,12 @@ public:
 	 *
 	 */
 	double calLargestEdgeLength();
+
+	/**
+	 * @brief update each ABD object's surface mesh
+	 *
+	 */
+	void updateEachObjectSurfaceMesh();
 
 };
 

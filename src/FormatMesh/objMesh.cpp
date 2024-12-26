@@ -204,7 +204,7 @@ void objMeshFormat::readObjFile(std::string fileName, bool polygonal, Eigen::Aff
 					for (int h = 1; h < vecCoor.size(); h++)
 					{
 						//std::cout << "	ele = " << std::stoi(vecCoor[h]) - 1 << std::endl;
-						facePolygonal.push_back(std::stoi(vecCoor[h]) - 1 );				
+						facePolygonal.push_back(std::stoi(vecCoor[h]) - 1);
 					}
 					facesPolygonal.push_back(facePolygonal);
 
@@ -228,7 +228,7 @@ void objMeshFormat::readObjFile(std::string fileName, bool polygonal, Eigen::Aff
 		std::cout << "Warning: the normal is not outward. flip it!" << std::endl;
 		if (!polygonal)
 		{
-			for (int f =0; f < faces.size(); f++)
+			for (int f = 0; f < faces.size(); f++)
 			{
 				Eigen::Vector3i tmp = { faces[f][2],faces[f][1],faces[f][0] };
 				faces[f] = tmp;
@@ -295,14 +295,14 @@ void objMeshFormat::findVertFaces_Edges()
 
 }
 
-void depthFirstSearch(int v, const std::vector<std::set<int>>& adjList, 
-	std::vector<bool>& visited, std::vector<int>& component) 
+void depthFirstSearch(int v, const std::vector<std::set<int>>& adjList,
+	std::vector<bool>& visited, std::vector<int>& component)
 {
 	visited[v] = true;
 	component.push_back(v);
-	for (int neighbor : adjList[v]) 
+	for (int neighbor : adjList[v])
 	{
-		if (!visited[neighbor]) 
+		if (!visited[neighbor])
 		{
 			depthFirstSearch(neighbor, adjList, visited, component);
 		}
@@ -315,7 +315,7 @@ void objMeshFormat::sepConnectedComponents()
 	// find connected components
 	std::vector<std::vector<int>> components;
 	std::vector<std::set<int>> adjList(vertices.size());
-	for (const auto& f : faces) 
+	for (const auto& f : faces)
 	{
 		adjList[f[0]].insert(f[1]);
 		adjList[f[0]].insert(f[2]);
@@ -325,9 +325,9 @@ void objMeshFormat::sepConnectedComponents()
 		adjList[f[2]].insert(f[1]);
 	}
 	std::vector<bool> visited(vertices.size(), false);
-	for (size_t i = 0; i < vertices.size(); ++i) 
+	for (size_t i = 0; i < vertices.size(); ++i)
 	{
-		if (!visited[i]) 
+		if (!visited[i])
 		{
 			std::vector<int> component;
 			depthFirstSearch(i, adjList, visited, component);
@@ -336,7 +336,7 @@ void objMeshFormat::sepConnectedComponents()
 	}
 
 	// remove unnecessary vertices
-	for (size_t i = 0; i < components.size(); ++i) 
+	for (size_t i = 0; i < components.size(); ++i)
 	{
 		objMeshFormat cop;
 		std::unordered_map<int, int> vertexMap;
@@ -346,14 +346,14 @@ void objMeshFormat::sepConnectedComponents()
 			cop.vertices.push_back(vertices[idx]);
 		}
 
-		for (const auto& f : faces) 
+		for (const auto& f : faces)
 		{
 			if (vertexMap.count(f[0]) && vertexMap.count(f[1]) && vertexMap.count(f[2]))
 			{
 				cop.faces.push_back({ vertexMap[f[0]], vertexMap[f[1]], vertexMap[f[2]] });
 			}
 		}
-		
+
 		cop.findVertFaces_Edges();
 		componentsSep.push_back(cop);
 	}
@@ -377,12 +377,25 @@ void objMeshFormat::outputFile(std::string fileName, int timestep, bool polygona
 		Eigen::Vector3d scale = vertices[k];
 		outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
 	}
+
+
+	// check if the mesh is outward or not. If not, flip the surface
+	std::pair<Eigen::MatrixXd, Eigen::MatrixXi> libigl_mesh = to_libigl_mesh();
+	Eigen::Vector3d center = Eigen::Vector3d::Zero();
+	double volume_ = 0;
+	igl::centroid(libigl_mesh.first, libigl_mesh.second, center, volume_);
+	bool flip = false;
+	if (volume_ < 0.0)
+	{
+		flip = true;
+	}
+
 	if (!polygonal)
 	{
 		for (int k = 0; k < faces.size(); k++)
 		{
 			outfile9 << "f ";
-			if (0)
+			if (!flip)
 			{
 				for (int m = 0; m < faces[k].size(); m++)
 				{
@@ -404,7 +417,7 @@ void objMeshFormat::outputFile(std::string fileName, int timestep, bool polygona
 		for (int k = 0; k < facesPolygonal.size(); k++)
 		{
 			outfile9 << "f ";
-			if (0)
+			if (!flip)
 			{
 				for (int m = 0; m < facesPolygonal[k].size(); m++)
 				{
@@ -420,7 +433,7 @@ void objMeshFormat::outputFile(std::string fileName, int timestep, bool polygona
 			}
 			outfile9 << std::endl;
 		}
-	}	
+	}
 	outfile9.close();
 }
 
@@ -504,7 +517,7 @@ void objMeshFormat::to_openVDB_format(std::vector<openvdb::Vec3s>& verticesVdb, 
 {
 	verticesVdb.clear();
 	trianglesVdb.clear();
-	for (int i = 0 ; i < vertices.size(); i++)
+	for (int i = 0; i < vertices.size(); i++)
 	{
 		verticesVdb.push_back({ static_cast<float>(vertices[i][0]),static_cast<float>(vertices[i][1]),static_cast<float>(vertices[i][2]) });
 	}
@@ -563,7 +576,7 @@ std::vector<Eigen::Vector3d> objMeshFormat::sample_points_inside_mesh(int num_sa
 		std::vector<Eigen::Vector3d> inside_points_tmp(num_samples);
 
 #pragma omp parallel for 
-		for (int i = 0; i < num_samples; ++i) 
+		for (int i = 0; i < num_samples; ++i)
 		{
 			Eigen::Vector3d point;
 			point[0] = dis_x(gen);
@@ -575,7 +588,7 @@ std::vector<Eigen::Vector3d> objMeshFormat::sample_points_inside_mesh(int num_sa
 			winding_number = igl::winding_number(V, F, point.transpose());
 
 			// If winding number is close to 1, the point is inside
-			if (std::abs(winding_number - 1.0) < 1e-6) 
+			if (std::abs(winding_number - 1.0) < 1e-6)
 			{
 				inside_points_tmp[i] = point;
 				inside_check[i] = 1;

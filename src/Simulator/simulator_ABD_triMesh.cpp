@@ -31,7 +31,9 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 
 			std::cout << "		ite = " << ite << "; lastEnergyVal = " << lastEnergyVal << std::endl;
-			std::vector<Vector12d> direction_ABD = solve_linear_system_ABD_triMesh(triSimMesh, parameters, timestep);
+			std::vector<Vector12d> direction_ABD;
+			std::map<int, std::vector<Vector6d>> broken_objects;
+			solve_linear_system_ABD_triMesh(triSimMesh, parameters, timestep, direction_ABD, broken_objects);
 			convert_to_position_direction_triMesh(parameters, triSimMesh, direction_ABD, position_direction);
 			double dist_to_converge = infiniteNorm(position_direction);
 
@@ -182,10 +184,16 @@ double compute_IP_energy_ABD_triMesh(triMesh& triSimMesh, FEMParamters& paramete
 }
 
 // compute energy gradient and hessian of the linear system and solve the syetem
-std::vector<Vector12d> solve_linear_system_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters, int timestep)
+void solve_linear_system_ABD_triMesh(
+	triMesh& triSimMesh, 
+	FEMParamters& parameters, 
+	int timestep, 
+	std::vector<Vector12d>& movingDir,
+	std::map<int, std::vector<Vector6d>>& broken_objects)
 {
 	// we only need to update boundary vertices' position to calculate the barrier energy update
-	std::vector<Vector12d> movingDir(triSimMesh.num_meshes);
+	movingDir.clear();
+	movingDir.resize(triSimMesh.num_meshes, Vector12d::Zero());
 
 
 
@@ -323,7 +331,12 @@ std::vector<Vector12d> solve_linear_system_ABD_triMesh(triMesh& triSimMesh, FEMP
 
 
 	// calculate the barrier gradient and hessian
+	if (PG_PG.size() + PT_PP.size() + PT_PE.size() + PT_PT.size() + EE_EE.size() != 0)
 	{
+		// clear historical force
+		std::fill(triSimMesh.contactForce_node_surface.begin(), triSimMesh.contactForce_node_surface.end(), Eigen::Vector3d::Zero());
+
+
 		startIndex_grad += triSimMesh.num_meshes * 9,
 			startIndex_hess += triSimMesh.num_meshes * 81;
 #pragma omp parallel for num_threads(parameters.numOfThreads)
@@ -345,6 +358,7 @@ std::vector<Vector12d> solve_linear_system_ABD_triMesh(triMesh& triSimMesh, FEMP
 				ptInd,
 				z2,
 				triSimMesh.surfaceInfo.boundaryVertices_area[ptInd],
+				triSimMesh.contactForce_node_surface,
 				parameters,
 				true);
 		}
@@ -381,6 +395,7 @@ std::vector<Vector12d> solve_linear_system_ABD_triMesh(triMesh& triSimMesh, FEMP
 				triSimMesh.pos_node_surface,
 				triSimMesh.pos_node_Rest_surface,
 				triSimMesh.index_node_surface,
+				triSimMesh.contactForce_node_surface,
 				parameters,
 				true);
 
@@ -418,6 +433,7 @@ std::vector<Vector12d> solve_linear_system_ABD_triMesh(triMesh& triSimMesh, FEMP
 				triSimMesh.pos_node_surface,
 				triSimMesh.pos_node_Rest_surface,
 				triSimMesh.index_node_surface,
+				triSimMesh.contactForce_node_surface,
 				parameters,
 				true);
 
@@ -455,6 +471,7 @@ std::vector<Vector12d> solve_linear_system_ABD_triMesh(triMesh& triSimMesh, FEMP
 				triSimMesh.pos_node_surface,
 				triSimMesh.pos_node_Rest_surface,
 				triSimMesh.index_node_surface,
+				triSimMesh.contactForce_node_surface,
 				parameters,
 				true);
 
@@ -496,6 +513,7 @@ std::vector<Vector12d> solve_linear_system_ABD_triMesh(triMesh& triSimMesh, FEMP
 				triSimMesh.pos_node_surface,
 				triSimMesh.pos_node_Rest_surface,
 				triSimMesh.index_node_surface,
+				triSimMesh.contactForce_node_surface,
 				parameters,
 				true);
 
@@ -504,6 +522,12 @@ std::vector<Vector12d> solve_linear_system_ABD_triMesh(triMesh& triSimMesh, FEMP
 	}
 
 
+	// check if any object will be broken
+	if_start_fracture_sim(triSimMesh, broken_objects);
+	if (broken_objects.size() != 0)
+	{
+		return;
+	}
 
 
 	//double endTime3 = omp_get_wtime();
@@ -538,8 +562,6 @@ std::vector<Vector12d> solve_linear_system_ABD_triMesh(triMesh& triSimMesh, FEMP
 	}
 
 
-
-	return movingDir;
 }
 
 // move points' position according to the direction; Note this is a trial movement
@@ -598,3 +620,34 @@ void convert_to_position_direction_triMesh(FEMParamters& parameters, triMesh& tr
 	}
 };
 
+
+void if_start_fracture_sim(triMesh& triSimMesh, std::map<int, std::vector<Vector6d>>& broken_objects)
+{
+	broken_objects.clear();
+	for (int i = 0; i < triSimMesh.objectSurfaceMeshes_node_start_end.size(); i++)
+	{
+		if (triSimMesh.breakable[i] == true)
+		{
+			double max_force = -999999999.0;
+			std::vector<Vector6d> contactForce;
+			for (int j = triSimMesh.objectSurfaceMeshes_node_start_end[i][0]; j < triSimMesh.objectSurfaceMeshes_node_start_end[i][1]; j++)
+			{
+				Vector6d contact_position_force;
+				Eigen::Vector3d position = triSimMesh.pos_node_surface[j];
+				Eigen::Vector3d force = triSimMesh.contactForce_node_surface[j];
+				if (force.norm() > 0.0001) // to avoid numerical error
+				{
+					contact_position_force.block(0, 0, 3, 1) = position;
+					contact_position_force.block(3, 0, 3, 1) = force;
+				}
+				max_force = std::max(triSimMesh.contactForce_node_surface[j].norm(), max_force);
+				contactForce.push_back(contact_position_force);
+			}
+			if (max_force > triSimMesh.materialMesh[i].fracture_start_force )
+			{
+				broken_objects[i] = contactForce;
+			}		
+		}
+	}
+
+}

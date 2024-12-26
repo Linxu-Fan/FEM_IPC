@@ -1,5 +1,6 @@
 ﻿#include "utils.h"
 
+
 // calculate the infinite norm of a vector contanining Eigen::Vector3d
 double infiniteNorm(std::vector<Eigen::Vector3d>& vec3d)
 {

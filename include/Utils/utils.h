@@ -34,6 +34,7 @@
 #include <cstdlib>
 
 
+
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
@@ -141,6 +142,9 @@ struct Material
 
 	// return mapping stress threshold(only for bending stress)
 	double bendingStressThreshold = 1.0E6;
+
+	// The minimum force magnitude required to break this material
+	double fracture_start_force = 1.0E5;
 
 
 	void updateDenpendecies()

@@ -59,6 +59,7 @@ namespace BarrierEnergy
 		const std::vector<Eigen::Vector3d>& pos_node,
 		const std::vector<Eigen::Vector3d>& pos_node_Rest,
 		const std::vector<Eigen::Vector2i>& index_node,
+		std::vector<Eigen::Vector3d>& contactForce_node,
 		FEMParamters& parameters,
 		bool ABD = false);
 
@@ -71,6 +72,7 @@ namespace BarrierEnergy
 		const std::vector<Eigen::Vector3d>& pos_node,
 		const std::vector<Eigen::Vector3d>& pos_node_Rest,
 		const std::vector<Eigen::Vector2i>& index_node,
+		std::vector<Eigen::Vector3d>& contactForce_node,
 		FEMParamters& parameters,
 		double& contactArea,
 		double& g_bd,
@@ -92,6 +94,7 @@ namespace BarrierEnergy
 		const std::vector<Eigen::Vector3d>& pos_node,
 		const std::vector<Eigen::Vector3d>& pos_node_Rest,
 		const std::vector<Eigen::Vector2i>& index_node,
+		std::vector<Eigen::Vector3d>& contactForce_node,
 		FEMParamters& parameters,
 		bool ABD = false);
 
@@ -128,6 +131,7 @@ namespace Ground
 		int& index_i, 
 		double& coor_z2, 
 		double& contactArea,
+		std::vector<Eigen::Vector3d>& contactForce_node,
 		FEMParamters& parameters, 
 		bool ABD = false);
 

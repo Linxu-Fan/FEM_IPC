@@ -87,6 +87,7 @@ add_executable(
     src/FormatMesh/objMesh.cpp
     src/MLS/MLS.cpp
 	src/Crack/extractCrack.cpp
+	src/Crack/mpmSimulator.cpp
     include/MLS/MLS.h
     include/Utils/tools.h
     include/Utils/utils.h
@@ -101,6 +102,7 @@ add_executable(
     include/Objects/materials.h
     include/Objects/mesh.h
 	include/Crack/extractCrack.h
+	include/Crack/mpmSimulator.h
 )
 
 # 添加 libigl 子目录
@@ -116,7 +118,9 @@ add_subdirectory(${EXTERN_PROJECTS_DIR}/libigl)
 # 组织源文件和头文件到 Visual Studio 的项目组
 source_group("Source Files\\Utils" FILES src/Utils/utils.cpp src/Utils/tools.cpp)
 source_group("Source Files\\Objects" FILES src/Objects/mesh.cpp)
-source_group("Source Files\\Crack" FILES src/Crack/extractCrack.cpp)
+source_group("Source Files\\Crack" FILES 
+	src/Crack/extractCrack.cpp
+	src/Crack/mpmSimulator.cpp)
 source_group("Source Files\\Energy" FILES 
     src/Energy/InertiaEnergy.cpp 
     src/Energy/ElasticEnergy.cpp
@@ -141,7 +145,9 @@ source_group("Header Files\\Energy" FILES
     include/Energy/InertiaEnergy.h)
 source_group("Header Files\\Objects" FILES include/Objects/materials.h include/Objects/mesh.h)
 source_group("Header Files\\MLS" FILES include/MLS/MLS.h)
-source_group("Header Files\\Crack" FILES include/Crack/extractCrack.h)
+source_group("Header Files\\Crack" FILES 
+	include/Crack/extractCrack.h
+	include/Crack/mpmSimulator.h)
 
 # 针对 Windows 的特定编译选项
 if(WIN32)

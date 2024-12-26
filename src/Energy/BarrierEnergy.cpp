@@ -52,6 +52,7 @@ void BarrierEnergy::gradAndHess_PT(
     const std::vector<Eigen::Vector3d>& pos_node,
     const std::vector<Eigen::Vector3d>& pos_node_Rest,
     const std::vector<Eigen::Vector2i>& index_node,
+    std::vector<Eigen::Vector3d>& contactForce_node,
     FEMParamters& parameters,
     bool ABD)
 {
@@ -69,7 +70,7 @@ void BarrierEnergy::gradAndHess_PT(
         BarrierEnergy::cal_and_assemble_gradAndHess(hessian_triplet, grad_triplet, startIndex_hess,
             activePtsLocalInd,startIndex_grad, pos_node,
             pos_node_Rest,
-            index_node,
+            index_node, contactForce_node,
             parameters, contactArea, g_bd, h_bd, ABD);
     }
     break;
@@ -80,7 +81,7 @@ void BarrierEnergy::gradAndHess_PT(
         BarrierEnergy::cal_and_assemble_gradAndHess(hessian_triplet, grad_triplet, startIndex_hess,
             activePtsLocalInd, startIndex_grad, pos_node,
             pos_node_Rest,
-            index_node,
+            index_node, contactForce_node,
             parameters, contactArea, g_bd, h_bd, ABD);
     }
     break;
@@ -91,7 +92,7 @@ void BarrierEnergy::gradAndHess_PT(
         BarrierEnergy::cal_and_assemble_gradAndHess(hessian_triplet, grad_triplet, startIndex_hess,
             activePtsLocalInd, startIndex_grad, pos_node,
             pos_node_Rest,
-            index_node,
+            index_node, contactForce_node,
             parameters, contactArea, g_bd, h_bd, ABD);
     }
     break;
@@ -102,7 +103,7 @@ void BarrierEnergy::gradAndHess_PT(
         BarrierEnergy::cal_and_assemble_gradAndHess(hessian_triplet, grad_triplet, startIndex_hess,
             activePtsLocalInd, startIndex_grad, pos_node,
             pos_node_Rest,
-            index_node,
+            index_node, contactForce_node,
             parameters, contactArea, g_bd, h_bd, ABD);
     }
     break;
@@ -113,7 +114,7 @@ void BarrierEnergy::gradAndHess_PT(
         BarrierEnergy::cal_and_assemble_gradAndHess(hessian_triplet, grad_triplet, startIndex_hess,
             activePtsLocalInd, startIndex_grad, pos_node,
             pos_node_Rest,
-            index_node,
+            index_node, contactForce_node,
             parameters, contactArea, g_bd, h_bd, ABD);
     }
     break;
@@ -124,7 +125,7 @@ void BarrierEnergy::gradAndHess_PT(
         BarrierEnergy::cal_and_assemble_gradAndHess(hessian_triplet, grad_triplet, startIndex_hess,
             activePtsLocalInd, startIndex_grad, pos_node,
             pos_node_Rest,
-            index_node,
+            index_node, contactForce_node,
             parameters, contactArea, g_bd, h_bd, ABD);
     }
     break;
@@ -135,7 +136,7 @@ void BarrierEnergy::gradAndHess_PT(
         BarrierEnergy::cal_and_assemble_gradAndHess(hessian_triplet, grad_triplet, startIndex_hess,
             activePtsLocalInd, startIndex_grad, pos_node,
             pos_node_Rest,
-            index_node,
+            index_node, contactForce_node,
             parameters, contactArea, g_bd, h_bd, ABD);
     }
     break;
@@ -154,6 +155,7 @@ void BarrierEnergy::cal_and_assemble_gradAndHess(
     const std::vector<Eigen::Vector3d>& pos_node,
     const std::vector<Eigen::Vector3d>& pos_node_Rest,
     const std::vector<Eigen::Vector2i>& index_node,
+    std::vector<Eigen::Vector3d>& contactForce_node,
     FEMParamters& parameters, 
     double& contactArea, 
     double& g_bd, 
@@ -169,6 +171,10 @@ void BarrierEnergy::cal_and_assemble_gradAndHess(
 
         Vector6d grad = parameters.dt * parameters.dt * parameters.IPC_kStiffness * contactArea * g_dx * g_bd;
         Matrix6d hessian = parameters.dt * parameters.dt * parameters.IPC_kStiffness * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
+
+		contactForce_node[activePtsLocalInd[0]] += grad.block(0, 0, 3, 1);
+		contactForce_node[activePtsLocalInd[1]] += grad.block(3, 0, 3, 1);
+
         makePD<double, 6>(hessian);
         if (!ABD)
         {
@@ -191,6 +197,11 @@ void BarrierEnergy::cal_and_assemble_gradAndHess(
         Vector9d grad = parameters.dt * parameters.dt * parameters.IPC_kStiffness * contactArea * g_dx * g_bd;
         Matrix9d hessian = parameters.dt * parameters.dt * parameters.IPC_kStiffness * contactArea *
             (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
+
+        contactForce_node[activePtsLocalInd[0]] += grad.block(0, 0, 3, 1);
+        contactForce_node[activePtsLocalInd[1]] += grad.block(3, 0, 3, 1);
+        contactForce_node[activePtsLocalInd[2]] += grad.block(6, 0, 3, 1);
+
         makePD<double, 9>(hessian);
         if (!ABD)
         {
@@ -210,6 +221,12 @@ void BarrierEnergy::cal_and_assemble_gradAndHess(
 
         Vector12d grad = parameters.dt * parameters.dt * parameters.IPC_kStiffness * contactArea * g_dx * g_bd;
         Matrix12d hessian = parameters.dt * parameters.dt * parameters.IPC_kStiffness * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
+
+        contactForce_node[activePtsLocalInd[0]] += grad.block(0, 0, 3, 1);
+        contactForce_node[activePtsLocalInd[1]] += grad.block(3, 0, 3, 1);
+        contactForce_node[activePtsLocalInd[2]] += grad.block(6, 0, 3, 1);
+        contactForce_node[activePtsLocalInd[3]] += grad.block(9, 0, 3, 1);
+
         makePD<double, 12>(hessian);
         if (!ABD)
         {
@@ -336,6 +353,7 @@ void BarrierEnergy::gradAndHess_EE(
     const std::vector<Eigen::Vector3d>& pos_node,
     const std::vector<Eigen::Vector3d>& pos_node_Rest,
     const std::vector<Eigen::Vector2i>& index_node,
+    std::vector<Eigen::Vector3d>& contactForce_node,
     FEMParamters& parameters, 
     bool ABD)
 {
@@ -557,6 +575,11 @@ void BarrierEnergy::gradAndHess_EE(
 
     std::vector<int> activePtsLocalInd = { ptIndices[0] , ptIndices[1] , ptIndices[2] , ptIndices[3] };
 
+    contactForce_node[ptIndices[0]] += grad.block(0, 0, 3, 1);
+    contactForce_node[ptIndices[1]] += grad.block(3, 0, 3, 1);
+    contactForce_node[ptIndices[2]] += grad.block(6, 0, 3, 1);
+    contactForce_node[ptIndices[3]] += grad.block(9, 0, 3, 1);
+
 
     if (!ABD)
     {
@@ -633,6 +656,7 @@ void Ground::gradAndHess(
     const std::vector<Eigen::Vector3d>& pos_node_Rest,
     const std::vector<Eigen::Vector2i>& index_node,
     int& index_i, double& coor_z2, double& contactArea, 
+    std::vector<Eigen::Vector3d>& contactForce_node,
     FEMParamters& parameters, bool ABD)
 {
     double d_hat2 = parameters.IPC_dis * parameters.IPC_dis;
@@ -646,6 +670,9 @@ void Ground::gradAndHess(
     Vector3d grad = parameters.dt * parameters.dt * parameters.IPC_kStiffness * contactArea * g_dx * g_bd;
 
     Matrix3d hessian = parameters.dt * parameters.dt * parameters.IPC_kStiffness * contactArea * (h_bd * g_dx * g_dx.transpose() + g_bd * h_dx);
+
+    contactForce_node[index_i] += grad;
+
     makePD<double, 3>(hessian);
     std::vector<int> activePtsLocalInd = { index_i };
     if (!ABD)

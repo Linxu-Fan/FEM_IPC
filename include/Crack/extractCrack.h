@@ -5,7 +5,6 @@
 #include "utils.h"
 #include "objMesh.h"
 #include "voro++.hh"
-#include "voro++.cc"
 #include <algorithm>
 #include "omp.h"
 
@@ -52,7 +51,7 @@ namespace extractCrackSurface
     };
 
     // crack extraction parameters
-    struct parametersCrack {
+    struct CRACKParamters {
 
         // computational domain
         Eigen::Vector3d length = { 1, 1, 1 }; // computation cube lengths of three dimensions (x , y , z). The origin point is (0 , 0 , 0)
@@ -150,46 +149,46 @@ namespace extractCrackSurface
     int calculateID(int x, int y, int z, Eigen::Vector3d len, double dx);
 
     // calculate the damage gradient of all particles and grid nodes.
-    void calDamageGradient(std::vector<Particle>* particles, parametersCrack param, double dx, std::map<int, int>* gridMap, std::vector<Grid>* nodesVec);
+    void calDamageGradient(std::vector<Particle>* particles, CRACKParamters param, double dx, std::map<int, int>* gridMap, std::vector<Grid>* nodesVec);
     
     // calculate the damage gradient of any give point
-    Eigen::Vector3d calDamageGradientPoint(Eigen::Vector3d pos, parametersCrack param, double dx, std::map<int, int>* gridMap, std::vector<Grid>* nodesVec);
+    Eigen::Vector3d calDamageGradientPoint(Eigen::Vector3d pos, CRACKParamters param, double dx, std::map<int, int>* gridMap, std::vector<Grid>* nodesVec);
 
     // calculate the damage value of any give point
-    double calDamageValuePoint(Eigen::Vector3d pos, parametersCrack param, double dx, std::map<int, int>* gridMap, std::vector<Grid>* nodesVec);
+    double calDamageValuePoint(Eigen::Vector3d pos, CRACKParamters param, double dx, std::map<int, int>* gridMap, std::vector<Grid>* nodesVec);
 
     // Set the damage phase of a grid node vector into a specific value
     void setNodeValue(std::vector<Grid>* nodesVec, int va);
 
     // Find the bounding box boundary nodes and set its damage phase into a specific value
-    void findBoundaryNodes(std::vector<Particle>* particles, std::vector<Grid>* nodesVec, std::map<int, int>* gridMap, struct parametersCrack parti, int va);
+    void findBoundaryNodes(std::vector<Particle>* particles, std::vector<Grid>* nodesVec, std::map<int, int>* gridMap, struct CRACKParamters parti, int va);
 
     // Read particles' positions and damage phases
-    void readParticles(std::vector<Particle>* particlesRaw, std::vector<Particle>* particles, bool ifFully, struct parametersCrack param);
+    void readParticles(std::vector<Particle>* particlesRaw, std::vector<Particle>* particles, bool ifFully, struct CRACKParamters param);
 
     // Calculate the damage value of any point and return the value
-    double ifFullyDamaged(Eigen::Vector3d pos, parametersCrack param, std::map<int, int>* gridMap, std::vector<Grid>* nodesVec);
+    double ifFullyDamaged(Eigen::Vector3d pos, CRACKParamters param, std::map<int, int>* gridMap, std::vector<Grid>* nodesVec);
 
     // Store the index of each vertex and its position
     int findIndexVertex(Eigen::Vector3d pos, std::vector<Eigen::Vector3d>* vertexIndex);
 
     // Read all structured nodes and calculate the damage gradient
-    void readParticlesAndCalGradient(std::vector<Grid>* fullyDamagedParticlesNodesVec, std::vector<Particle>* particles, parametersCrack param, std::map<int, int>* gridMap, std::vector<Grid>* nodesVec);
+    void readParticlesAndCalGradient(std::vector<Grid>* fullyDamagedParticlesNodesVec, std::vector<Particle>* particles, CRACKParamters param, std::map<int, int>* gridMap, std::vector<Grid>* nodesVec);
 
     // Find paths between two nodes
-    bool findPath(Eigen::Vector3d startNode, Eigen::Vector3d stopNode, parametersCrack param, std::vector<Grid>* fullyDamagedParticlesNodesVec, std::map<int, int>* fullyDamagedParticlesGridMap, std::vector<int>* surfaceNodesID);
+    bool findPath(Eigen::Vector3d startNode, Eigen::Vector3d stopNode, CRACKParamters param, std::vector<Grid>* fullyDamagedParticlesNodesVec, std::map<int, int>* fullyDamagedParticlesGridMap, std::vector<int>* surfaceNodesID);
 
     // Find if a pair of nodes belong to critical nodes. The function return true if one node is a critical node
-    bool ifCriticalNode(Eigen::Vector3d node1, parametersCrack param, std::vector<int>* criticalNodeIndex);
+    bool ifCriticalNode(Eigen::Vector3d node1, CRACKParamters param, std::vector<int>* criticalNodeIndex);
 
     // Find the nearest boundary node of a critical node
-    Eigen::Vector3i findNearestBoundaryNode(int nodeIDPoint, std::vector<Point>* points, std::vector<int>* boundaryNodesID, std::vector<Eigen::Vector3i>* boundaryNodesPosIndex, std::map<int, int>* pointIndexFind, parametersCrack param, std::vector<int>* criticalNodeIndex);
+    Eigen::Vector3i findNearestBoundaryNode(int nodeIDPoint, std::vector<Point>* points, std::vector<int>* boundaryNodesID, std::vector<Eigen::Vector3i>* boundaryNodesPosIndex, std::map<int, int>* pointIndexFind, CRACKParamters param, std::vector<int>* criticalNodeIndex);
 
     // Judge if a pair of points are on different sides of a crack
-    bool ifTwoSides(int startNode, int stopNode, std::vector<Point>* points, std::vector<int>* boundaryNodesID, std::vector<Eigen::Vector3i>* boundaryNodesPosIndex, std::map<int, int>* pointIndexFind, parametersCrack param, std::vector<int>* criticalNodeIndex);
+    bool ifTwoSides(int startNode, int stopNode, std::vector<Point>* points, std::vector<int>* boundaryNodesID, std::vector<Eigen::Vector3i>* boundaryNodesPosIndex, std::map<int, int>* pointIndexFind, CRACKParamters param, std::vector<int>* criticalNodeIndex);
 
     // Extract the crack surface
-    std::tuple<bool, objMeshFormat, objMeshFormat, std::vector<objMeshFormat>> extractCrackSurf(std::vector<Particle>* particlesRaw, parametersCrack param);
+    std::tuple<bool, objMeshFormat, objMeshFormat, std::vector<objMeshFormat>> extractCrackSurf(std::vector<Particle>* particlesRaw, CRACKParamters param);
 
 }
 

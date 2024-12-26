@@ -451,6 +451,7 @@ void Mesh::createGlobalSimulationMesh()
 		}
 	}
 	elastForce_node.resize(pos_node.size(), Eigen::Vector3d::Zero());
+	contactForce_node.resize(pos_node.size(), Eigen::Vector3d::Zero());
 
 	// assemble tetrahedral vectors
 	for (std::map<std::string, tetMesh>::iterator it = objectsTetMesh.begin(); 
@@ -748,6 +749,8 @@ void triMesh::readMeshes(std::vector<meshConfiguration>& configs)
 		triMesh_.readObjFile(config.filePath, false, rotation, scale, translation);
 		triMesh_.initialVelocity = config.velocity;
 		objectSurfaceMeshes.push_back(triMesh_);
+
+		breakable.push_back(config.breakable);
 	}
 
 
@@ -783,6 +786,8 @@ void triMesh::build_surface_mesh()
 	int countNodeNum = 0;
 	for (int i = 0; i < objectSurfaceMeshes.size(); i++)
 	{
+		Eigen::Vector2i se_nodes = {0,0};
+		se_nodes[0] = countNodeNum;
 		for (int j = 0; j < objectSurfaceMeshes[i].faces.size(); j++)
 		{
 			Eigen::Vector3i face = objectSurfaceMeshes[i].faces[j];
@@ -790,6 +795,8 @@ void triMesh::build_surface_mesh()
 			surfaceMeshGlobal.faces.push_back(face);
 		}
 		countNodeNum += objectSurfaceMeshes[i].vertices.size();
+		se_nodes[1] = countNodeNum;
+		objectSurfaceMeshes_node_start_end.push_back(se_nodes);
 	}
 	surfaceMeshGlobal.vertices = pos_node_surface;
 
@@ -885,11 +892,13 @@ void triMesh::update_ABD_info()
 	{
 		boundaryCondition_node_surface.push_back(bc);
 	}
+	contactForce_node_surface.resize(pos_node_surface.size(), Eigen::Vector3d::Zero());
 
 }
 
 void triMesh::exportSurfaceMesh(std::string fileName, int timestep)
 {
+
 	surfaceMeshGlobal.vertices = pos_node_surface;
 	surfaceMeshGlobal.outputFile(fileName, timestep);
 }
@@ -909,4 +918,16 @@ double triMesh::calLargestEdgeLength()
 		}
 	}
 	return largestLength;
+}
+
+void triMesh::updateEachObjectSurfaceMesh()
+{
+	for (int i = 0; i < objectSurfaceMeshes_node_start_end.size(); i++)
+	{
+		for (int j = objectSurfaceMeshes_node_start_end[i][0]; j < objectSurfaceMeshes_node_start_end[i][1]; j++)
+		{
+			int localIndex = j - objectSurfaceMeshes_node_start_end[i][0];
+			objectSurfaceMeshes[i].vertices[localIndex] = pos_node_surface[j];
+		}
+	}
 }
