@@ -2,6 +2,7 @@
 #include "tools.h"
 
 
+
 // TODO
 // 1. Accelerate and parallel openMP
 // 2. If the code doesn't work, check line45 of InertiaEnergy.cpp
@@ -16,181 +17,182 @@ int main()
 
 	if (0)
 	{
+	
 
 
 
 
 
-		//// Input .obj file
-		//std::string input_filename = "D:/Research/Hydrostatic_object/code/FEM_IPC/input/bunnyCrack.obj";
+		// Input .obj file
+		std::string input_filename = "D:/Research/Hydrostatic_object/code/FEM_IPC/input/bunnyCrack.obj";
 
 
-		//objMeshFormat crackMesh;
-		//crackMesh.readObjFile(input_filename, true);
-		//crackMesh.triangulate();
+		objMeshFormat crackMesh;
+		crackMesh.readObjFile(input_filename, true);
+		crackMesh.triangulate();
 
-		//std::vector<openvdb::Vec3s> vertices;
-		//std::vector<openvdb::Vec3I> triangles;
-		//crackMesh.to_openVDB_format(vertices, triangles);
+		std::vector<openvdb::Vec3s> vertices;
+		std::vector<openvdb::Vec3I> triangles;
+		crackMesh.to_openVDB_format(vertices, triangles);
 
-		//{
-		//	std::ofstream outfile9("./output/original_surface.obj", std::ios::trunc);
-		//	for (int k = 0; k < vertices.size(); k++)
-		//	{
-		//		openvdb::Vec3s scale = vertices[k];
-		//		outfile9 << std::scientific << std::setprecision(8) << "v " << scale.x() << " " << scale.y() << " " << scale.z() << std::endl;
-		//	}
-		//	for (int k = 0; k < triangles.size(); k++)
-		//	{
-		//		openvdb::Vec3I scale = triangles[k];
-		//		outfile9 << std::scientific << std::setprecision(8) << "f " << scale[0] + 1 << " " << scale[1] + 1 << " " << scale[2] + 1 << std::endl;
-		//	}
-		//	outfile9.close();
-		//}
-
-
-
-
-		//float voxel_size = 0.04f;
-		//// define openvdb linear transformation
-		//openvdb::math::Transform::Ptr transform = openvdb::math::Transform::createLinearTransform(voxel_size);
-		//openvdb::FloatGrid::Ptr crackLevelSetGrid = openvdb::tools::meshToUnsignedDistanceField<openvdb::FloatGrid>(
-		//	*transform,
-		//	vertices,
-		//	triangles,
-		//	std::vector<openvdb::Vec4I>(),
-		//	3);
-
-		//for (openvdb::FloatGrid::ValueOnIter iter = crackLevelSetGrid->beginValueOn(); iter; ++iter) {
-		//	float dist = iter.getValue();
-		//	float value = dist - std::sqrt(3 * std::pow(voxel_size, 2));
-		//	iter.setValue(value);
-		//}
-		//crackLevelSetGrid->setGridClass(openvdb::GRID_LEVEL_SET);
-
-
-		//std::vector<openvdb::Vec3s> surfaceVertices; // List of surface vertices
-		//std::vector<openvdb::Vec3I> surfaceTriangles;    // List of surface quads (faces)
+		{
+			std::ofstream outfile9("./output/original_surface.obj", std::ios::trunc);
+			for (int k = 0; k < vertices.size(); k++)
+			{
+				openvdb::Vec3s scale = vertices[k];
+				outfile9 << std::scientific << std::setprecision(8) << "v " << scale.x() << " " << scale.y() << " " << scale.z() << std::endl;
+			}
+			for (int k = 0; k < triangles.size(); k++)
+			{
+				openvdb::Vec3I scale = triangles[k];
+				outfile9 << std::scientific << std::setprecision(8) << "f " << scale[0] + 1 << " " << scale[1] + 1 << " " << scale[2] + 1 << std::endl;
+			}
+			outfile9.close();
+		}
 
 
 
 
-		//{
-		//	openvdb::tools::VolumeToMesh volumeToMeshHandle;
-		//	volumeToMeshHandle(*crackLevelSetGrid);
+		float voxel_size = 0.04f;
+		// define openvdb linear transformation
+		openvdb::math::Transform::Ptr transform = openvdb::math::Transform::createLinearTransform(voxel_size);
+		openvdb::FloatGrid::Ptr crackLevelSetGrid = openvdb::tools::meshToUnsignedDistanceField<openvdb::FloatGrid>(
+			*transform,
+			vertices,
+			triangles,
+			std::vector<openvdb::Vec4I>(),
+			3);
+
+		for (openvdb::FloatGrid::ValueOnIter iter = crackLevelSetGrid->beginValueOn(); iter; ++iter) {
+			float dist = iter.getValue();
+			float value = dist - std::sqrt(3 * std::pow(voxel_size, 2));
+			iter.setValue(value);
+		}
+		crackLevelSetGrid->setGridClass(openvdb::GRID_LEVEL_SET);
 
 
-		//	openvdb::tools::PointList* verts = &volumeToMeshHandle.pointList();
-		//	openvdb::tools::PolygonPoolList* polys = &volumeToMeshHandle.polygonPoolList();
-
-
-
-
-
-		//	for (size_t i = 0; i < volumeToMeshHandle.pointListSize(); i++)
-		//	{
-		//		openvdb::Vec3s v = (*verts)[i];
-		//		surfaceVertices.push_back(v);
-		//	}
-
-		//	for (size_t i = 0; i < volumeToMeshHandle.polygonPoolListSize(); i++) {
-
-		//		for (size_t ndx = 0; ndx < (*polys)[i].numTriangles(); ndx++) {
-		//			openvdb::Vec3I* p = &((*polys)[i].triangle(ndx));
-		//		}
-
-		//		for (size_t ndx = 0; ndx < (*polys)[i].numQuads(); ndx++) {
-		//			openvdb::Vec4I* p = &((*polys)[i].quad(ndx));
-
-		//			openvdb::Vec3I f0 = { p->z() ,p->y() ,p->x() };
-		//			openvdb::Vec3I f1 = { p->w() ,p->z() ,p->x() };
-		//			surfaceTriangles.push_back(f0);
-		//			surfaceTriangles.push_back(f1);
-		//		}
-		//	}
-
-
-		//}
+		std::vector<openvdb::Vec3s> surfaceVertices; // List of surface vertices
+		std::vector<openvdb::Vec3I> surfaceTriangles;    // List of surface quads (faces)
 
 
 
-		//objMeshFormat rms;
-		//{
-		//	std::ofstream outfile9("./output/reconstructed_surface.obj", std::ios::trunc);
-		//	for (int k = 0; k < surfaceVertices.size(); k++)
-		//	{
-		//		openvdb::Vec3s scale = surfaceVertices[k];
-		//		outfile9 << std::scientific << std::setprecision(8) << "v " << scale.x() << " " << scale.y() << " " << scale.z() << std::endl;
 
-		//		Eigen::Vector3d vt = { scale.x() , scale.y() , scale.z() };
-		//		rms.vertices.push_back(vt);
-
-		//	}
-		//	for (int k = 0; k < surfaceTriangles.size(); k++)
-		//	{
-		//		openvdb::Vec3I scale = surfaceTriangles[k];
-		//		outfile9 << std::scientific << std::setprecision(8) << "f " << scale[0] + 1 << " " << scale[1] + 1 << " " << scale[2] + 1 << std::endl;
+		{
+			openvdb::tools::VolumeToMesh volumeToMeshHandle;
+			volumeToMeshHandle(*crackLevelSetGrid);
 
 
-		//		Eigen::Vector3i ft = { static_cast<int>(scale.x()) , static_cast<int>(scale.y()) ,static_cast<int>(scale.z()) };
-		//		rms.faces.push_back(ft);
-
-		//	}
-		//	outfile9.close();
-		//}
+			openvdb::tools::PointList* verts = &volumeToMeshHandle.pointList();
+			openvdb::tools::PolygonPoolList* polys = &volumeToMeshHandle.polygonPoolList();
 
 
 
-		//Eigen::MatrixXd V(surfaceVertices.size(), 3);
-		//Eigen::MatrixXi F(surfaceTriangles.size(), 3);
-		//{
-		//	for (int k = 0; k < surfaceVertices.size(); k++)
-		//	{
-		//		openvdb::Vec3s scale = surfaceVertices[k];
-		//		V(k, 0) = scale.x();
-		//		V(k, 1) = scale.y();
-		//		V(k, 2) = scale.z();
-		//	}
-		//	for (int k = 0; k < surfaceTriangles.size(); k++)
-		//	{
-		//		openvdb::Vec3I scale = surfaceTriangles[k];
-		//		F(k, 0) = scale.x();
-		//		F(k, 1) = scale.y();
-		//		F(k, 2) = scale.z();
-		//	}
-		//}
-		//// 简化网格
 
 
-		//std::vector<Eigen::Vector3d> pts = rms.sample_points_inside_mesh(100000);
-		//{
-		//	std::ofstream outfile9("./output/sampledPoints.obj", std::ios::trunc);
-		//	for (int k = 0; k < pts.size(); k++)
-		//	{
-		//		outfile9 << std::scientific << std::setprecision(8) << "v " << pts[k][0] << " " << pts[k][1] << " " << pts[k][2] << std::endl;
-		//	}
-		//	outfile9.close();
-		//}
+			for (size_t i = 0; i < volumeToMeshHandle.pointListSize(); i++)
+			{
+				openvdb::Vec3s v = (*verts)[i];
+				surfaceVertices.push_back(v);
+			}
+
+			for (size_t i = 0; i < volumeToMeshHandle.polygonPoolListSize(); i++) {
+
+				for (size_t ndx = 0; ndx < (*polys)[i].numTriangles(); ndx++) {
+					openvdb::Vec3I* p = &((*polys)[i].triangle(ndx));
+				}
+
+				for (size_t ndx = 0; ndx < (*polys)[i].numQuads(); ndx++) {
+					openvdb::Vec4I* p = &((*polys)[i].quad(ndx));
+
+					openvdb::Vec3I f0 = { p->z() ,p->y() ,p->x() };
+					openvdb::Vec3I f1 = { p->w() ,p->z() ,p->x() };
+					surfaceTriangles.push_back(f0);
+					surfaceTriangles.push_back(f1);
+				}
+			}
 
 
-		//Eigen::MatrixXd U; // 简化后的顶点
-		//Eigen::MatrixXi G; // 简化后的面
-		//Eigen::VectorXi J; // 面的映射
-		//Eigen::VectorXi I; // 顶点的映射
-		//bool block_intersections = false;
+		}
 
-		//if (!igl::decimate(V, F, 50000, block_intersections, U, G, J, I)) {
-		//	std::cerr << "Decimation failed!" << std::endl;
-		//	return 1;
-		//}
 
-		//std::cout << "Simplified mesh: " << G.rows() << " faces, " << U.rows() << " vertices." << std::endl;
 
-		//// 保存简化后的网格
-		//if (!igl::writeOBJ("./output/reconstructed_surface_decimated.obj", U, G)) {
-		//	std::cerr << "Failed to save simplified mesh to " << std::endl;
-		//	return 1;
-		//}
+		objMeshFormat rms;
+		{
+			std::ofstream outfile9("./output/reconstructed_surface.obj", std::ios::trunc);
+			for (int k = 0; k < surfaceVertices.size(); k++)
+			{
+				openvdb::Vec3s scale = surfaceVertices[k];
+				outfile9 << std::scientific << std::setprecision(8) << "v " << scale.x() << " " << scale.y() << " " << scale.z() << std::endl;
+
+				Eigen::Vector3d vt = { scale.x() , scale.y() , scale.z() };
+				rms.vertices.push_back(vt);
+
+			}
+			for (int k = 0; k < surfaceTriangles.size(); k++)
+			{
+				openvdb::Vec3I scale = surfaceTriangles[k];
+				outfile9 << std::scientific << std::setprecision(8) << "f " << scale[0] + 1 << " " << scale[1] + 1 << " " << scale[2] + 1 << std::endl;
+
+
+				Eigen::Vector3i ft = { static_cast<int>(scale.x()) , static_cast<int>(scale.y()) ,static_cast<int>(scale.z()) };
+				rms.faces.push_back(ft);
+
+			}
+			outfile9.close();
+		}
+
+
+
+		Eigen::MatrixXd V(surfaceVertices.size(), 3);
+		Eigen::MatrixXi F(surfaceTriangles.size(), 3);
+		{
+			for (int k = 0; k < surfaceVertices.size(); k++)
+			{
+				openvdb::Vec3s scale = surfaceVertices[k];
+				V(k, 0) = scale.x();
+				V(k, 1) = scale.y();
+				V(k, 2) = scale.z();
+			}
+			for (int k = 0; k < surfaceTriangles.size(); k++)
+			{
+				openvdb::Vec3I scale = surfaceTriangles[k];
+				F(k, 0) = scale.x();
+				F(k, 1) = scale.y();
+				F(k, 2) = scale.z();
+			}
+		}
+		// 简化网格
+
+
+		std::vector<Eigen::Vector3d> pts = rms.sample_points_inside_mesh(100000);
+		{
+			std::ofstream outfile9("./output/sampledPoints.obj", std::ios::trunc);
+			for (int k = 0; k < pts.size(); k++)
+			{
+				outfile9 << std::scientific << std::setprecision(8) << "v " << pts[k][0] << " " << pts[k][1] << " " << pts[k][2] << std::endl;
+			}
+			outfile9.close();
+		}
+
+
+		Eigen::MatrixXd U; // 简化后的顶点
+		Eigen::MatrixXi G; // 简化后的面
+		Eigen::VectorXi J; // 面的映射
+		Eigen::VectorXi I; // 顶点的映射
+		bool block_intersections = false;
+
+		if (!igl::decimate(V, F, 50000, block_intersections, U, G, J, I)) {
+			std::cerr << "Decimation failed!" << std::endl;
+			return 1;
+		}
+
+		std::cout << "Simplified mesh: " << G.rows() << " faces, " << U.rows() << " vertices." << std::endl;
+
+		// 保存简化后的网格
+		if (!igl::writeOBJ("./output/reconstructed_surface_decimated.obj", U, G)) {
+			std::cerr << "Failed to save simplified mesh to " << std::endl;
+			return 1;
+		}
 
 
 
@@ -608,8 +610,9 @@ int main()
 		// 5. Object hanging test to verify element sampling algorithm
 		// 6. Two tetrahedrals collision test to verify the correctness of the solver in ABD 
 		// 7. Cube tower stress test for ABD 
-		// 8. Bunny test to verify the correctness of triMesh ABD implementation
-		int caseNum = 8;
+		// 8. Cube tower stress test for ABD of triMesh ABD implementation
+		// 8. Bunny test to verify the correctness of mpm simulation
+		int caseNum = 9;
 		if (caseNum == 0)
 		{
 			//Material mat1;
@@ -1645,6 +1648,71 @@ int main()
 			parameters.IPC_dis = 0.01;
 			parameters.IPC_eta = 0.05;
 			parameters.IPC_kStiffness = 1.0e9;
+			parameters.IPC_hashSize = triSimMesh.calLargestEdgeLength() * 1.1;
+			parameters.IPC_B3Stiffness = 500;
+			parameters.ABD_Coeff = 1.0e10;
+
+
+
+			implicitFEM_ABD_triMesh(triSimMesh, parameters);
+
+		}
+		else if (caseNum == 9)
+		{
+
+			Material mat1;
+			mat1.density = 3000;
+			mat1.E = 3.26e12;
+			mat1.thetaF = 8.0e9;
+			mat1.fracture_start_force = 1.0E3;
+			mat1.updateDenpendecies();
+
+
+
+			std::vector<meshConfiguration> config;
+			meshConfiguration m1;
+			m1.filePath = "../input/bunny_highRes.obj";
+			m1.mesh_material = mat1;
+			m1.note = "bunny";
+			m1.breakable = true;
+			config.push_back(m1);
+
+			meshConfiguration m2;
+			m2.filePath = "../input/cube_eq.obj";
+			m2.mesh_material = mat1;
+			m2.note = "cube";
+			Eigen::Vector3d trans = { 0, 1.5, 0 };
+			m2.translation = trans;
+			m2.velocity = {0,-20,0};
+			m2.breakable = false;
+			config.push_back(m2);
+
+
+
+
+
+
+			triMesh triSimMesh;
+			triSimMesh.createGlobalSimulationTriMesh_ABD(config, 0.01);
+
+
+			std::cout << "tetSimMesh.pos_node_surface.size() = " << triSimMesh.pos_node_surface.size() << std::endl;
+
+
+			FEMParamters parameters;
+			parameters.gravity = { 0, 0, 0 };
+			parameters.num_timesteps = 10000;
+			parameters.numOfThreads = 12;
+			parameters.dt = 1.0e-2;
+			parameters.outputFrequency = 1;
+			parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
+			parameters.enableGround = false;
+			parameters.searchResidual = 0.5;
+			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+			parameters.rigidMode = true;
+			parameters.IPC_dis = 0.01;
+			parameters.IPC_eta = 0.05;
+			parameters.IPC_kStiffness = 1.0e12;
 			parameters.IPC_hashSize = triSimMesh.calLargestEdgeLength() * 1.1;
 			parameters.IPC_B3Stiffness = 500;
 			parameters.ABD_Coeff = 1.0e10;

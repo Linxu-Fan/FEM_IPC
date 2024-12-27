@@ -811,17 +811,11 @@ void triMesh::sample_points_inside(double per_point_volume)
 	for (int i = 0; i < objectSurfaceMeshes.size(); i++)
 	{
 		objMeshFormat ABD_obj_mesh = objectSurfaceMeshes[i];
-		std::pair<Eigen::MatrixXd, Eigen::MatrixXi> libigl_mesh = ABD_obj_mesh.to_libigl_mesh();
+		ABD_obj_mesh.updateVolume();
+		objectSurfaceMeshes[i].volume = ABD_obj_mesh.volume;
 
 
-		Eigen::Vector3d center = Eigen::Vector3d::Zero();
-		double volume_ = 0;
-		igl::centroid(libigl_mesh.first, libigl_mesh.second, center, volume_);
-		double volume = std::abs(volume_);
-		objectSurfaceMeshes[i].volume = volume;
-
-
-		int num_points = std::floor(volume / per_point_volume);
+		int num_points = std::floor(objectSurfaceMeshes[i].volume / per_point_volume);
 		//std::cout << "num_points = " << num_points << std::endl;
 		std::vector<Eigen::Vector3d> pts = ABD_obj_mesh.sample_points_inside_mesh(num_points);
 

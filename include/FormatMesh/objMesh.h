@@ -99,6 +99,12 @@ struct objMeshFormat
 
 
 	/**
+	 * @brief update the volume of the object
+	 *
+	 */
+	void updateVolume();
+
+	/**
 	 * @brief convert the vertices and faces into libigl format for further processing
 	 *
 	 */

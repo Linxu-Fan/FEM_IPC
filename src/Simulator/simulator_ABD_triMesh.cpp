@@ -13,7 +13,7 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 		if (timestep % parameters.outputFrequency == 0)
 		{
-			triSimMesh.exportSurfaceMesh("surfMesh", timestep);
+			//triSimMesh.exportSurfaceMesh("surfMesh", timestep);
 		}
 
 		triSimMesh.pos_node_prev_surface = triSimMesh.pos_node_surface;
@@ -21,19 +21,29 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 		triSimMesh.deformation_prev_ABD = triSimMesh.deformation_ABD;
 
 		std::vector<Eigen::Vector3d> position_direction(triSimMesh.pos_node_surface.size(), Eigen::Vector3d::Zero());
-
+		std::map<int, std::vector<Vector6d>> broken_objects;
 		double lastEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep);
+
 		for (int ite = 0; ite < 15; ite++)
 		{
+
+			if (timestep % parameters.outputFrequency == 0)
+			{
+				triSimMesh.exportSurfaceMesh("surfMesh_ite_"+std::to_string(ite), timestep);
+			}
+
 			std::vector<Eigen::Vector3d> currentPosition = triSimMesh.pos_node_surface;
 			std::vector<Eigen::Vector3d> current_ABD_translation = triSimMesh.translation_ABD;
 			std::vector<Eigen::Matrix3d> current_ABD_deformation = triSimMesh.deformation_ABD;
 
-
 			std::cout << "		ite = " << ite << "; lastEnergyVal = " << lastEnergyVal << std::endl;
 			std::vector<Vector12d> direction_ABD;
-			std::map<int, std::vector<Vector6d>> broken_objects;
-			solve_linear_system_ABD_triMesh(triSimMesh, parameters, timestep, direction_ABD, broken_objects);
+			
+			solve_linear_system_ABD_triMesh(triSimMesh, parameters, timestep, direction_ABD, broken_objects, ite);
+			if (broken_objects.size() != 0)
+			{
+				break;
+			}
 			convert_to_position_direction_triMesh(parameters, triSimMesh, direction_ABD, position_direction);
 			double dist_to_converge = infiniteNorm(position_direction);
 
@@ -88,6 +98,9 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 
 		}
+
+		std::map<int, objMeshFormat> crackSurface_object;
+		fracture_sim(parameters, triSimMesh, broken_objects, crackSurface_object);
 
 
 		// update the velocity of the ABD objects
@@ -152,6 +165,8 @@ double compute_IP_energy_ABD_triMesh(triMesh& triSimMesh, FEMParamters& paramete
 	energyVal += std::accumulate(AB_ine_energy_vec.begin(), AB_ine_energy_vec.end(), 0.0);
 
 
+	//std::cout << "energyVal = " << energyVal << std::endl;
+
 	// affine energy contribution per affine body
 	std::vector<double> AB_aff_energy_vec(triSimMesh.num_meshes,0);
 #pragma omp parallel for num_threads(parameters.numOfThreads)
@@ -168,6 +183,7 @@ double compute_IP_energy_ABD_triMesh(triMesh& triSimMesh, FEMParamters& paramete
 	}
 	energyVal += std::accumulate(AB_aff_energy_vec.begin(), AB_aff_energy_vec.end(), 0.0);
 
+	//std::cout << "energyVal = " << energyVal << std::endl;
 
 	// energy contribution from barrier
 	energyVal += compute_Barrier_energy(
@@ -179,6 +195,7 @@ double compute_IP_energy_ABD_triMesh(triMesh& triSimMesh, FEMParamters& paramete
 		triSimMesh.triMeshIndex,
 		timestep);
 
+	//std::cout << "energyVal = " << energyVal << std::endl;
 
 	return energyVal;
 }
@@ -189,7 +206,8 @@ void solve_linear_system_ABD_triMesh(
 	FEMParamters& parameters, 
 	int timestep, 
 	std::vector<Vector12d>& movingDir,
-	std::map<int, std::vector<Vector6d>>& broken_objects)
+	std::map<int, std::vector<Vector6d>>& broken_objects,
+	const int& iteration)
 {
 	// we only need to update boundary vertices' position to calculate the barrier energy update
 	movingDir.clear();
@@ -519,15 +537,21 @@ void solve_linear_system_ABD_triMesh(
 
 		}
 
+
+		// check if any object will be broken
+		if (iteration == 0)
+		{
+			if_start_fracture_sim(triSimMesh, broken_objects);
+			if (broken_objects.size() != 0)
+			{
+				return;
+			}
+		}
+
 	}
 
 
-	// check if any object will be broken
-	if_start_fracture_sim(triSimMesh, broken_objects);
-	if (broken_objects.size() != 0)
-	{
-		return;
-	}
+
 
 
 	//double endTime3 = omp_get_wtime();
@@ -639,10 +663,12 @@ void if_start_fracture_sim(triMesh& triSimMesh, std::map<int, std::vector<Vector
 				{
 					contact_position_force.block(0, 0, 3, 1) = position;
 					contact_position_force.block(3, 0, 3, 1) = force;
+					contactForce.push_back(contact_position_force);
+					//std::cout << "position = " << position.transpose() << "; " << "force = " << force.transpose() << std::endl;
 				}
-				max_force = std::max(triSimMesh.contactForce_node_surface[j].norm(), max_force);
-				contactForce.push_back(contact_position_force);
+				max_force = std::max(force.norm(), max_force);
 			}
+			std::cout << "			max_force = " << max_force << std::endl;
 			if (max_force > triSimMesh.materialMesh[i].fracture_start_force )
 			{
 				broken_objects[i] = contactForce;
@@ -651,3 +677,64 @@ void if_start_fracture_sim(triMesh& triSimMesh, std::map<int, std::vector<Vector
 	}
 
 }
+
+void fracture_sim(FEMParamters& parameters, triMesh& triSimMesh, std::map<int, std::vector<Vector6d>>& broken_objects, std::map<int, objMeshFormat>& crackSurface_object)
+{
+	crackSurface_object.clear(); // int: object's index
+
+	triSimMesh.updateEachObjectSurfaceMesh();
+	for (auto it = broken_objects.begin(); it != broken_objects.end(); it++)
+	{
+		int objectIndex = it->first;
+		std::vector<Vector6d> contactForce = it->second;
+
+
+		triSimMesh.objectSurfaceMeshes[objectIndex].updateVolume();
+		int num_particles = 10000;
+		std::vector<Eigen::Vector3d> mpm_sim_particles = triSimMesh.objectSurfaceMeshes[objectIndex].sample_points_inside_mesh(num_particles);
+		double per_particle_volume = triSimMesh.objectSurfaceMeshes[objectIndex].volume / (double)num_particles;
+		mpmSimulator::MPMParamters mpm_parameters;
+		mpm_parameters.dt = 1.0E-7;
+		mpm_parameters.mat_mpm = triSimMesh.materialMesh[objectIndex];
+		mpm_parameters.numOfThreads = parameters.numOfThreads;
+		mpm_parameters.dx = 2.0 * std::cbrt(per_particle_volume);
+
+		std::cout << "Start fracture simulation in object "<< objectIndex <<": " << triSimMesh.triMeshNote[objectIndex] << std::endl;
+
+		std::tuple<bool, objMeshFormat, objMeshFormat, std::vector<objMeshFormat>> crack_res = mpmSimulator::crackSimulation(
+			mpm_sim_particles,
+			per_particle_volume,
+			triSimMesh.materialMesh[objectIndex],
+			mpm_parameters,
+			contactForce,
+			500);
+
+		if (std::get<0>(crack_res))
+		{
+			// output crack surface and fragments
+			objMeshFormat partial_cut = std::get<1>(crack_res);
+			objMeshFormat full_cut = std::get<2>(crack_res);
+			
+			crackSurface_object[objectIndex] = full_cut;
+		}
+
+	}
+}
+
+void cut_object_with_cracks(FEMParamters& parameters, triMesh& triSimMesh, std::map<int, objMeshFormat>& crackSurface_object)
+{
+	triSimMesh.updateEachObjectSurfaceMesh();
+
+	for (auto it = crackSurface_object.begin(); it != crackSurface_object.end(); it++)
+	{
+		int objectIndex = it->first;
+		objMeshFormat full_cut = it->second;
+
+		full_cut.triangulate();
+		std::vector<openvdb::Vec3s> vertices;
+		std::vector<openvdb::Vec3I> triangles;
+		full_cut.to_openVDB_format(vertices, triangles);
+
+	}
+}
+

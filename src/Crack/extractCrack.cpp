@@ -8,8 +8,14 @@ namespace extractCrackSurface
 	weightAndDreri calWeight(double dx, Eigen::Vector3d pos)
 	{
 		Eigen::Vector3d base = pos / dx - Eigen::Vector3d::Constant(0.5);
-		Eigen::Vector3i ppIndex = base.cast<int>();
-		Eigen::Vector3d space = pos / dx - ppIndex.cast<double>();
+        Eigen::Vector3d ppIndex_d = { std::floor(base[0]),  std::floor(base[1]),  std::floor(base[2]) };
+        Eigen::Vector3i ppIndex = ppIndex_d.cast<int>();
+		Eigen::Vector3d space = pos / dx - ppIndex_d;
+
+        //std::cout << "base = " << base.transpose() << std::endl;
+        //std::cout << "ppIndex_d = " << ppIndex_d.transpose() << std::endl;
+        //std::cout << "ppIndex = " << ppIndex.transpose() << std::endl;
+        //std::cout << "space = " << space.transpose() << std::endl;
 
 		// calculate weight
 		Eigen::Vector3d col0 = 0.5 * (Eigen::Vector3d::Constant(1.5) - space).array().square();
@@ -1567,10 +1573,15 @@ namespace extractCrackSurface
             }
         }
 
+        std::cout << "newAlgoRemoveDup = " << newAlgoRemoveDup << std::endl;
+
         bool findCrackSurface = true;
         objMeshFormat crackSurfacePartialCut;
         if (newAlgoRemoveDup)
         {
+
+
+
             // remove unnecessary points
             std::set<int> usedVerts;
             for (int face = 0; face < facesTmp.size(); ++face)
@@ -1606,6 +1617,11 @@ namespace extractCrackSurface
 
             crackSurfacePartialCut.vertices = usedVertsNewIndices;
             crackSurfacePartialCut.facesPolygonal = reIndexedFaces;
+
+            if (allFragmentsRemoveInterior.size() >= 2)
+            {
+                std::cout << "crackSurfacePartialCut.facesPolygonal = " << crackSurfacePartialCut.facesPolygonal.size() << std::endl;
+            }
 
 
         }
@@ -1665,6 +1681,13 @@ namespace extractCrackSurface
 
 
         std::cout << "The number of crack faces is " << facesTmp.size() << std::endl;
+
+
+        if (allFragmentsRemoveInterior.size() >= 2)
+        {
+            std::cout << "crackSurfacePartialCut.facesPolygonal = " << crackSurfacePartialCut.facesPolygonal.size() << std::endl;
+        }
+
 
         std::tuple<bool, objMeshFormat, objMeshFormat, std::vector<objMeshFormat>> resultReturn(findCrackSurface, crackSurfacePartialCut, crackSurfaceFullCut, allFragmentsObj);
         return resultReturn;

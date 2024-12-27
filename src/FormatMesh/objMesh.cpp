@@ -618,3 +618,11 @@ std::vector<Eigen::Vector3d> objMeshFormat::sample_points_inside_mesh(int num_sa
 }
 
 
+void objMeshFormat::updateVolume()
+{
+	std::pair<Eigen::MatrixXd, Eigen::MatrixXi> libigl_mesh = to_libigl_mesh();
+	Eigen::Vector3d center = Eigen::Vector3d::Zero();
+	double volume_ = 0;
+	igl::centroid(libigl_mesh.first, libigl_mesh.second, center, volume_);
+	volume = std::abs(volume_);
+}

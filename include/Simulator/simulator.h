@@ -2,12 +2,12 @@
 #define SIMULATOR_H
 
 #include "utils.h"  
-#include "mesh.h" 
 #include "CCD.h" 
 #include "ExternalEnergy.h" 
 #include "InertiaEnergy.h" 
 #include "ElasticEnergy.h" 
 #include "BarrierEnergy.h" 
+#include "mpmSimulator.h"
 
 
 //////////////////////////////////////////
@@ -117,7 +117,8 @@ void solve_linear_system_ABD_triMesh(triMesh& triSimMesh,
 	FEMParamters& parameters, 
 	int timestep, 
 	std::vector<Vector12d>& movingDir,
-	std::map<int, std::vector<Vector6d>>& broken_objects);
+	std::map<int, std::vector<Vector6d>>& broken_objects,
+	const int& iteration);
 
 void step_forward_ABD_triMesh(FEMParamters& parameters, triMesh& triSimMesh, std::vector<Eigen::Vector3d>& current_ABD_translation,
 	std::vector<Eigen::Matrix3d>& current_ABD_deformation, std::vector<Vector12d>& ABD_direction, std::vector<Eigen::Vector3d>& currentPosition, double step);
@@ -133,6 +134,9 @@ void convert_to_position_direction_triMesh(FEMParamters& parameters,
  * @param int: broken object's index; std::vector<Vector6d>: broken object's contact force
  */
 void if_start_fracture_sim(triMesh& triSimMesh, std::map<int, std::vector<Vector6d>>& broken_objects);
+
+
+void fracture_sim(FEMParamters& parameters, triMesh& triSimMesh, std::map<int, std::vector<Vector6d>>& broken_objects, std::map<int, objMeshFormat>& crackSurface_object);
 
 
 #endif

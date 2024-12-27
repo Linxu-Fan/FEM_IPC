@@ -471,9 +471,18 @@ double compute_Barrier_energy(FEMParamters& parameters,
 		PG_PG, PT_PP, PT_PE, PT_PT, EE_EE);
 
 
+
+	//std::cout << "			Calculate IP energy: PT_PP.size() = " << PT_PP.size();
+	//std::cout << "; PT_PE.size() = " << PT_PE.size();
+	//std::cout << "; PT_PT.size() = " << PT_PT.size();
+	//std::cout << "; EE_EE.size() = " << EE_EE.size() << std::endl;
+
+
+
 	double barrierEnergy = 0;
 	std::vector<double> energy_PT_PP(PT_PP.size(), 0), energy_PT_PE(PT_PE.size(), 0),
 		energy_PT_PT(PT_PT.size(), 0), energy_EE_EE(EE_EE.size(), 0), energy_PG_PG(PG_PG.size(), 0);
+	if (PG_PG.size() + PT_PP.size() + PT_PE.size() + PT_PT.size() + EE_EE.size() != 0)
 	{
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 		for (int i = 0; i < PG_PG.size(); i++)
@@ -481,9 +490,10 @@ double compute_Barrier_energy(FEMParamters& parameters,
 			int ptInd = PG_PG[i][1];
 			Eigen::Vector3d P = pos_node[ptInd];
 			double z2 = P[2] * P[2];
-			energy_PG_PG[i] = Ground::val(z2, surfaceInfo.boundaryVertices_area[ptInd], parameters);
+			energy_PG_PG[i] = Ground::val(z2, surfaceInfo.boundaryVertices_area[ptInd], parameters);		
 		}
 		barrierEnergy += std::accumulate(energy_PG_PG.begin(), energy_PG_PG.end(), 0.0);
+
 
 
 #pragma omp parallel for num_threads(parameters.numOfThreads)
@@ -566,6 +576,8 @@ double compute_Barrier_energy(FEMParamters& parameters,
 
 		}
 		barrierEnergy += std::accumulate(energy_EE_EE.begin(), energy_EE_EE.end(), 0.0);
+
+
 
 	}
 

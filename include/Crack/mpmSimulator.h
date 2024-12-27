@@ -49,8 +49,8 @@ namespace mpmSimulator
 		Eigen::Vector3i posIndex = { 0 , 0 , 0 }; // particle base index
 		Eigen::Vector3d position = { 0 , 0 , 0 }; // each particle's position 
 
-		Eigen::MatrixXd weight;
-		Eigen::MatrixXd deltaWeight;
+		Eigen::Matrix3d weight = Eigen::Matrix3d::Zero();
+		Eigen::Matrix3d deltaWeight = Eigen::Matrix3d::Zero();
 		Eigen::Matrix3d F = Eigen::Matrix3d::Identity(); // each particle's deformation gradient
 		Eigen::Matrix3d affine = Eigen::Matrix3d::Zero(); // each particle's affine term
 		Eigen::Matrix3d cauchyStress = Eigen::Matrix3d::Zero(); // each particle's internal cauchy stress
@@ -79,10 +79,6 @@ namespace mpmSimulator
 
 		Eigen::Vector3d gravity = { 0 , 0 , 0 };
 		double dt = 1.0E-6; // timestep
-
-		int force_positionParIndex = -99;
-		Eigen::Vector3d force_direction = { 0 , 0 , 0 };
-		double force_magnitude = 0;
 
 		// Bcakground Eulerian grid
 		double dx = 2.0E-3; // grid space
@@ -133,15 +129,29 @@ namespace mpmSimulator
 
 
 	// the calculation of each timestep
-	void advanceStep(std::vector<MPMParticle>& particles, MPMParamters& param, std::vector<Vector6d>& contactForce); // simulation parameters, particle vector, the total number of type-1,2,3 particles
+	void advanceStep(std::vector<MPMParticle>& particles, MPMParamters& param, std::vector<Vector6d>& contactForce, int timestep); // simulation parameters, particle vector, the total number of type-1,2,3 particles
 
 
 	// extract crack surface
 	std::tuple<bool, objMeshFormat, objMeshFormat, std::vector<objMeshFormat>> tryToExtractCracks(std::vector<MPMParticle>& particles, MPMParamters& param, int timestep);
 
 
-	std::tuple<bool, objMeshFormat, objMeshFormat, std::vector<objMeshFormat>> crackSimulation(std::vector<MPMParticle>& particles, MPMParamters& param, std::vector<Vector6d>& contactForce, int num_timestep);
+	std::tuple<bool, objMeshFormat, objMeshFormat, std::vector<objMeshFormat>> crackSimulation(
+		const std::vector<Eigen::Vector3d>& points, 
+		const double& volume, 
+		const Material& mat_mpm,
+		MPMParamters& param, 
+		std::vector<Vector6d>& contactForce, 
+		int num_timestep);
 
+
+	/**
+	 * @brief initialize mpm particles from std::vector<Eigen::Vector3d>
+	 *
+	 * @volume volume of each point
+	 * @density density of each point
+	 */
+	void initialize_mpm_particles(std::vector<MPMParticle>& particles, const std::vector<Eigen::Vector3d>& points, const double& volume, const Material& mat_mpm);
     
 }
 

@@ -17,8 +17,8 @@ namespace extractCrackSurface
     struct weightAndDreri {
         Eigen::Vector3i ppIndex = { 0 , 0 , 0 }; // each particle's weight
         Eigen::Vector3d space = { 0 , 0 , 0 }; // each particle's weight derivative
-        Eigen::MatrixXd weight;
-        Eigen::MatrixXd deltaWeight;
+        Eigen::Matrix3d weight = Eigen::Matrix3d::Zero();
+        Eigen::Matrix3d deltaWeight = Eigen::Matrix3d::Zero();
 
         weightAndDreri(Eigen::Vector3i ippIndex, Eigen::Vector3d ispace, Eigen::MatrixXd iweight, Eigen::MatrixXd ideltaWeight) :
             ppIndex(ippIndex),
