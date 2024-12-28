@@ -32,20 +32,29 @@
 #include <cfloat>
 #include <complex>
 #include <cstdlib>
+#include <optional> 
 
 
 
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
-#include <CGAL/IO/PLY.h>
-#include <CGAL/IO/OFF.h>
+#include <CGAL/Surface_mesh_simplification/edge_collapse.h>
+#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Edge_count_stop_predicate.h>
+#include <CGAL/Polygon_mesh_processing/corefinement.h>
+#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Bounded_distance_placement.h>
+#include <CGAL/property_map.h>
+
+
 
 typedef CGAL::Simple_cartesian<double> Kernel;
-typedef Kernel::Point_3 Point_3;
-typedef CGAL::Surface_mesh<Point_3> Surface_mesh;
+typedef Kernel::Point_3 CGAL_Point_3;
+typedef CGAL::Surface_mesh<CGAL_Point_3> CGAL_Surface_mesh;
+
+
 
 namespace PMP = CGAL::Polygon_mesh_processing;
+namespace SMS = CGAL::Surface_mesh_simplification;
 
 
 

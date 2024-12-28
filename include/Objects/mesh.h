@@ -16,14 +16,14 @@ struct meshConfiguration
 	Eigen::Vector3d translation = {0, 0, 0};
 	Eigen::Vector3d rotation_angle = {0, 0, 0};
 	Eigen::Vector3d rotation_point = {0, 0, 0};
-
+	double per_point_volume = 0.01; // the volume of each sampled point
 	std::string note = "";
 };
 
 class ABD_Info
 {
 public:
-	std::vector<bool> breakable; // if this object is breakable or not
+	//std::vector<bool> breakable; // if this object is breakable or not
 
 	// data structure specialized for ABD
 	std::vector<Matrix12d> massMatrix_ABD; // the mass matrix of each mesh if in ABD mode
@@ -169,14 +169,30 @@ public:
 // Triangular mesh for simulation
 //////////////////////////////////////////////
 
+struct ABD_Object
+{
+	std::string objectNote = "";              //
+	Material objectMaterial;                  //
+	objMeshFormat objectSurfaceMesh;          //
+	bool breakable = false;                   //
+	double volume = 0;                        //
+	double per_point_volume = 0.01;
+	Eigen::Vector2i objectSurfaceMeshes_node_start_end;  //
+	Eigen::Vector3d translation_prev_ABD = Eigen::Vector3d::Zero();
+	Eigen::Vector3d translation_vel_ABD = Eigen::Vector3d::Zero();
+	Eigen::Vector3d translation_ABD = Eigen::Vector3d::Zero();
+	Eigen::Matrix3d deformation_prev_ABD = Eigen::Matrix3d::Identity();
+	Eigen::Matrix3d deformation_vel_ABD = Eigen::Matrix3d::Zero();
+	Eigen::Matrix3d deformation_ABD = Eigen::Matrix3d::Identity();
+	bool need_update_rest_position = false; // update the position in the rest configuration
+
+};
+
 class triMesh : public ABD_Info
 {
 public:
-	std::vector<std::string> triMeshNote;                                                                                      // **********
+	std::vector<ABD_Object> allObjects; // all ABD objects in the simulation                                                   // **********
 	std::map<std::string, int> triMeshIndex; // std::string: mesh name; int: mesh index
-	std::vector<Material> materialMesh; // materials(materialMesh) used in each ABD body                                       // **********
-	std::vector<objMeshFormat> objectSurfaceMeshes; // store all objects' triangular meshes in the scene                       // **********
-	std::vector<Eigen::Vector2i> objectSurfaceMeshes_node_start_end; // start and end node of this surface mesh in pos_node_surface (end node index is one smaller)   // **********
 	int num_meshes = 0; // number of independant ABD objects                                                                   // **********
 
 
@@ -184,11 +200,11 @@ public:
 	std::vector<Eigen::Vector3d> contactForce_node_surface; // contact force applied to the surface node                       // **********
 	std::vector<Eigen::Vector3d> pos_node_surface; // position of each point on the surface                                    // **********
 	std::vector<Eigen::Vector3d> pos_node_Rest_surface; // rest position of each point on the surface                          // **********
-	std::vector<Eigen::Vector3d> pos_node_prev_surface; // previous position of each point on the surface                      // **********
 	std::vector<Eigen::Vector2i> index_node_surface; // To reuse the code of previous implementation, we keep the same data structure of Class Mesh                    // **********
 	std::vector<boundaryCondition> boundaryCondition_node_surface;  // the respective boundary condition of each node on the surface    // **********
-	objMeshFormat surfaceMeshGlobal; // use global index of vertex                                                             // **********
 	
+
+	objMeshFormat surfaceMeshGlobal;
 	surface_Info surfaceInfo; // store the surface information of the mesh
 
 
@@ -202,17 +218,32 @@ public:
 
 
 	/**
-	 * @brief create the simulation mesh
+	 * @brief clear all information except allObjects
 	 *
 	 */
-	void createGlobalSimulationTriMesh_ABD(std::vector<meshConfiguration>& configs, const double& per_point_volume);
+	void clear();
+
+
+	/**
+	 * @brief update the simulation mesh after generating fragments
+	 *
+	 */
+	void updateGlobalSimulationTriMesh_ABD();
+
+	/**
+	 * @brief create the simulation mesh the first time, i.e. from configuration file
+	 *
+	 */
+	void createGlobalSimulationTriMesh_ABD(std::vector<meshConfiguration>& configs);
 
 
 	// read meshes from file
 	void readMeshes(std::vector<meshConfiguration>& configs);
 
+
 	// build up the surface information 
 	void build_surface_mesh();
+
 
 	/**
 	 * @brief sample points inside of each ABD body
@@ -221,7 +252,7 @@ public:
 	 * @return void
 	 * @note The number of points sampled in each object equals to vol_obj / per_point_volume
 	 */
-	void sample_points_inside(double per_point_volume); 
+	void sample_points_inside(); 
 
 	/**
 	 * @brief update the ABD system information

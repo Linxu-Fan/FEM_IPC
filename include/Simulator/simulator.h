@@ -138,5 +138,12 @@ void if_start_fracture_sim(triMesh& triSimMesh, std::map<int, std::vector<Vector
 
 void fracture_sim(FEMParamters& parameters, triMesh& triSimMesh, std::map<int, std::vector<Vector6d>>& broken_objects, std::map<int, objMeshFormat>& crackSurface_object);
 
+/**
+ * @brief cut objects with generated crack surfaces
+ *
+ */
+void cut_object_with_cracks(FEMParamters& parameters, triMesh& triSimMesh, std::map<int, objMeshFormat>& crackSurface_object);
+
+
 
 #endif

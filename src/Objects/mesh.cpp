@@ -712,15 +712,96 @@ void Mesh_ABD::createGlobalSimulationMesh_ABD()
 // Triangular mesh for simulation
 //////////////////////////////////////////////
 
+void triMesh::clear()
+{
+	triMeshIndex.clear(); 
+	num_meshes = 0;
 
-void triMesh::createGlobalSimulationTriMesh_ABD(std::vector<meshConfiguration>& configs, const double& per_point_volume)
+
+	note_node_surface.clear();
+	contactForce_node_surface.clear();
+	pos_node_surface.clear();
+	pos_node_Rest_surface.clear();
+	index_node_surface.clear();
+	boundaryCondition_node_surface.clear();
+
+
+	objMeshFormat surfaceMeshGlobal_;
+	surface_Info surfaceInfo_;
+	surfaceMeshGlobal = surfaceMeshGlobal_;
+	surfaceInfo = surfaceInfo_;
+
+	note_node_interior.clear();
+	pos_node_interior.clear();
+	pos_node_Rest_interior.clear();
+	index_node_interior.clear();
+	boundaryCondition_node_interior.clear();
+	mass_node_interior.clear();
+	vol_node_interior.clear();
+}
+
+
+
+void triMesh::createGlobalSimulationTriMesh_ABD(std::vector<meshConfiguration>& configs)
 {
 	readMeshes(configs);
 	build_surface_mesh();
-	sample_points_inside(per_point_volume);
+	sample_points_inside();
 	update_ABD_info();
 
 }
+
+
+void triMesh::updateGlobalSimulationTriMesh_ABD()
+{
+	clear();
+
+
+	num_meshes = allObjects.size();
+	// read the 
+	for (int i = 0; i < allObjects.size(); i++)
+	{
+		triMeshIndex[allObjects[i].objectNote] = i;
+	}
+
+	if (triMeshIndex.size() != allObjects.size()) // check if there exists identical object names
+	{
+		std::cout << "Identical object names exist! Please change the object's name!" << std::endl;
+		exit(0);
+	}
+
+
+
+	build_surface_mesh();
+	sample_points_inside();
+	update_ABD_info();
+
+
+	// !!!!!!!!!!!!!!!!!!!!!!!
+// update points' position in the rest configuration
+	std::vector<Eigen::Matrix3d> deformation_ABD_inverse(allObjects.size(), Eigen::Matrix3d::Identity());
+#pragma omp parallel for
+	for (int i = 0 ; i < allObjects.size(); i++)
+	{
+		deformation_ABD_inverse[i] = allObjects[i].deformation_ABD.inverse();
+	}
+#pragma omp parallel for
+	for (int i = 0; i < pos_node_Rest_surface.size(); i++)
+	{
+		int obj_index = index_node_surface[i][0];
+		if (allObjects[obj_index].need_update_rest_position == true)
+		{
+			Eigen::Vector3d curr_pos_minuse_trans = pos_node_Rest_surface[i] - allObjects[obj_index].translation_ABD;
+			pos_node_Rest_surface[i] = deformation_ABD_inverse[obj_index] * curr_pos_minuse_trans;
+		}
+	}
+	for (int i = 0; i < allObjects.size(); i++)
+	{
+		allObjects[i].need_update_rest_position = false;
+	}
+
+}
+
 
 void triMesh::readMeshes(std::vector<meshConfiguration>& configs)
 {
@@ -730,11 +811,8 @@ void triMesh::readMeshes(std::vector<meshConfiguration>& configs)
 	{
 		meshConfiguration config = configs[i];
 
-		materialMesh.push_back(config.mesh_material);
-		triMeshNote.push_back(config.note);
 		triMeshIndex[config.note] = i;
-
-		
+	
 		Eigen::Vector3d scale = config.scale;
 		Eigen::Vector3d translation = config.translation;
 		// Create a transformation matrix
@@ -748,14 +826,21 @@ void triMesh::readMeshes(std::vector<meshConfiguration>& configs)
 		objMeshFormat triMesh_;
 		triMesh_.readObjFile(config.filePath, false, rotation, scale, translation);
 		triMesh_.initialVelocity = config.velocity;
-		objectSurfaceMeshes.push_back(triMesh_);
 
-		breakable.push_back(config.breakable);
+
+		ABD_Object obj_;
+		obj_.objectMaterial = config.mesh_material;
+		obj_.objectNote = config.note;
+		obj_.breakable = config.breakable;
+		obj_.objectSurfaceMesh = triMesh_;
+		obj_.objectSurfaceMesh.updateVolume();
+		obj_.translation_vel_ABD = config.velocity;
+		obj_.per_point_volume = config.per_point_volume;
+		allObjects.push_back(obj_);
+
 	}
 
-
-
-	if (triMeshIndex.size() != triMeshNote.size()) // check if there exists identical object names
+	if (triMeshIndex.size() != configs.size()) // check if there exists identical object names
 	{
 		std::cout << "Identical object names exist! Please change the object's name!" << std::endl;
 		exit(0);
@@ -767,16 +852,16 @@ void triMesh::readMeshes(std::vector<meshConfiguration>& configs)
 void triMesh::build_surface_mesh()
 {
 	// surface points
-	for (int i = 0; i < objectSurfaceMeshes.size(); i++)
+	for (int i = 0; i < allObjects.size(); i++)
 	{
-		pos_node_surface.insert(pos_node_surface.end(), objectSurfaceMeshes[i].vertices.begin(), objectSurfaceMeshes[i].vertices.end());
+		pos_node_surface.insert(pos_node_surface.end(), allObjects[i].objectSurfaceMesh.vertices.begin(), allObjects[i].objectSurfaceMesh.vertices.end());
 
 
 		Eigen::Vector2i index_vert = { i , 1 };
 		// store the note infor of each object
-		for (int n = 0; n < objectSurfaceMeshes[i].vertices.size(); n++)
+		for (int n = 0; n < allObjects[i].objectSurfaceMesh.vertices.size(); n++)
 		{
-			note_node_surface.push_back(triMeshNote[i]);
+			note_node_surface.push_back(allObjects[i].objectNote);
 			index_node_surface.push_back(index_vert);
 		}
 	}
@@ -784,19 +869,19 @@ void triMesh::build_surface_mesh()
 
 	// surface triangles
 	int countNodeNum = 0;
-	for (int i = 0; i < objectSurfaceMeshes.size(); i++)
+	for (int i = 0; i < allObjects.size(); i++)
 	{
 		Eigen::Vector2i se_nodes = {0,0};
 		se_nodes[0] = countNodeNum;
-		for (int j = 0; j < objectSurfaceMeshes[i].faces.size(); j++)
+		for (int j = 0; j < allObjects[i].objectSurfaceMesh.faces.size(); j++)
 		{
-			Eigen::Vector3i face = objectSurfaceMeshes[i].faces[j];
+			Eigen::Vector3i face = allObjects[i].objectSurfaceMesh.faces[j];
 			face += Eigen::Vector3i::Ones() * countNodeNum;
 			surfaceMeshGlobal.faces.push_back(face);
 		}
-		countNodeNum += objectSurfaceMeshes[i].vertices.size();
+		countNodeNum += allObjects[i].objectSurfaceMesh.vertices.size();
 		se_nodes[1] = countNodeNum;
-		objectSurfaceMeshes_node_start_end.push_back(se_nodes);
+		allObjects[i].objectSurfaceMeshes_node_start_end = se_nodes;
 	}
 	surfaceMeshGlobal.vertices = pos_node_surface;
 
@@ -805,81 +890,35 @@ void triMesh::build_surface_mesh()
 }
 
 
-void triMesh::sample_points_inside(double per_point_volume)
+void triMesh::sample_points_inside()
 {
 	// sample points inside first
-	for (int i = 0; i < objectSurfaceMeshes.size(); i++)
+	for (int i = 0; i < allObjects.size(); i++)
 	{
-		objMeshFormat ABD_obj_mesh = objectSurfaceMeshes[i];
-		ABD_obj_mesh.updateVolume();
-		objectSurfaceMeshes[i].volume = ABD_obj_mesh.volume;
 
-
-		int num_points = std::floor(objectSurfaceMeshes[i].volume / per_point_volume);
-		//std::cout << "num_points = " << num_points << std::endl;
-		std::vector<Eigen::Vector3d> pts = ABD_obj_mesh.sample_points_inside_mesh(num_points);
-
-		//std::cout << "fff = " << num_points << std::endl;
-
+		int num_points = std::floor(allObjects[i].objectSurfaceMesh.volume / allObjects[i].per_point_volume);
+		std::vector<Eigen::Vector3d> pts = allObjects[i].objectSurfaceMesh.sample_points_inside_mesh(num_points);
 		pos_node_interior.insert(pos_node_interior.end(), pts.begin(), pts.end());
 
-		//std::cout << "eee = " << num_points << std::endl;
 
 		Eigen::Vector2i index_vert = { i , 0 };
 		// store the note infor of each object
 		for (int n = 0; n < pts.size(); n++)
 		{
-			note_node_interior.push_back(triMeshNote[i]);
+			note_node_interior.push_back(allObjects[i].objectNote);
 			index_node_interior.push_back(index_vert);
-			vol_node_interior.push_back(per_point_volume);
-			mass_node_interior.push_back(per_point_volume * materialMesh[i].density);
+			vol_node_interior.push_back(allObjects[i].per_point_volume);
+			mass_node_interior.push_back(allObjects[i].per_point_volume * allObjects[i].objectMaterial.density);
 		}
-
-		//std::cout << "ggg = " << num_points << std::endl;
-
 	}
 	pos_node_Rest_interior = pos_node_interior;
 
-}
-
-
-void triMesh::update_ABD_info()
-{
-	massMatrix_ABD.resize(num_meshes, Eigen::Matrix<double, 12, 12>::Zero());
-	volume_ABD.resize(num_meshes, 0);
-
-	translation_prev_ABD.resize(num_meshes, Eigen::Vector3d::Zero());
-	translation_ABD.resize(num_meshes, Eigen::Vector3d::Zero());
-	translation_vel_ABD.resize(num_meshes, Eigen::Vector3d::Zero());
-
-	deformation_prev_ABD.resize(num_meshes, Eigen::Matrix3d::Identity());
-	deformation_ABD.resize(num_meshes, Eigen::Matrix3d::Identity());
-	deformation_vel_ABD.resize(num_meshes, Eigen::Matrix3d::Zero());
-
-	// update the initial velocity if any
-	for (int i = 0; i < objectSurfaceMeshes.size(); i++)
-	{
-		translation_vel_ABD[i] = objectSurfaceMeshes[i].initialVelocity;
-	}
-
-	for (int i = 0; i < pos_node_Rest_interior.size(); i++)
-	{
-		Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(pos_node_Rest_interior[i]);
-
-		int AB_index = index_node_interior[i][0];
-		massMatrix_ABD[AB_index] += mass_node_interior[i] * Jx.transpose() * Jx;
-	}
-	
-	for (int i = 0; i < objectSurfaceMeshes.size(); i++)
-	{
-		volume_ABD[i] = objectSurfaceMeshes[i].volume;
-	}
 
 
 	boundaryCondition bc;
 	// add boundary conditions
 	for (int i = 0; i < pos_node_interior.size(); i++)
-	{	
+	{
 		boundaryCondition_node_interior.push_back(bc);
 	}
 	for (int i = 0; i < pos_node_surface.size(); i++)
@@ -888,6 +927,33 @@ void triMesh::update_ABD_info()
 	}
 	contactForce_node_surface.resize(pos_node_surface.size(), Eigen::Vector3d::Zero());
 
+
+}
+
+
+void triMesh::update_ABD_info()
+{
+
+	massMatrix_ABD.resize(allObjects.size(), Eigen::Matrix<double, 12, 12>::Zero());
+	for (int i = 0; i < pos_node_Rest_interior.size(); i++)
+	{
+		Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(pos_node_Rest_interior[i]);
+
+		int AB_index = index_node_interior[i][0];
+		massMatrix_ABD[AB_index] += mass_node_interior[i] * Jx.transpose() * Jx;
+	}
+	for (int i = 0; i < allObjects.size(); i++)
+	{
+		translation_prev_ABD.push_back(allObjects[i].translation_prev_ABD);
+		translation_vel_ABD.push_back(allObjects[i].translation_vel_ABD);
+		translation_ABD.push_back(allObjects[i].translation_ABD);
+		deformation_prev_ABD.push_back(allObjects[i].deformation_prev_ABD);
+		deformation_vel_ABD.push_back(allObjects[i].deformation_vel_ABD);
+		deformation_ABD.push_back(allObjects[i].deformation_ABD);
+
+		volume_ABD.push_back(allObjects[i].objectSurfaceMesh.volume);
+	}
+	
 }
 
 void triMesh::exportSurfaceMesh(std::string fileName, int timestep)
@@ -916,12 +982,12 @@ double triMesh::calLargestEdgeLength()
 
 void triMesh::updateEachObjectSurfaceMesh()
 {
-	for (int i = 0; i < objectSurfaceMeshes_node_start_end.size(); i++)
+	for (int i = 0; i < allObjects.size(); i++)
 	{
-		for (int j = objectSurfaceMeshes_node_start_end[i][0]; j < objectSurfaceMeshes_node_start_end[i][1]; j++)
+		for (int j = allObjects[i].objectSurfaceMeshes_node_start_end[0]; j < allObjects[i].objectSurfaceMeshes_node_start_end[1]; j++)
 		{
-			int localIndex = j - objectSurfaceMeshes_node_start_end[i][0];
-			objectSurfaceMeshes[i].vertices[localIndex] = pos_node_surface[j];
+			int localIndex = j - allObjects[i].objectSurfaceMeshes_node_start_end[0];
+			allObjects[i].objectSurfaceMesh.vertices[localIndex] = pos_node_surface[j];
 		}
 	}
 }

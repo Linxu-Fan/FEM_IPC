@@ -13,10 +13,9 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 		if (timestep % parameters.outputFrequency == 0)
 		{
-			//triSimMesh.exportSurfaceMesh("surfMesh", timestep);
+			triSimMesh.exportSurfaceMesh("surfMesh", timestep);
 		}
 
-		triSimMesh.pos_node_prev_surface = triSimMesh.pos_node_surface;
 		triSimMesh.translation_prev_ABD = triSimMesh.translation_ABD;
 		triSimMesh.deformation_prev_ABD = triSimMesh.deformation_ABD;
 
@@ -29,7 +28,7 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 			if (timestep % parameters.outputFrequency == 0)
 			{
-				triSimMesh.exportSurfaceMesh("surfMesh_ite_"+std::to_string(ite), timestep);
+				//triSimMesh.exportSurfaceMesh("surfMesh_ite_"+std::to_string(ite), timestep);
 			}
 
 			std::vector<Eigen::Vector3d> currentPosition = triSimMesh.pos_node_surface;
@@ -40,7 +39,7 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			std::vector<Vector12d> direction_ABD;
 			
 			solve_linear_system_ABD_triMesh(triSimMesh, parameters, timestep, direction_ABD, broken_objects, ite);
-			if (broken_objects.size() != 0)
+			if (broken_objects.size() != 0 && timestep < 3)
 			{
 				break;
 			}
@@ -99,8 +98,15 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 		}
 
-		std::map<int, objMeshFormat> crackSurface_object;
-		fracture_sim(parameters, triSimMesh, broken_objects, crackSurface_object);
+
+		if (broken_objects.size() != 0 && timestep < 3)
+		{
+			std::map<int, objMeshFormat> crackSurface_object;
+			fracture_sim(parameters, triSimMesh, broken_objects, crackSurface_object);
+			cut_object_with_cracks(parameters, triSimMesh, crackSurface_object);
+			triSimMesh.updateGlobalSimulationTriMesh_ABD();
+			continue;
+		}
 
 
 		// update the velocity of the ABD objects
@@ -161,6 +167,8 @@ double compute_IP_energy_ABD_triMesh(triMesh& triSimMesh, FEMParamters& paramete
 
 		Vector12d qb_Minus_qbHat = qb - (qb_prev + parameters.dt * qb_vel + parameters.dt * parameters.dt * triSimMesh.massMatrix_ABD[AI].inverse() * affine_force[AI]);
 		AB_ine_energy_vec[AI] = 0.5 * qb_Minus_qbHat.transpose() * triSimMesh.massMatrix_ABD[AI] * qb_Minus_qbHat;
+
+
 	}	
 	energyVal += std::accumulate(AB_ine_energy_vec.begin(), AB_ine_energy_vec.end(), 0.0);
 
@@ -648,13 +656,13 @@ void convert_to_position_direction_triMesh(FEMParamters& parameters, triMesh& tr
 void if_start_fracture_sim(triMesh& triSimMesh, std::map<int, std::vector<Vector6d>>& broken_objects)
 {
 	broken_objects.clear();
-	for (int i = 0; i < triSimMesh.objectSurfaceMeshes_node_start_end.size(); i++)
+	for (int i = 0; i < triSimMesh.allObjects.size(); i++)
 	{
-		if (triSimMesh.breakable[i] == true)
+		if (triSimMesh.allObjects[i].breakable == true)
 		{
 			double max_force = -999999999.0;
 			std::vector<Vector6d> contactForce;
-			for (int j = triSimMesh.objectSurfaceMeshes_node_start_end[i][0]; j < triSimMesh.objectSurfaceMeshes_node_start_end[i][1]; j++)
+			for (int j = triSimMesh.allObjects[i].objectSurfaceMeshes_node_start_end[0]; j < triSimMesh.allObjects[i].objectSurfaceMeshes_node_start_end[1]; j++)
 			{
 				Vector6d contact_position_force;
 				Eigen::Vector3d position = triSimMesh.pos_node_surface[j];
@@ -662,14 +670,14 @@ void if_start_fracture_sim(triMesh& triSimMesh, std::map<int, std::vector<Vector
 				if (force.norm() > 0.0001) // to avoid numerical error
 				{
 					contact_position_force.block(0, 0, 3, 1) = position;
-					contact_position_force.block(3, 0, 3, 1) = force;
+					contact_position_force.block(3, 0, 3, 1) = force * 100;
 					contactForce.push_back(contact_position_force);
 					//std::cout << "position = " << position.transpose() << "; " << "force = " << force.transpose() << std::endl;
 				}
 				max_force = std::max(force.norm(), max_force);
 			}
 			std::cout << "			max_force = " << max_force << std::endl;
-			if (max_force > triSimMesh.materialMesh[i].fracture_start_force )
+			if (max_force > triSimMesh.allObjects[i].objectMaterial.fracture_start_force )
 			{
 				broken_objects[i] = contactForce;
 			}		
@@ -689,22 +697,21 @@ void fracture_sim(FEMParamters& parameters, triMesh& triSimMesh, std::map<int, s
 		std::vector<Vector6d> contactForce = it->second;
 
 
-		triSimMesh.objectSurfaceMeshes[objectIndex].updateVolume();
 		int num_particles = 10000;
-		std::vector<Eigen::Vector3d> mpm_sim_particles = triSimMesh.objectSurfaceMeshes[objectIndex].sample_points_inside_mesh(num_particles);
-		double per_particle_volume = triSimMesh.objectSurfaceMeshes[objectIndex].volume / (double)num_particles;
+		std::vector<Eigen::Vector3d> mpm_sim_particles = triSimMesh.allObjects[objectIndex].objectSurfaceMesh.sample_points_inside_mesh(num_particles);
+		double per_particle_volume = triSimMesh.allObjects[objectIndex].objectSurfaceMesh.volume / (double)num_particles;
 		mpmSimulator::MPMParamters mpm_parameters;
 		mpm_parameters.dt = 1.0E-7;
-		mpm_parameters.mat_mpm = triSimMesh.materialMesh[objectIndex];
+		mpm_parameters.mat_mpm = triSimMesh.allObjects[objectIndex].objectMaterial;
 		mpm_parameters.numOfThreads = parameters.numOfThreads;
 		mpm_parameters.dx = 2.0 * std::cbrt(per_particle_volume);
 
-		std::cout << "Start fracture simulation in object "<< objectIndex <<": " << triSimMesh.triMeshNote[objectIndex] << std::endl;
+		std::cout << "Start fracture simulation in object "<< objectIndex <<": " << triSimMesh.allObjects[objectIndex].objectNote << std::endl;
 
 		std::tuple<bool, objMeshFormat, objMeshFormat, std::vector<objMeshFormat>> crack_res = mpmSimulator::crackSimulation(
 			mpm_sim_particles,
 			per_particle_volume,
-			triSimMesh.materialMesh[objectIndex],
+			triSimMesh.allObjects[objectIndex].objectMaterial,
 			mpm_parameters,
 			contactForce,
 			500);
@@ -729,12 +736,56 @@ void cut_object_with_cracks(FEMParamters& parameters, triMesh& triSimMesh, std::
 	{
 		int objectIndex = it->first;
 		objMeshFormat full_cut = it->second;
+		float voxel_size = static_cast<float>(parameters.IPC_dis);
+		objMeshFormat full_cut_surf = full_cut.reconstruct_with_vdb(voxel_size);
 
-		full_cut.triangulate();
-		std::vector<openvdb::Vec3s> vertices;
-		std::vector<openvdb::Vec3I> triangles;
-		full_cut.to_openVDB_format(vertices, triangles);
+		objMeshFormat children = triSimMesh.allObjects[objectIndex].objectSurfaceMesh.boolean_difference_with_mesh(full_cut_surf);
+		children.outputFile("child", -999, false);
+		children.triangulate();
+
+		
+		children.sepConnectedComponents();
+
+
+		std::cout << "Object " << "_" << objectIndex << "_" << " is cut into " << std::to_string(children.componentsSep.size()) << " pieces!" << std::endl;
+
+		ABD_Object parent_object = triSimMesh.allObjects[objectIndex];
+		// conver the object into ABD_Object
+		for (int cc = 0; cc < children.componentsSep.size(); cc++)
+		{
+			objMeshFormat childMesh = children.componentsSep[cc];
+			childMesh.updateMesh();
+
+			ABD_Object child_object;
+			child_object.objectNote = parent_object.objectNote + "_F_" + std::to_string(cc);
+			child_object.objectMaterial = parent_object.objectMaterial;
+			child_object.breakable = parent_object.breakable;
+			child_object.per_point_volume = parent_object.per_point_volume;
+			child_object.translation_prev_ABD = parent_object.translation_prev_ABD;
+			child_object.translation_vel_ABD = parent_object.translation_vel_ABD;
+			child_object.translation_ABD = parent_object.translation_ABD;
+			child_object.deformation_prev_ABD = parent_object.deformation_prev_ABD;
+			child_object.deformation_vel_ABD = parent_object.deformation_vel_ABD;
+			child_object.deformation_ABD = parent_object.deformation_ABD;
+
+			child_object.objectSurfaceMesh = childMesh;
+			child_object.volume = childMesh.volume;
+			child_object.need_update_rest_position = true;
+
+			// the first child replaces the parent object
+			if (cc == 0)
+			{
+				triSimMesh.allObjects[objectIndex] = child_object;
+			}
+			else // remaining ones are appended to the vector
+			{
+				triSimMesh.allObjects.push_back(child_object);
+			}
+		}
 
 	}
+
+	std::cout << "We now have " << std::to_string(triSimMesh.allObjects.size()) << " objects in the scene!" << std::endl;
+
 }
 

@@ -75,12 +75,19 @@ struct objMeshFormat
 	double volume = 0; // watertight volume of this object
 	
 
+	/**
+	 * @brief update the mesh as far as possible
+	 *
+	 * @note Only work for triangular mesh
+	 */
+	void updateMesh();
+
 	void clear();
 
 	void readObjFile(std::string fileName, bool polygonal = false, Eigen::Affine3d rotation = Eigen::Affine3d::Identity(),
 		Eigen::Vector3d scale = Eigen::Vector3d::Ones(), Eigen::Vector3d translation = Eigen::Vector3d::Zero()); // if polygonal is true, read polygonal mesh
 
-    void sepConnectedComponents(); // separate connected comonents
+    void sepConnectedComponents(); // separate connected comonents. ONLY FOR TRIANGULAR MESH
 
     void outputFile(std::string fileName, int timestep = -99, bool polygonal = false);
 
@@ -111,11 +118,30 @@ struct objMeshFormat
 	std::pair<Eigen::MatrixXd, Eigen::MatrixXi> to_libigl_mesh();
 
 	/**
+	 * @brief convert the vertices and faces into CGAL format for further processing
+	 *
+	 */
+	CGAL_Surface_mesh to_CGAL_mesh();
+
+	/**
 	 * @brief Generate random points inside a closed triangular mesh.
 	 *
 	 * @param num_samples Number of points to sample
 	 */
 	std::vector<Eigen::Vector3d> sample_points_inside_mesh(int num_samples);
+
+	/**
+	 * @brief Reconstruct the object with openvdb
+	 *
+	 * @param voxel_size openVDB voxel size
+	 */
+	objMeshFormat reconstruct_with_vdb(float& voxel_size);
+
+	/**
+	 * @brief Boolean operation of difference with another mesh B
+	 *
+	 */
+	objMeshFormat boolean_difference_with_mesh(objMeshFormat& B);
 
 };
 

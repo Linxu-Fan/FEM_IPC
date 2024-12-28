@@ -149,6 +149,30 @@ bool lineSegmentIntersectsTriangle(const Eigen::Vector3d& orig,
 }
 
 
+void objMeshFormat::updateMesh()
+{
+	// check if the mesh is outward or not. If not, flip the surface
+	std::pair<Eigen::MatrixXd, Eigen::MatrixXi> libigl_mesh = to_libigl_mesh();
+	Eigen::Vector3d center = Eigen::Vector3d::Zero();
+	double volume_ = 0;
+	igl::centroid(libigl_mesh.first, libigl_mesh.second, center, volume_);
+	if (volume_ < 0.0)
+	{
+		std::cout << "Warning: the normal is not outward. flip it!" << std::endl;
+		for (int f = 0; f < faces.size(); f++)
+		{
+			Eigen::Vector3i tmp = { faces[f][2],faces[f][1],faces[f][0] };
+			faces[f] = tmp;
+		}	
+	}
+	volume = volume_;
+	//std::cout << "ct = " << ct << std::endl;
+	vertFaces.clear();
+	edges.clear();
+	findVertFaces_Edges();
+}
+
+
 void objMeshFormat::readObjFile(std::string fileName, bool polygonal, Eigen::Affine3d rotation,
 	Eigen::Vector3d scale, Eigen::Vector3d translation)
 {
@@ -494,27 +518,36 @@ bool objMeshFormat::checkIfMeshIntersectWithLine(const Eigen::Vector3d line_pt1,
 
 void objMeshFormat::triangulate()
 {
-	for (int i = 0; i < facesPolygonal.size(); i++)
+	if (faces.size() == 0 )
 	{
-		std::vector<int> facePolygonal = facesPolygonal[i];
-		if (facePolygonal.size() > 3)
+		for (int i = 0; i < facesPolygonal.size(); i++)
 		{
-			for (int j = 1; j < facePolygonal.size() - 1; j++)
+			std::vector<int> facePolygonal = facesPolygonal[i];
+			if (facePolygonal.size() > 3)
 			{
-				Eigen::Vector3i faceTri = { facePolygonal[0], facePolygonal[j], facePolygonal[j + 1] };
+				for (int j = 1; j < facePolygonal.size() - 1; j++)
+				{
+					Eigen::Vector3i faceTri = { facePolygonal[0], facePolygonal[j], facePolygonal[j + 1] };
+					faces.push_back(faceTri);
+				}
+			}
+			else
+			{
+				Eigen::Vector3i faceTri = { facePolygonal[0], facePolygonal[1], facePolygonal[2] };
 				faces.push_back(faceTri);
 			}
 		}
-		else
-		{
-			Eigen::Vector3i faceTri = { facePolygonal[0], facePolygonal[1], facePolygonal[2] };
-			faces.push_back(faceTri);
-		}
 	}
+
 }
 
 void objMeshFormat::to_openVDB_format(std::vector<openvdb::Vec3s>& verticesVdb, std::vector<openvdb::Vec3I>& trianglesVdb)
 {
+	if (faces.size() == 0)
+	{
+		triangulate();
+	}
+
 	verticesVdb.clear();
 	trianglesVdb.clear();
 	for (int i = 0; i < vertices.size(); i++)
@@ -529,6 +562,11 @@ void objMeshFormat::to_openVDB_format(std::vector<openvdb::Vec3s>& verticesVdb, 
 
 std::pair<Eigen::MatrixXd, Eigen::MatrixXi> objMeshFormat::to_libigl_mesh()
 {
+	if (faces.size() == 0)
+	{
+		triangulate();
+	}
+
 	Eigen::MatrixXd V = Eigen::MatrixXd::Zero(vertices.size(), 3);
 	Eigen::MatrixXi F = Eigen::MatrixXi::Zero(faces.size(), 3);
 
@@ -544,12 +582,6 @@ std::pair<Eigen::MatrixXd, Eigen::MatrixXi> objMeshFormat::to_libigl_mesh()
 	return std::make_pair(V, F);
 }
 
-
-/**
- * @brief Generate random points inside a closed triangular mesh.
- *
- * @param num_samples Number of points to sample
- */
 std::vector<Eigen::Vector3d> objMeshFormat::sample_points_inside_mesh(int num_samples)
 {
 
@@ -617,7 +649,6 @@ std::vector<Eigen::Vector3d> objMeshFormat::sample_points_inside_mesh(int num_sa
 	return inside_points;
 }
 
-
 void objMeshFormat::updateVolume()
 {
 	std::pair<Eigen::MatrixXd, Eigen::MatrixXi> libigl_mesh = to_libigl_mesh();
@@ -625,4 +656,139 @@ void objMeshFormat::updateVolume()
 	double volume_ = 0;
 	igl::centroid(libigl_mesh.first, libigl_mesh.second, center, volume_);
 	volume = std::abs(volume_);
+}
+
+objMeshFormat objMeshFormat::reconstruct_with_vdb(float& voxel_size)
+{
+	objMeshFormat result;
+
+	if (faces.size() == 0)
+	{
+		triangulate();
+	}
+
+	std::vector<openvdb::Vec3s> vertices;
+	std::vector<openvdb::Vec3I> triangles;
+	to_openVDB_format(vertices, triangles);
+
+
+	// define openvdb linear transformation
+	openvdb::math::Transform::Ptr transform = openvdb::math::Transform::createLinearTransform(voxel_size);
+	openvdb::FloatGrid::Ptr crackLevelSetGrid = openvdb::tools::meshToUnsignedDistanceField<openvdb::FloatGrid>(
+		*transform,
+		vertices,
+		triangles,
+		std::vector<openvdb::Vec4I>(),
+		3);
+
+	for (openvdb::FloatGrid::ValueOnIter iter = crackLevelSetGrid->beginValueOn(); iter; ++iter) {
+		float dist = iter.getValue();
+		float value = dist - std::sqrt(3 * std::pow(voxel_size, 2));
+		iter.setValue(value);
+	}
+	crackLevelSetGrid->setGridClass(openvdb::GRID_LEVEL_SET);
+
+
+
+	{
+		openvdb::tools::VolumeToMesh volumeToMeshHandle;
+		volumeToMeshHandle(*crackLevelSetGrid);
+		openvdb::tools::PointList* verts = &volumeToMeshHandle.pointList();
+		openvdb::tools::PolygonPoolList* polys = &volumeToMeshHandle.polygonPoolList();
+
+		for (size_t i = 0; i < volumeToMeshHandle.pointListSize(); i++)
+		{
+			openvdb::Vec3s v = (*verts)[i];
+			result.vertices.push_back(Eigen::Vector3d(v.x(), v.y(), v.z()));
+		}
+		for (size_t i = 0; i < volumeToMeshHandle.polygonPoolListSize(); i++) 
+		{
+			for (size_t ndx = 0; ndx < (*polys)[i].numQuads(); ndx++) 
+			{
+				openvdb::Vec4I* p = &((*polys)[i].quad(ndx));
+				openvdb::Vec3I f0 = { p->z() ,p->y() ,p->x() };
+				openvdb::Vec3I f1 = { p->w() ,p->z() ,p->x() };
+
+				result.faces.push_back(Eigen::Vector3i(p->z(), p->y(), p->x()));
+				result.faces.push_back(Eigen::Vector3i(p->w(), p->z(), p->x()));
+			}
+		}
+
+	}
+
+	return result;
+}
+
+
+CGAL_Surface_mesh objMeshFormat::to_CGAL_mesh()
+{
+	CGAL_Surface_mesh mesh;
+
+	if (faces.size() == 0)
+	{
+		triangulate();
+	}
+
+
+	std::vector<CGAL_Surface_mesh::Vertex_index> vertex_indices;
+	for (int i = 0; i < vertices.size(); i++)
+	{
+		CGAL_Surface_mesh::Vertex_index vi = mesh.add_vertex(CGAL_Point_3(vertices[i][0], vertices[i][1], vertices[i][2]));
+		vertex_indices.push_back(vi);
+	}
+
+	
+	for (int j = 0; j < faces.size(); j++)
+	{
+		std::vector<CGAL_Surface_mesh::Vertex_index> face_vertices;
+		face_vertices.push_back(vertex_indices[faces[j][0]]);
+		face_vertices.push_back(vertex_indices[faces[j][1]]);
+		face_vertices.push_back(vertex_indices[faces[j][2]]);
+
+		mesh.add_face(face_vertices);
+	}
+
+	return mesh;
+}
+
+objMeshFormat objMeshFormat::boolean_difference_with_mesh(objMeshFormat& B_)
+{
+	objMeshFormat mesh_diff;
+
+	CGAL_Surface_mesh A = to_CGAL_mesh();
+	CGAL_Surface_mesh B = B_.to_CGAL_mesh();
+	CGAL_Surface_mesh result;
+
+	// 执行布尔操作 A - B
+	if (!PMP::corefine_and_compute_difference(A, B, result)) 
+	{
+		std::cerr << "Boolean operation failed!" << std::endl;
+		std::exit(0);
+	}
+
+
+	// 映射顶点描述符到索引
+	std::map<CGAL_Surface_mesh::Vertex_index, int> vertex_index_map;
+
+	// 遍历顶点并存储到 Eigen::Vector3d
+	int index = 0;
+	for (auto vd : CGAL::vertices(result)) {
+		CGAL_Point_3 p = result.point(vd);
+		mesh_diff.vertices.emplace_back(p.x(), p.y(), p.z());
+		vertex_index_map[vd] = index++; // 将顶点描述符映射到索引
+	}
+
+	// 遍历面并存储顶点索引
+	for (auto fd : CGAL::faces(result)) {
+		std::vector<int> face_indices;
+		for (auto vd : vertices_around_face(result.halfedge(fd), result)) {
+			face_indices.push_back(vertex_index_map[vd]); // 获取顶点索引
+		}
+		mesh_diff.facesPolygonal.push_back(face_indices);
+	}
+
+	mesh_diff.triangulate();
+
+	return mesh_diff;
+
 }
