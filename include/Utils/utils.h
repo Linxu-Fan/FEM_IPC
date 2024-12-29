@@ -19,6 +19,7 @@
 #include <cassert>
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
+#include <Eigen/IterativeLinearSolvers>
 #include <unsupported/Eigen/CXX11/Tensor>
 #include <unsupported/Eigen/AutoDiff>
 #include <unsupported/Eigen/KroneckerProduct>

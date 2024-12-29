@@ -12,10 +12,6 @@ namespace extractCrackSurface
         Eigen::Vector3i ppIndex = ppIndex_d.cast<int>();
 		Eigen::Vector3d space = pos / dx - ppIndex_d;
 
-        //std::cout << "base = " << base.transpose() << std::endl;
-        //std::cout << "ppIndex_d = " << ppIndex_d.transpose() << std::endl;
-        //std::cout << "ppIndex = " << ppIndex.transpose() << std::endl;
-        //std::cout << "space = " << space.transpose() << std::endl;
 
 		// calculate weight
 		Eigen::Vector3d col0 = 0.5 * (Eigen::Vector3d::Constant(1.5) - space).array().square();

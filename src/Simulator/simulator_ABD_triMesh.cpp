@@ -16,20 +16,27 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			triSimMesh.exportSurfaceMesh("surfMesh", timestep);
 		}
 
+
 		triSimMesh.translation_prev_ABD = triSimMesh.translation_ABD;
 		triSimMesh.deformation_prev_ABD = triSimMesh.deformation_ABD;
 
 		std::vector<Eigen::Vector3d> position_direction(triSimMesh.pos_node_surface.size(), Eigen::Vector3d::Zero());
 		std::map<int, std::vector<Vector6d>> broken_objects;
-		double lastEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep);
+		contact_Info contact_pairs;
+		calContactInfo(
+			parameters, 
+			triSimMesh.surfaceInfo,
+			triSimMesh.pos_node_surface,
+			triSimMesh.note_node_surface,
+			triSimMesh.triMeshIndex,
+			timestep,
+			contact_pairs);
+		double lastEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep, contact_pairs);
+
+
 
 		for (int ite = 0; ite < 15; ite++)
 		{
-
-			if (timestep % parameters.outputFrequency == 0)
-			{
-				//triSimMesh.exportSurfaceMesh("surfMesh_ite_"+std::to_string(ite), timestep);
-			}
 
 			std::vector<Eigen::Vector3d> currentPosition = triSimMesh.pos_node_surface;
 			std::vector<Eigen::Vector3d> current_ABD_translation = triSimMesh.translation_ABD;
@@ -38,14 +45,13 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			std::cout << "		ite = " << ite << "; lastEnergyVal = " << lastEnergyVal << std::endl;
 			std::vector<Vector12d> direction_ABD;
 			
-			solve_linear_system_ABD_triMesh(triSimMesh, parameters, timestep, direction_ABD, broken_objects, ite);
+			solve_linear_system_ABD_triMesh(triSimMesh, parameters, timestep, direction_ABD, broken_objects, contact_pairs, ite);
 			if (broken_objects.size() != 0 && timestep < 3)
 			{
 				break;
 			}
 			convert_to_position_direction_triMesh(parameters, triSimMesh, direction_ABD, position_direction);
 			double dist_to_converge = infiniteNorm(position_direction);
-
 
 			std::cout << std::scientific << std::setprecision(4) << "			dist_to_converge = "
 				<< dist_to_converge / parameters.dt << "m/s; threshold = " << parameters.searchResidual
@@ -54,6 +60,10 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			{
 				break;
 			}
+
+
+			double startTime1, endTime1, endTime2;
+			startTime1 = omp_get_wtime();
 
 			std::cout << "			Calculate step size;" << std::endl;
 			double step = calMaxStepSize(
@@ -64,18 +74,41 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 				triSimMesh.note_node_surface,
 				triSimMesh.triMeshIndex,
 				timestep);
+
+			endTime1 = omp_get_wtime();
+			std::cout << "Calcualte Step Size Time is : " << endTime1 - startTime1 << "s" << std::endl;
+
+
 			//step = 1.0;
 			std::cout << "			Step forward = " << step << std::endl;
 			step_forward_ABD_triMesh(parameters, triSimMesh, current_ABD_translation, current_ABD_deformation, direction_ABD, currentPosition, step);
-			double newEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep);
+			calContactInfo(
+				parameters,
+				triSimMesh.surfaceInfo,
+				triSimMesh.pos_node_surface,
+				triSimMesh.note_node_surface,
+				triSimMesh.triMeshIndex,
+				timestep,
+				contact_pairs);
+			double newEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep, contact_pairs);
 			std::cout << std::scientific << std::setprecision(4) << "			step = "
 				<< step << "; newEnergyVal = " << newEnergyVal  << std::endl;
+
+
 			while (newEnergyVal > lastEnergyVal && step >= 1.0e-5)
 			{
 				step /= 2.0;
 
 				step_forward_ABD_triMesh(parameters, triSimMesh, current_ABD_translation, current_ABD_deformation, direction_ABD, currentPosition, step);
-				newEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep);
+				calContactInfo(
+					parameters,
+					triSimMesh.surfaceInfo,
+					triSimMesh.pos_node_surface,
+					triSimMesh.note_node_surface,
+					triSimMesh.triMeshIndex,
+					timestep,
+					contact_pairs);
+				newEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep, contact_pairs);
 				std::cout << "				step = " << step << "; newEnergyVal = "
 					<< newEnergyVal << std::endl;
 				if (std::abs(newEnergyVal - lastEnergyVal) / lastEnergyVal < 0.001) // traped in the local mimima
@@ -83,6 +116,10 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 					break;
 				}
 			}
+
+
+
+
 
 			// The energy has been greatly minimized. It is time to stop
 			if (newEnergyVal / lastEnergyVal < 0.001)
@@ -117,43 +154,44 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			triSimMesh.deformation_vel_ABD[i] = (triSimMesh.deformation_ABD[i] - triSimMesh.deformation_prev_ABD[i]) / parameters.dt;
 		}
 
+
 	}
 
 }
 
 // compute the incremental potential energy
-double compute_IP_energy_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters, int timestep)
+double compute_IP_energy_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters, int timestep, contact_Info& contact_pairs)
 {
 	double energyVal = 0;	
 
 	// initeria energy contribution per affine body
 	std::vector<Vector12d> affine_force(triSimMesh.num_meshes, Vector12d::Zero());
-	for (int i = 0; i < triSimMesh.pos_node_interior.size(); i++) // interior boundary conditions
-	{
-		if (triSimMesh.boundaryCondition_node_interior[i].type == 2)
-		{
-			Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.pos_node_Rest_interior[i].transpose());
+	//for (int i = 0; i < triSimMesh.pos_node_interior.size(); i++) // interior boundary conditions
+	//{
+	//	if (triSimMesh.boundaryCondition_node_interior[i].type == 2)
+	//	{
+	//		Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.pos_node_Rest_interior[i].transpose());
 
-			int AB_index = triSimMesh.index_node_interior[i][0];
-			Eigen::Vector3d ext_force = compute_external_force(triSimMesh.boundaryCondition_node_interior, i, timestep);
-			Vector12d affine_force_node = Jx.transpose() * ext_force;
+	//		int AB_index = triSimMesh.index_node_interior[i][0];
+	//		Eigen::Vector3d ext_force = compute_external_force(triSimMesh.boundaryCondition_node_interior, i, timestep);
+	//		Vector12d affine_force_node = Jx.transpose() * ext_force;
 
-			affine_force[AB_index] += affine_force_node;		
-		}
-	}
-	for (int i = 0; i < triSimMesh.pos_node_surface.size(); i++) // surface boundary conditions
-	{
-		if (triSimMesh.boundaryCondition_node_surface[i].type == 2)
-		{
-			Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.pos_node_Rest_surface[i].transpose());
+	//		affine_force[AB_index] += affine_force_node;		
+	//	}
+	//}
+	//for (int i = 0; i < triSimMesh.pos_node_surface.size(); i++) // surface boundary conditions
+	//{
+	//	if (triSimMesh.boundaryCondition_node_surface[i].type == 2)
+	//	{
+	//		Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.pos_node_Rest_surface[i].transpose());
 
-			int AB_index = triSimMesh.index_node_surface[i][0];
-			Eigen::Vector3d ext_force = compute_external_force(triSimMesh.boundaryCondition_node_surface, i, timestep);
-			Vector12d affine_force_node = Jx.transpose() * ext_force;
+	//		int AB_index = triSimMesh.index_node_surface[i][0];
+	//		Eigen::Vector3d ext_force = compute_external_force(triSimMesh.boundaryCondition_node_surface, i, timestep);
+	//		Vector12d affine_force_node = Jx.transpose() * ext_force;
 
-			affine_force[AB_index] += affine_force_node;
-		}
-	}
+	//		affine_force[AB_index] += affine_force_node;
+	//	}
+	//}
 	std::vector<double> AB_ine_energy_vec(triSimMesh.num_meshes,0);
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 	for (int AI = 0; AI < AB_ine_energy_vec.size(); AI++)
@@ -199,8 +237,7 @@ double compute_IP_energy_ABD_triMesh(triMesh& triSimMesh, FEMParamters& paramete
 		triSimMesh.surfaceInfo,
 		triSimMesh.pos_node_surface,
 		triSimMesh.pos_node_Rest_surface,
-		triSimMesh.note_node_surface,
-		triSimMesh.triMeshIndex,
+		contact_pairs,
 		timestep);
 
 	//std::cout << "energyVal = " << energyVal << std::endl;
@@ -215,6 +252,7 @@ void solve_linear_system_ABD_triMesh(
 	int timestep, 
 	std::vector<Vector12d>& movingDir,
 	std::map<int, std::vector<Vector6d>>& broken_objects,
+	contact_Info& contact_pairs,
 	const int& iteration)
 {
 	// we only need to update boundary vertices' position to calculate the barrier energy update
@@ -225,27 +263,17 @@ void solve_linear_system_ABD_triMesh(
 
 	// contribution from contact
 	//		calculate contacts
-	std::vector<Vector5i> PG_PG, PT_PP, PT_PE, PT_PT, EE_EE;
-	calContactInfo(parameters,
-		triSimMesh.surfaceInfo,
-		triSimMesh.pos_node_surface,
-		triSimMesh.note_node_surface,
-		triSimMesh.triMeshIndex,
-		timestep, PG_PG, PT_PP,
-		PT_PE, PT_PT, EE_EE);
-
-
-	std::cout << "			PT_PP.size() = " << PT_PP.size();
-	std::cout << "; PT_PE.size() = " << PT_PE.size();
-	std::cout << "; PT_PT.size() = " << PT_PT.size();
-	std::cout << "; EE_EE.size() = " << EE_EE.size() << std::endl;
+	std::cout << "			PT_PP.size() = " << contact_pairs.PT_PP.size();
+	std::cout << "; PT_PE.size() = " << contact_pairs.PT_PE.size();
+	std::cout << "; PT_PT.size() = " << contact_pairs.PT_PT.size();
+	std::cout << "; EE_EE.size() = " << contact_pairs.EE_EE.size() << std::endl;
 
 
 
-	int gradSize = triSimMesh.num_meshes * 12 + triSimMesh.num_meshes * 9 + PG_PG.size() * 12
-		+ PT_PP.size() * 24 + PT_PE.size() * 36 + PT_PT.size() * 48 + EE_EE.size() * 48;
-	int hessSize = triSimMesh.num_meshes * 144 + triSimMesh.num_meshes * 81 + PG_PG.size() * 144
-		+ PT_PP.size() * 144 * 4 + PT_PE.size() * 144 * 9 + PT_PT.size() * 144 * 16 + EE_EE.size() * 144 * 16;
+	int gradSize = triSimMesh.num_meshes * 12 + triSimMesh.num_meshes * 9 + contact_pairs.PG_PG.size() * 12
+		+ contact_pairs.PT_PP.size() * 24 + contact_pairs.PT_PE.size() * 36 + contact_pairs.PT_PT.size() * 48 + contact_pairs.EE_EE.size() * 48;
+	int hessSize = triSimMesh.num_meshes * 144 + triSimMesh.num_meshes * 81 + contact_pairs.PG_PG.size() * 144
+		+ contact_pairs.PT_PP.size() * 144 * 4 + contact_pairs.PT_PE.size() * 144 * 9 + contact_pairs.PT_PT.size() * 144 * 16 + contact_pairs.EE_EE.size() * 144 * 16;
 	std::vector<std::pair<int, double>> grad_triplet(gradSize, std::make_pair(0,0.0));
 	std::vector<Eigen::Triplet<double>> hessian_triplet(hessSize, Eigen::Triplet<double>(0, 0, 0.0));
 
@@ -357,7 +385,7 @@ void solve_linear_system_ABD_triMesh(
 
 
 	// calculate the barrier gradient and hessian
-	if (PG_PG.size() + PT_PP.size() + PT_PE.size() + PT_PT.size() + EE_EE.size() != 0)
+	if (contact_pairs.PG_PG.size() + contact_pairs.PT_PP.size() + contact_pairs.PT_PE.size() + contact_pairs.PT_PT.size() + contact_pairs.EE_EE.size() != 0)
 	{
 		// clear historical force
 		std::fill(triSimMesh.contactForce_node_surface.begin(), triSimMesh.contactForce_node_surface.end(), Eigen::Vector3d::Zero());
@@ -366,9 +394,9 @@ void solve_linear_system_ABD_triMesh(
 		startIndex_grad += triSimMesh.num_meshes * 9,
 			startIndex_hess += triSimMesh.num_meshes * 81;
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-		for (int i = 0; i < PG_PG.size(); i++)
+		for (int i = 0; i < contact_pairs.PG_PG.size(); i++)
 		{
-			int ptInd = PG_PG[i][1];
+			int ptInd = contact_pairs.PG_PG[i][1];
 			Eigen::Vector3d P = triSimMesh.pos_node_surface[ptInd];
 			int actualStartIndex_hess = startIndex_hess + i * 144,
 				actualStartIndex_grad = startIndex_grad + i * 12;
@@ -389,11 +417,11 @@ void solve_linear_system_ABD_triMesh(
 				true);
 		}
 
-		startIndex_grad += PG_PG.size() * 12, startIndex_hess += PG_PG.size() * 144;
+		startIndex_grad += contact_pairs.PG_PG.size() * 12, startIndex_hess += contact_pairs.PG_PG.size() * 144;
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-		for (int i = 0; i < PT_PP.size(); i++)
+		for (int i = 0; i < contact_pairs.PT_PP.size(); i++)
 		{
-			Vector5i cont_PT = PT_PP[i];
+			Vector5i cont_PT = contact_pairs.PT_PP[i];
 
 			int ptInd = cont_PT[1];
 			Eigen::Vector3d P = triSimMesh.pos_node_surface[ptInd];
@@ -427,11 +455,11 @@ void solve_linear_system_ABD_triMesh(
 
 		}
 
-		startIndex_grad += PT_PP.size() * 24, startIndex_hess += PT_PP.size() * 144 * 4;
+		startIndex_grad += contact_pairs.PT_PP.size() * 24, startIndex_hess += contact_pairs.PT_PP.size() * 144 * 4;
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-		for (int i = 0; i < PT_PE.size(); i++)
+		for (int i = 0; i < contact_pairs.PT_PE.size(); i++)
 		{
-			Vector5i cont_PT = PT_PE[i];
+			Vector5i cont_PT = contact_pairs.PT_PE[i];
 
 			int ptInd = cont_PT[1];
 			Eigen::Vector3d P = triSimMesh.pos_node_surface[ptInd];
@@ -465,11 +493,11 @@ void solve_linear_system_ABD_triMesh(
 
 		}
 
-		startIndex_grad += PT_PE.size() * 36, startIndex_hess += PT_PE.size() * 144 * 9;
+		startIndex_grad += contact_pairs.PT_PE.size() * 36, startIndex_hess += contact_pairs.PT_PE.size() * 144 * 9;
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-		for (int i = 0; i < PT_PT.size(); i++)
+		for (int i = 0; i < contact_pairs.PT_PT.size(); i++)
 		{
-			Vector5i cont_PT = PT_PT[i];
+			Vector5i cont_PT = contact_pairs.PT_PT[i];
 
 			int ptInd = cont_PT[1];
 			Eigen::Vector3d P = triSimMesh.pos_node_surface[ptInd];
@@ -503,11 +531,11 @@ void solve_linear_system_ABD_triMesh(
 
 		}
 
-		startIndex_grad += PT_PT.size() * 48, startIndex_hess += PT_PT.size() * 144 * 16;
+		startIndex_grad += contact_pairs.PT_PT.size() * 48, startIndex_hess += contact_pairs.PT_PT.size() * 144 * 16;
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-		for (int i = 0; i < EE_EE.size(); i++)
+		for (int i = 0; i < contact_pairs.EE_EE.size(); i++)
 		{
-			Vector5i cont_EE = EE_EE[i];
+			Vector5i cont_EE = contact_pairs.EE_EE[i];
 			int E1 = cont_EE[1], E2 = cont_EE[2];
 			int e1p1 = triSimMesh.surfaceInfo.index_boundaryEdge[E1][0], e1p2 = triSimMesh.surfaceInfo.index_boundaryEdge[E1][1],
 				e2p1 = triSimMesh.surfaceInfo.index_boundaryEdge[E2][0], e2p2 = triSimMesh.surfaceInfo.index_boundaryEdge[E2][1];
@@ -581,9 +609,16 @@ void solve_linear_system_ABD_triMesh(
 	//double endTime4 = omp_get_wtime();
 	//std::cout << "	Assemble grad_hess Time is : " << endTime4 - endTime3 << "s" << std::endl;
 
-	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> solver;
+
+
+	leftHandSide.makeCompressed();
+	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper, Eigen::IncompleteLUT<double>> solver;
 	solver.compute(leftHandSide);
 	Eigen::VectorXd result = solver.solve(-rightHandSide);
+	solver.setTolerance(1e-12); // 设置容差
+	solver.setMaxIterations(10000); // 设置更大的最大迭代次数
+
+	std::cout << "			Newton solver iterations: " << solver.iterations() << "; error: " << solver.error() << std::endl;
 
 	
 
