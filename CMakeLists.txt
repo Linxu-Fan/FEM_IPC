@@ -84,6 +84,7 @@ add_executable(
     src/Energy/BarrierEnergy.cpp
     src/IPC/distance.cpp
     src/IPC/CCD.cpp
+	src/IPC/AABB.cpp
     src/FormatMesh/objMesh.cpp
     src/MLS/MLS.cpp
 	src/Crack/extractCrack.cpp
@@ -95,6 +96,7 @@ add_executable(
     include/Simulator/simulator.h
     include/IPC/distance.h
     include/IPC/CCD.h
+	include/IPC/AABB.h
     include/Energy/BarrierEnergy.h
     include/Energy/ExternalEnergy.h
     include/Energy/ElasticEnergy.h
@@ -130,14 +132,14 @@ source_group("Source Files\\Simulator" FILES
     src/Simulator/simulator.cpp 
     src/Simulator/simulator_ABD.cpp
 	src/Simulator/simulator_ABD_triMesh.cpp)
-source_group("Source Files\\IPC" FILES src/IPC/distance.cpp src/IPC/CCD.cpp)
+source_group("Source Files\\IPC" FILES src/IPC/distance.cpp src/IPC/CCD.cpp src/IPC/AABB.cpp)
 source_group("Source Files\\FormatMesh" FILES src/FormatMesh/objMesh.cpp)
 source_group("Source Files\\MLS" FILES src/MLS/MLS.cpp)
 
 source_group("Header Files\\Utils" FILES include/Utils/tools.h include/Utils/utils.h)
 source_group("Header Files\\FormatMesh" FILES include/FormatMesh/objMesh.h)
 source_group("Header Files\\Simulator" FILES include/Simulator/simulator.h)
-source_group("Header Files\\IPC" FILES include/IPC/distance.h include/IPC/CCD.h)
+source_group("Header Files\\IPC" FILES include/IPC/distance.h include/IPC/CCD.h include/IPC/AABB.h)
 source_group("Header Files\\Energy" FILES 
     include/Energy/BarrierEnergy.h 
     include/Energy/ExternalEnergy.h 

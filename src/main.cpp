@@ -11,41 +11,560 @@
 
 
 
+class ThreadPool {
+public:
+	ThreadPool(size_t numThreads) : stop(false) {
+		for (size_t i = 0; i < numThreads; ++i) {
+			workers.emplace_back([this]() {
+				while (true) {
+					std::function<void()> task;
+					{
+						std::unique_lock<std::mutex> lock(queueMutex);
+						condition.wait(lock, [this]() { return stop || !tasks.empty(); });
+						if (stop && tasks.empty()) return;
+						task = std::move(tasks.front());
+						tasks.pop();
+					}
+					task();
+				}
+				});
+		}
+	}
+
+	template <typename F>
+	void enqueue(F&& task) {
+		{
+			std::unique_lock<std::mutex> lock(queueMutex);
+			if (stop) throw std::runtime_error("ThreadPool is stopped.");
+			tasks.emplace(std::forward<F>(task));
+		}
+		condition.notify_one();
+	}
+
+	~ThreadPool() {
+		{
+			std::unique_lock<std::mutex> lock(queueMutex);
+			stop = true;
+		}
+		condition.notify_all();
+		for (std::thread& worker : workers) {
+			if (worker.joinable()) worker.join();
+		}
+	}
+
+private:
+	std::vector<std::thread> workers;
+	std::queue<std::function<void()>> tasks;
+	std::mutex queueMutex;
+	std::condition_variable condition;
+	std::atomic<bool> stop;
+};
+
+
+
+
+
+struct AABB 
+{
+	Eigen::Vector3d min = Eigen::Vector3d::Ones() * 1.0e9;
+	Eigen::Vector3d max = -Eigen::Vector3d::Ones() * 1.0e9;
+	int face_index = -99;
+	Eigen::Vector3d v0 = Eigen::Vector3d::Zero();
+	Eigen::Vector3d v1 = Eigen::Vector3d::Zero();
+	Eigen::Vector3d v2 = Eigen::Vector3d::Zero();
+
+
+	void init(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector3i& face_vertices_, int index_, double dx)
+	{
+		face_index = index_;
+		v0 = pos_node_surface[face_vertices_[0]];
+		v1 = pos_node_surface[face_vertices_[0]];
+		v2 = pos_node_surface[face_vertices_[0]];
+		compute_min_max(pos_node_surface, dx);
+	}
+
+	void compute_min_max(const std::vector<Eigen::Vector3d>& pos_node_surface, double dx)
+	{
+		min = v0.cwiseMin(v1).cwiseMin(v2);
+		max = v0.cwiseMax(v1).cwiseMax(v2);
+		dilate(dx);
+	}
+
+
+	bool intersects(const AABB& other)
+	{
+		return (min.x() <= other.max.x() && max.x() >= other.min.x() &&
+			min.y() <= other.max.y() && max.y() >= other.min.y() &&
+			min.z() <= other.max.z() && max.z() >= other.min.z());
+	}
+
+	void dilate(double dx) {
+		min -= Eigen::Vector3d(dx, dx, dx);
+		max += Eigen::Vector3d(dx, dx, dx);
+	}
+};
+
+
+struct BVHNode {
+	AABB box;                
+	BVHNode* left = nullptr; 
+	BVHNode* right = nullptr; 
+	size_t depth = 0;
+
+	
+	bool isLeaf() {
+		return left == nullptr && right == nullptr;
+	}
+};
+
+
+
+BVHNode* buildBVH(const std::vector<AABB>& triangles, int start, int end, size_t depth) {
+	BVHNode* node = new BVHNode();
+	node->depth = depth;
+
+
+	if (end - start == 1) {
+		node->box = triangles[start];
+		return node;
+	}
+
+	//std::cout << "111.0" << std::endl;
+
+	//std::cout << "triangles.size() = " << triangles.size() << "; start = " << start << "; end = " << end << std::endl;
+
+
+	AABB box;
+	for (int i = start; i < end; ++i) {
+		//std::cout << "    i = " << i << std::endl;
+		box.min = box.min.cwiseMin(triangles[i].min);
+		box.max = box.max.cwiseMax(triangles[i].max);
+	}
+	node->box = box;
+
+	//std::cout << "111.1" << std::endl;
+
+
+	int axis = 0; 
+	Eigen::Vector3d size = box.max - box.min;
+	if (size.y() > size.x() && size.y() > size.z()) axis = 1; // Y ��
+	if (size.z() > size.x() && size.z() > size.y()) axis = 2; // Z ��
+
+	//std::cout << "axis = " << axis << std::endl;
+
+	std::vector<AABB> sortedTriangles(triangles.begin() + start, triangles.begin() + end);
+	std::sort(sortedTriangles.begin(), sortedTriangles.end(), [axis](const AABB& a, const AABB& b) {
+		return a.min[axis] < b.min[axis];
+		});
+
+
+
+
+
+	int mid = sortedTriangles.size() / 2;
+
+	/*std::cout << "111.2" << std::endl;
+	std::cout << "sortedTriangles.size() = " << sortedTriangles.size() <<"; mid = "<<mid<<"; end = "<< sortedTriangles.size() <<std::endl << std::endl;*/
+	node->left = buildBVH(sortedTriangles, 0, mid, depth + 1);
+	node->right = buildBVH(sortedTriangles, mid, sortedTriangles.size(), depth + 1);
+
+
+
+
+	return node;
+}
+
+
+void updateBVHLeafNodes(BVHNode* node, const std::vector<Eigen::Vector3d>& pos_node_surface, double dilation) {
+	if (!node) return;
+
+
+	if (node->isLeaf()) 
+	{
+		node->box.compute_min_max(pos_node_surface, dilation);
+		return;
+	}
+
+
+	updateBVHLeafNodes(node->left, pos_node_surface, dilation);
+	updateBVHLeafNodes(node->right, pos_node_surface, dilation);
+
+
+	node->box.min = node->left->box.min.cwiseMin(node->right->box.min);
+	node->box.max = node->left->box.max.cwiseMax(node->right->box.max);
+}
+
+
+void parallelUpdateBVH(BVHNode* root, const std::vector<Eigen::Vector3d>& pos_node_surface, double dilation) {
+	if (!root) return;
+
+	std::vector<std::thread> threads;
+	std::mutex mutex; 
+
+
+	auto task = [&](BVHNode* node) {
+		updateBVHLeafNodes(node, pos_node_surface, dilation);
+		};
+
+
+	threads.emplace_back(task, root->left);
+	threads.emplace_back(task, root->right);
+
+
+	for (auto& thread : threads) {
+		thread.join();
+	}
+}
+
+
+void queryBVH(BVHNode* nodeA, BVHNode* nodeB, std::vector<std::pair<int, int>>& results) {
+	if (!nodeA || !nodeB) return;
+
+
+	if (!nodeA->box.intersects(nodeB->box))
+	{
+		//std::cout << "Level = " << nodeA->depth << "; " << nodeB->depth << std::endl;
+		return;
+	}
+	else
+	{
+		if (nodeA->isLeaf())
+		{
+			if (nodeB->isLeaf())
+			{
+				//std::cout << "intersect = " << "(" << nodeA->triangleIndex << "," << nodeB->triangleIndex << ")";
+				//std::cout << ";add = " << "(" << nodeA << "," << nodeB << ")" << std::endl;
+				results.emplace_back(nodeA->box.face_index, nodeB->box.face_index);
+				return;
+			}
+			else
+			{
+				queryBVH(nodeA, nodeB->right, results);
+				queryBVH(nodeA, nodeB->left, results);
+			}
+		}
+		else
+		{
+			if (nodeB->isLeaf())
+			{
+				queryBVH(nodeA->right, nodeB, results);
+				queryBVH(nodeA->left, nodeB, results);
+			}
+			else
+			{
+				queryBVH(nodeA->left, nodeB->left, results);
+				queryBVH(nodeA->left, nodeB->right, results);
+				queryBVH(nodeA->right, nodeB->left, results);
+				queryBVH(nodeA->right, nodeB->right, results);
+			}
+		}
+
+	}
+
+}
+
+void count_leaf_node(BVHNode* nodeA, int& num_leaves)
+{
+	if (nodeA->isLeaf())
+	{
+		num_leaves += 1;
+
+		if (nodeA->box.face_index == 0)
+		{
+			std::cout << "min = " << nodeA->box.min.transpose() << "; max = " << nodeA->box.max.transpose() << std::endl;
+		}
+	}
+	else
+	{
+		count_leaf_node(nodeA->left, num_leaves);
+		count_leaf_node(nodeA->right, num_leaves);
+	}
+}
+
+
+
+
+
+
+
+void parallelQueryBVH(BVHNode* nodeA, BVHNode* nodeB, ThreadPool& threadPool,
+	std::vector<std::vector<std::pair<int, int>>>& localResults, int threadIndex, int maxDepth) {
+	if (!nodeA || !nodeB) return;
+
+	if (!nodeA->box.intersects(nodeB->box)) return;
+
+	if (nodeA->isLeaf() && nodeB->isLeaf()) {
+		localResults[threadIndex].emplace_back(nodeA->box.face_index, nodeB->box.face_index);
+		return;
+	}
+
+	if (maxDepth <= 0) {
+
+		if (!nodeA->isLeaf()) {
+			parallelQueryBVH(nodeA->left, nodeB, threadPool, localResults, threadIndex, maxDepth - 1);
+			parallelQueryBVH(nodeA->right, nodeB, threadPool, localResults, threadIndex, maxDepth - 1);
+		}
+		if (!nodeB->isLeaf()) {
+			parallelQueryBVH(nodeA, nodeB->left, threadPool, localResults, threadIndex, maxDepth - 1);
+			parallelQueryBVH(nodeA, nodeB->right, threadPool, localResults, threadIndex, maxDepth - 1);
+		}
+		return;
+	}
+
+
+	if (!nodeA->isLeaf()) {
+		threadPool.enqueue([=, &localResults, &threadPool]() {
+			parallelQueryBVH(nodeA->left, nodeB, threadPool, localResults, threadIndex, maxDepth - 1);
+			});
+		threadPool.enqueue([=, &localResults, &threadPool]() {
+			parallelQueryBVH(nodeA->right, nodeB, threadPool, localResults, threadIndex, maxDepth - 1);
+			});
+	}
+
+	if (!nodeB->isLeaf()) {
+		threadPool.enqueue([=, &localResults, &threadPool]() {
+			parallelQueryBVH(nodeA, nodeB->left, threadPool, localResults, threadIndex, maxDepth - 1);
+			});
+		threadPool.enqueue([=, &localResults, &threadPool]() {
+			parallelQueryBVH(nodeA, nodeB->right, threadPool, localResults, threadIndex, maxDepth - 1);
+			});
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 int main()
 {
 
-	if (0)
+	if (1)
 	{
-	
+		
+		double dilation = 0;
+
+		std::string bunny = "D:/Research/Hydrostatic_object/code/FEM_IPC/input/bunny_highRes.obj";
+		objMeshFormat bunny1;
+		bunny1.readObjFile(bunny, false);
+		std::vector<AABB> bunny1_AABBs;
+		for (size_t i = 0; i < bunny1.faces.size(); ++i) 
+		{
+			AABB aabb_;
+			aabb_.init(bunny1.vertices, bunny1.faces[i],i, dilation);
+			bunny1_AABBs.push_back(aabb_);
+		}
 
 
-		// 创建稀疏矩阵 A 和向量 b
-		Eigen::SparseMatrix<double> A(4, 4);
-		Eigen::VectorXd b(4), x;
+		std::cout << "111" << std::endl;
+		BVHNode* bunny1_root = buildBVH(bunny1_AABBs, 0, bunny1_AABBs.size(), 0);
 
-		// 填充矩阵 A 和向量 b
-		A.insert(0, 0) = 4; A.insert(0, 1) = -1; A.insert(0, 2) = 0; A.insert(0, 3) = 0;
-		A.insert(1, 0) = -1; A.insert(1, 1) = 4; A.insert(1, 2) = -1; A.insert(1, 3) = 0;
-		A.insert(2, 0) = 0; A.insert(2, 1) = -1; A.insert(2, 2) = 4; A.insert(2, 3) = -1;
-		A.insert(3, 0) = 0; A.insert(3, 1) = 0; A.insert(3, 2) = -1; A.insert(3, 3) = 3;
-		b << 15, 10, 10, 10;
+		int num_leaves = 0;
+		count_leaf_node(bunny1_root, num_leaves);
+		std::cout << "num_leaves = " << num_leaves << std::endl;
 
-		// 配置 ConjugateGradient 求解器
-		Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper, Eigen::IncompleteLUT<double>> solver;
-		solver.setTolerance(1e-12);  // 设置更严格的容差
-		solver.setMaxIterations(10000); // 增加最大迭代次数
+		std::cout << "222" << std::endl;
 
-		// 求解 Ax = b
-		solver.compute(A);
-		x = solver.solve(b);
 
-		// 输出结果
-		std::cout << "Solution x:\n" << x << std::endl;
-		std::cout << "Iterations: " << solver.iterations() << std::endl;
-		std::cout << "Error: " << solver.error() << std::endl;
 
+		objMeshFormat bunny2 = bunny1;
+		Eigen::Vector3d translation = { 3.0066,0,0 };
+		for (int i = 0; i < bunny1.vertices.size(); i++)
+		{
+			bunny2.vertices[i] = bunny1.vertices[i] + translation;
+		}
+		std::vector<AABB> bunny2_AABBs;
+		for (size_t i = 0; i < bunny2.faces.size(); ++i)
+		{
+			AABB aabb_;
+			aabb_.init(bunny2.vertices, bunny2.faces[i], i, dilation);
+			bunny2_AABBs.push_back(aabb_);
+		}
+		BVHNode* bunny2_root = buildBVH(bunny2_AABBs, 0, bunny2_AABBs.size(), 0);
+
+		std::cout << "333" << std::endl;
+
+
+		bunny1.outputFile("bunny1", -99);
+		bunny2.outputFile("bunny2", -99);
+
+		std::vector<std::pair<int, int>> results;
+
+
+		double startTime1, endTime1;
+		startTime1 = omp_get_wtime();
+
+		queryBVH(bunny1_root, bunny2_root, results);
+
+		endTime1 = omp_get_wtime();
+		std::cout << "Query Time is : " << endTime1 - startTime1 << "s" << std::endl;
+
+
+		{
+			std::ofstream outfile9("./output/collision.obj", std::ios::trunc);
+			for (int k = 0; k < bunny1.vertices.size(); k++)
+			{
+				Eigen::Vector3d scale = bunny1.vertices[k];
+				outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
+			}
+
+			for (int km = 0; km < results.size(); km++)
+			{
+				int k = results[km].first;
+				outfile9 << "f ";
+				for (int m = 0; m < bunny1.faces[k].size(); m++)
+				{
+					outfile9 << bunny1.faces[k][m] + 1 << " ";
+				}
+				outfile9 << std::endl;
+			}
+
+
+			for (int k = 0; k < bunny2.vertices.size(); k++)
+			{
+				Eigen::Vector3d scale = bunny2.vertices[k];
+				outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
+			}
+
+			for (int km = 0; km < results.size(); km++)
+			{
+				int k = results[km].second;
+				outfile9 << "f ";
+				for (int m = 0; m < bunny2.faces[k].size(); m++)
+				{
+					outfile9 << bunny2.faces[k][m] + 1 + bunny1.vertices.size() << " ";
+				}
+				outfile9 << std::endl;
+			}
+
+		
+			outfile9.close();
+		}
+
+
+		std::cout << "results = " << results.size() << std::endl;
+		{
+			std::ofstream outfile9("./output/collision.txt", std::ios::trunc);
+			for (int km = 0; km < results.size(); km++)
+			{
+				outfile9 << results[km].first << " - " << results[km].second << std::endl;
+			}
+			outfile9.close();
+		}
+
+
+
+
+
+		Eigen::Vector3d translation_2 = { -1.0,0,0 };
+		for (int i = 0; i < bunny2.vertices.size(); i++)
+		{
+			bunny2.vertices[i] = bunny2.vertices[i] + translation_2;
+		}
+
+
+
+		parallelUpdateBVH(bunny2_root, bunny2.vertices, dilation);
+
+		std::vector<std::pair<int, int>> results2;
+		queryBVH(bunny1_root, bunny2_root, results2);
+		std::cout << "results2 = " << results2.size() << std::endl;
+
+
+		{
+			std::ofstream outfile9("./output/collision2.obj", std::ios::trunc);
+			for (int k = 0; k < bunny1.vertices.size(); k++)
+			{
+				Eigen::Vector3d scale = bunny1.vertices[k];
+				outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
+			}
+
+			for (int km = 0; km < results2.size(); km++)
+			{
+				int k = results2[km].first;
+				outfile9 << "f ";
+				for (int m = 0; m < bunny1.faces[k].size(); m++)
+				{
+					outfile9 << bunny1.faces[k][m] + 1 << " ";
+				}
+				outfile9 << std::endl;
+			}
+
+
+			for (int k = 0; k < bunny2.vertices.size(); k++)
+			{
+				Eigen::Vector3d scale = bunny2.vertices[k];
+				outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
+			}
+
+			for (int km = 0; km < results2.size(); km++)
+			{
+				int k = results2[km].second;
+				outfile9 << "f ";
+				for (int m = 0; m < bunny2.faces[k].size(); m++)
+				{
+					outfile9 << bunny2.faces[k][m] + 1 + bunny1.vertices.size() << " ";
+				}
+				outfile9 << std::endl;
+			}
+
+
+			outfile9.close();
+		}
+
+
+
+
+
+
+
+
+
+
+
+		//// 定义物体 A 的顶点和面片
+		//std::vector<Eigen::Vector3d> verticesA = {
+		//	{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}
+		//};
+		//std::vector<Eigen::Vector3i> facesA = {
+		//	{0, 1, 2}, {0, 1, 3}, {0, 2, 3}, {1, 2, 3}
+		//};
+
+		//// 定义物体 B 的顶点和面片
+		//std::vector<Eigen::Vector3d> verticesB = {
+		//	{0.5, 0.5, 0.5}, {1.5, 0.5, 0.5}, {0.5, 1.5, 0.5}, {0.5, 0.5, 1.5}
+		//};
+		//std::vector<Eigen::Vector3i> facesB = {
+		//	{0, 1, 2}, {0, 1, 3}, {0, 2, 3}, {1, 2, 3}
+		//};
+
+		//// 构建 BVH
+		//RigidBody bodyA, bodyB;
+		//bodyA.bvh = buildBVH(verticesA, facesA, 0, facesA.size());
+		//bodyB.bvh = buildBVH(verticesB, facesB, 0, facesB.size());
+
+		//// 设置仿射变换
+		//bodyA.transform = Eigen::Affine3d(Eigen::Translation3d(0, 0, 0));
+		//bodyA.inverseTransform = bodyA.transform.inverse();
+
+		//bodyB.transform = Eigen::Affine3d(Eigen::Translation3d(0.25, 0.25, 0.25));
+		//bodyB.inverseTransform = bodyB.transform.inverse();
+
+		//// 碰撞检测
+		//if (checkCollision(bodyA, bodyB)) {
+		//	std::cout << "Collision detected!" << std::endl;
+		//}
+		//else {
+		//	std::cout << "No collision." << std::endl;
+		//}
 
 
 
