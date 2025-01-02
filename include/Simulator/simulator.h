@@ -10,16 +10,6 @@
 #include "mpmSimulator.h"
 
 
-struct contact_Info
-{
-	std::vector<Vector5i> PG_PG;
-	std::vector<Vector5i> PT_PP; 
-	std::vector<Vector5i> PT_PE; 
-	std::vector<Vector5i> PT_PT; 
-	std::vector<Vector5i> EE_EE;
-
-	void clear();
-};
 
 
 // compute external force excluding gravity
@@ -37,8 +27,9 @@ double compute_Barrier_energy(
 	contact_Info& contact_pairs,
 	const int timestep);
 
-// calculate the contact info: a) contact or not; b) contact type; 3) contact energy, derivative and hessian; 
+// calculate the contact info
 void calContactInfo(
+	triMesh& triSimMesh,
 	FEMParamters& parameters,
 	surface_Info& surfaceInfo,
 	const std::vector<Eigen::Vector3d>& pos_node,

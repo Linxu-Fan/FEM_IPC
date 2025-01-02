@@ -24,6 +24,7 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 		std::map<int, std::vector<Vector6d>> broken_objects;
 		contact_Info contact_pairs;
 		calContactInfo(
+			triSimMesh,
 			parameters, 
 			triSimMesh.surfaceInfo,
 			triSimMesh.pos_node_surface,
@@ -37,6 +38,12 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 		for (int ite = 0; ite < 15; ite++)
 		{
+
+			if (timestep % parameters.outputFrequency == 0)
+			{
+				//triSimMesh.exportSurfaceMesh("surfMesh", timestep);
+			}
+
 
 			std::vector<Eigen::Vector3d> currentPosition = triSimMesh.pos_node_surface;
 			std::vector<Eigen::Vector3d> current_ABD_translation = triSimMesh.translation_ABD;
@@ -53,6 +60,13 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			convert_to_position_direction_triMesh(parameters, triSimMesh, direction_ABD, position_direction);
 			double dist_to_converge = infiniteNorm(position_direction);
 
+			if (timestep == 87)
+			{
+				//std::cout << "position_direction = " << position_direction.size() << std::endl;
+				//std::cout << "position_direction = " << position_direction.size() << std::endl;
+			}
+
+
 			std::cout << std::scientific << std::setprecision(4) << "			dist_to_converge = "
 				<< dist_to_converge / parameters.dt << "m/s; threshold = " << parameters.searchResidual
 				<< "m/s" << std::endl;
@@ -66,23 +80,25 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			startTime1 = omp_get_wtime();
 
 			std::cout << "			Calculate step size;" << std::endl;
-			double step = calMaxStepSize(
+			double step = calMaxStep(
 				parameters,
 				triSimMesh.surfaceInfo,
 				position_direction,
 				triSimMesh.pos_node_surface,
 				triSimMesh.note_node_surface,
 				triSimMesh.triMeshIndex,
+				contact_pairs,
 				timestep);
 
 			endTime1 = omp_get_wtime();
-			std::cout << "Calcualte Step Size Time is : " << endTime1 - startTime1 << "s" << std::endl;
+			std::cout << "			Calcualte Step Size Time is : " << endTime1 - startTime1 << "s" << std::endl;
 
 
 			//step = 1.0;
 			std::cout << "			Step forward = " << step << std::endl;
 			step_forward_ABD_triMesh(parameters, triSimMesh, current_ABD_translation, current_ABD_deformation, direction_ABD, currentPosition, step);
 			calContactInfo(
+				triSimMesh,
 				parameters,
 				triSimMesh.surfaceInfo,
 				triSimMesh.pos_node_surface,
@@ -101,6 +117,7 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 				step_forward_ABD_triMesh(parameters, triSimMesh, current_ABD_translation, current_ABD_deformation, direction_ABD, currentPosition, step);
 				calContactInfo(
+					triSimMesh,
 					parameters,
 					triSimMesh.surfaceInfo,
 					triSimMesh.pos_node_surface,
@@ -575,7 +592,7 @@ void solve_linear_system_ABD_triMesh(
 
 
 		// check if any object will be broken
-		if (iteration == 0)
+		if (iteration == -1)
 		{
 			if_start_fracture_sim(triSimMesh, broken_objects);
 			if (broken_objects.size() != 0)

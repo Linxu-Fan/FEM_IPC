@@ -646,3 +646,175 @@ double calMaxStep_spatialHash(
 
 }
 
+
+double calMaxStep(
+    FEMParamters& parameters,
+    surface_Info& surfaceInfo,
+    const std::vector<Eigen::Vector3d>& direction,
+    const std::vector<Eigen::Vector3d>& pos_node,
+    const std::vector<std::string>& note_node,
+    std::map<std::string, int>& tetMeshIndex,
+    contact_Info& contact_pairs,
+    const int timestep)
+{
+    double dist_threshold = parameters.IPC_dis;
+    double eta = parameters.IPC_eta;
+    double step = 1.0;
+
+
+    // PT_PP maximum step
+    if (contact_pairs.PT_PP.size() != 0)
+    {
+        std::vector<double> PT_PP_Step(contact_pairs.PT_PP.size(), 1.0);
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+        for (int i = 0; i < contact_pairs.PT_PP.size(); i++)
+        {
+            int vert = contact_pairs.PT_PP[i][1], tri = contact_pairs.PT_PP[i][2];
+
+            Eigen::Vector3i triVerts = surfaceInfo.boundaryTriangles[tri];
+            Eigen::Vector3d P = pos_node[vert];
+            Eigen::Vector3d dP = direction[vert];
+            Eigen::Vector3d A = pos_node[triVerts[0]];
+            Eigen::Vector3d B = pos_node[triVerts[1]];
+            Eigen::Vector3d C = pos_node[triVerts[2]];
+            Eigen::Vector3d dA = direction[triVerts[0]];
+            Eigen::Vector3d dB = direction[triVerts[1]];
+            Eigen::Vector3d dC = direction[triVerts[2]];
+
+            if (pointTriangleCCDBroadphase(P, dP, A, dA, B, dB, C, dC, dist_threshold))
+            {
+                PT_PP_Step[i] = pointTriangleCCDNarrowphase(P, dP, A,
+                    dA, B, dB, C, dC, eta);
+            }
+        }
+        double min_PT_PP_Step = *std::min_element(PT_PP_Step.begin(), PT_PP_Step.end());
+        step = std::min(step , min_PT_PP_Step);
+    }
+
+
+    // PT_PE maximum step
+    if (contact_pairs.PT_PE.size() != 0)
+    {
+        std::vector<double> PT_PE_Step(contact_pairs.PT_PE.size(), 1.0);
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+        for (int i = 0; i < contact_pairs.PT_PE.size(); i++)
+        {
+            int vert = contact_pairs.PT_PE[i][1], tri = contact_pairs.PT_PE[i][2];
+
+            Eigen::Vector3i triVerts = surfaceInfo.boundaryTriangles[tri];
+            Eigen::Vector3d P = pos_node[vert];
+            Eigen::Vector3d dP = direction[vert];
+            Eigen::Vector3d A = pos_node[triVerts[0]];
+            Eigen::Vector3d B = pos_node[triVerts[1]];
+            Eigen::Vector3d C = pos_node[triVerts[2]];
+            Eigen::Vector3d dA = direction[triVerts[0]];
+            Eigen::Vector3d dB = direction[triVerts[1]];
+            Eigen::Vector3d dC = direction[triVerts[2]];
+
+            if (pointTriangleCCDBroadphase(P, dP, A, dA, B, dB, C, dC, dist_threshold))
+            {
+                PT_PE_Step[i] = pointTriangleCCDNarrowphase(P, dP, A,
+                    dA, B, dB, C, dC, eta);
+            }
+        }
+        double min_PT_PE_Step = *std::min_element(PT_PE_Step.begin(), PT_PE_Step.end());
+        step = std::min(step, min_PT_PE_Step);
+
+    }
+
+
+    // PT_PT maximum step
+    if (contact_pairs.PT_PT.size() != 0)
+    {
+        std::vector<double> PT_PT_Step(contact_pairs.PT_PT.size(), 1.0);
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+        for (int i = 0; i < contact_pairs.PT_PT.size(); i++)
+        {
+            int vert = contact_pairs.PT_PT[i][1], tri = contact_pairs.PT_PT[i][2];
+
+            Eigen::Vector3i triVerts = surfaceInfo.boundaryTriangles[tri];
+            Eigen::Vector3d P = pos_node[vert];
+            Eigen::Vector3d dP = direction[vert];
+            Eigen::Vector3d A = pos_node[triVerts[0]];
+            Eigen::Vector3d B = pos_node[triVerts[1]];
+            Eigen::Vector3d C = pos_node[triVerts[2]];
+            Eigen::Vector3d dA = direction[triVerts[0]];
+            Eigen::Vector3d dB = direction[triVerts[1]];
+            Eigen::Vector3d dC = direction[triVerts[2]];
+
+            if (pointTriangleCCDBroadphase(P, dP, A, dA, B, dB, C, dC, dist_threshold))
+            {
+                PT_PT_Step[i] = pointTriangleCCDNarrowphase(P, dP, A,
+                    dA, B, dB, C, dC, eta);
+            }
+        }
+        double min_PT_PT_Step = *std::min_element(PT_PT_Step.begin(), PT_PT_Step.end());
+        step = std::min(step, min_PT_PT_Step);
+    }
+
+
+    // EE_EE maximum step
+    if (contact_pairs.EE_EE.size() != 0)
+    {
+        std::vector<double> EE_EE_Step(contact_pairs.EE_EE.size(), 1.0);
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+        for (int i = 0; i < contact_pairs.EE_EE.size(); i++)
+        {
+            int edge1 = contact_pairs.EE_EE[i][1], edge2 = contact_pairs.EE_EE[i][2];
+            Eigen::Vector2i E1 = surfaceInfo.index_boundaryEdge[edge1],
+                E2 = surfaceInfo.index_boundaryEdge[edge2];
+            int P1I = E1[0], P2I = E1[1], Q1I = E2[0], Q2I = E2[1];
+
+            Eigen::Vector3d P1 = pos_node[P1I];
+            Eigen::Vector3d P2 = pos_node[P2I];
+            Eigen::Vector3d Q1 = pos_node[Q1I];
+            Eigen::Vector3d Q2 = pos_node[Q2I];
+            Eigen::Vector3d dP1 = direction[P1I];
+            Eigen::Vector3d dP2 = direction[P2I];
+            Eigen::Vector3d dQ1 = direction[Q1I];
+            Eigen::Vector3d dQ2 = direction[Q2I];
+
+            if (edgeEdgeCCDBroadphase(P1, P2, dP1, dP2,
+                Q1, Q2, dQ1, dQ2, dist_threshold))
+            {
+
+                EE_EE_Step[i] = edgeEdgeCCDNarrowphase(P1, P2, dP1,
+                    dP2, Q1, Q2, dQ1, dQ2, eta);
+
+                if (timestep == 87)
+                {
+                    std::cout << EE_EE_Step[i] << " " << std::endl;
+                }
+            }
+
+        }
+
+        std::cout << std::endl;
+        double min_EE_EE_Step = *std::min_element(EE_EE_Step.begin(), EE_EE_Step.end());
+        step = std::min(step, min_EE_EE_Step);
+    }
+  
+  
+    // PG_PG maximum step
+    if (contact_pairs.PG_PG.size() != 0)
+    {
+        std::vector<double> PG_PG_Step(contact_pairs.PG_PG.size(), 1.0);
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+        for (int i = 0; i < contact_pairs.PG_PG.size(); i++)
+        {
+            int ptInd = contact_pairs.PG_PG[i][1];
+            if (direction[ptInd][2] < 0)
+            {
+                double coor_z = pos_node[ptInd][2];
+                PG_PG_Step[i] = coor_z * (1.0 - parameters.IPC_eta) / std::abs(direction[ptInd][2]);
+            }
+        }
+
+        double min_PG_PG_Step = *std::min_element(PG_PG_Step.begin(), PG_PG_Step.end());
+        step = std::min({ step, min_PG_PG_Step });
+    }
+    
+
+    return step;
+
+}

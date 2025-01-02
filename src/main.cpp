@@ -1,5 +1,6 @@
 #include "simulator.h" 
 #include "tools.h"
+#include "AABB.h"
 
 
 
@@ -11,343 +12,11 @@
 
 
 
-class ThreadPool {
-public:
-	ThreadPool(size_t numThreads) : stop(false) {
-		for (size_t i = 0; i < numThreads; ++i) {
-			workers.emplace_back([this]() {
-				while (true) {
-					std::function<void()> task;
-					{
-						std::unique_lock<std::mutex> lock(queueMutex);
-						condition.wait(lock, [this]() { return stop || !tasks.empty(); });
-						if (stop && tasks.empty()) return;
-						task = std::move(tasks.front());
-						tasks.pop();
-					}
-					task();
-				}
-				});
-		}
-	}
-
-	template <typename F>
-	void enqueue(F&& task) {
-		{
-			std::unique_lock<std::mutex> lock(queueMutex);
-			if (stop) throw std::runtime_error("ThreadPool is stopped.");
-			tasks.emplace(std::forward<F>(task));
-		}
-		condition.notify_one();
-	}
-
-	~ThreadPool() {
-		{
-			std::unique_lock<std::mutex> lock(queueMutex);
-			stop = true;
-		}
-		condition.notify_all();
-		for (std::thread& worker : workers) {
-			if (worker.joinable()) worker.join();
-		}
-	}
-
-private:
-	std::vector<std::thread> workers;
-	std::queue<std::function<void()>> tasks;
-	std::mutex queueMutex;
-	std::condition_variable condition;
-	std::atomic<bool> stop;
-};
-
-
-
-
-
-struct AABB 
-{
-	Eigen::Vector3d min = Eigen::Vector3d::Ones() * 1.0e9;
-	Eigen::Vector3d max = -Eigen::Vector3d::Ones() * 1.0e9;
-	int face_index = -99;
-	Eigen::Vector3d v0 = Eigen::Vector3d::Zero();
-	Eigen::Vector3d v1 = Eigen::Vector3d::Zero();
-	Eigen::Vector3d v2 = Eigen::Vector3d::Zero();
-
-
-	void init(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector3i& face_vertices_, int index_, double dx)
-	{
-		face_index = index_;
-		v0 = pos_node_surface[face_vertices_[0]];
-		v1 = pos_node_surface[face_vertices_[0]];
-		v2 = pos_node_surface[face_vertices_[0]];
-		compute_min_max(pos_node_surface, dx);
-	}
-
-	void compute_min_max(const std::vector<Eigen::Vector3d>& pos_node_surface, double dx)
-	{
-		min = v0.cwiseMin(v1).cwiseMin(v2);
-		max = v0.cwiseMax(v1).cwiseMax(v2);
-		dilate(dx);
-	}
-
-
-	bool intersects(const AABB& other)
-	{
-		return (min.x() <= other.max.x() && max.x() >= other.min.x() &&
-			min.y() <= other.max.y() && max.y() >= other.min.y() &&
-			min.z() <= other.max.z() && max.z() >= other.min.z());
-	}
-
-	void dilate(double dx) {
-		min -= Eigen::Vector3d(dx, dx, dx);
-		max += Eigen::Vector3d(dx, dx, dx);
-	}
-};
-
-
-struct BVHNode {
-	AABB box;                
-	BVHNode* left = nullptr; 
-	BVHNode* right = nullptr; 
-	size_t depth = 0;
-
-	
-	bool isLeaf() {
-		return left == nullptr && right == nullptr;
-	}
-};
-
-
-
-BVHNode* buildBVH(const std::vector<AABB>& triangles, int start, int end, size_t depth) {
-	BVHNode* node = new BVHNode();
-	node->depth = depth;
-
-
-	if (end - start == 1) {
-		node->box = triangles[start];
-		return node;
-	}
-
-	//std::cout << "111.0" << std::endl;
-
-	//std::cout << "triangles.size() = " << triangles.size() << "; start = " << start << "; end = " << end << std::endl;
-
-
-	AABB box;
-	for (int i = start; i < end; ++i) {
-		//std::cout << "    i = " << i << std::endl;
-		box.min = box.min.cwiseMin(triangles[i].min);
-		box.max = box.max.cwiseMax(triangles[i].max);
-	}
-	node->box = box;
-
-	//std::cout << "111.1" << std::endl;
-
-
-	int axis = 0; 
-	Eigen::Vector3d size = box.max - box.min;
-	if (size.y() > size.x() && size.y() > size.z()) axis = 1; // Y ��
-	if (size.z() > size.x() && size.z() > size.y()) axis = 2; // Z ��
-
-	//std::cout << "axis = " << axis << std::endl;
-
-	std::vector<AABB> sortedTriangles(triangles.begin() + start, triangles.begin() + end);
-	std::sort(sortedTriangles.begin(), sortedTriangles.end(), [axis](const AABB& a, const AABB& b) {
-		return a.min[axis] < b.min[axis];
-		});
-
-
-
-
-
-	int mid = sortedTriangles.size() / 2;
-
-	/*std::cout << "111.2" << std::endl;
-	std::cout << "sortedTriangles.size() = " << sortedTriangles.size() <<"; mid = "<<mid<<"; end = "<< sortedTriangles.size() <<std::endl << std::endl;*/
-	node->left = buildBVH(sortedTriangles, 0, mid, depth + 1);
-	node->right = buildBVH(sortedTriangles, mid, sortedTriangles.size(), depth + 1);
-
-
-
-
-	return node;
-}
-
-
-void updateBVHLeafNodes(BVHNode* node, const std::vector<Eigen::Vector3d>& pos_node_surface, double dilation) {
-	if (!node) return;
-
-
-	if (node->isLeaf()) 
-	{
-		node->box.compute_min_max(pos_node_surface, dilation);
-		return;
-	}
-
-
-	updateBVHLeafNodes(node->left, pos_node_surface, dilation);
-	updateBVHLeafNodes(node->right, pos_node_surface, dilation);
-
-
-	node->box.min = node->left->box.min.cwiseMin(node->right->box.min);
-	node->box.max = node->left->box.max.cwiseMax(node->right->box.max);
-}
-
-
-void parallelUpdateBVH(BVHNode* root, const std::vector<Eigen::Vector3d>& pos_node_surface, double dilation) {
-	if (!root) return;
-
-	std::vector<std::thread> threads;
-	std::mutex mutex; 
-
-
-	auto task = [&](BVHNode* node) {
-		updateBVHLeafNodes(node, pos_node_surface, dilation);
-		};
-
-
-	threads.emplace_back(task, root->left);
-	threads.emplace_back(task, root->right);
-
-
-	for (auto& thread : threads) {
-		thread.join();
-	}
-}
-
-
-void queryBVH(BVHNode* nodeA, BVHNode* nodeB, std::vector<std::pair<int, int>>& results) {
-	if (!nodeA || !nodeB) return;
-
-
-	if (!nodeA->box.intersects(nodeB->box))
-	{
-		//std::cout << "Level = " << nodeA->depth << "; " << nodeB->depth << std::endl;
-		return;
-	}
-	else
-	{
-		if (nodeA->isLeaf())
-		{
-			if (nodeB->isLeaf())
-			{
-				//std::cout << "intersect = " << "(" << nodeA->triangleIndex << "," << nodeB->triangleIndex << ")";
-				//std::cout << ";add = " << "(" << nodeA << "," << nodeB << ")" << std::endl;
-				results.emplace_back(nodeA->box.face_index, nodeB->box.face_index);
-				return;
-			}
-			else
-			{
-				queryBVH(nodeA, nodeB->right, results);
-				queryBVH(nodeA, nodeB->left, results);
-			}
-		}
-		else
-		{
-			if (nodeB->isLeaf())
-			{
-				queryBVH(nodeA->right, nodeB, results);
-				queryBVH(nodeA->left, nodeB, results);
-			}
-			else
-			{
-				queryBVH(nodeA->left, nodeB->left, results);
-				queryBVH(nodeA->left, nodeB->right, results);
-				queryBVH(nodeA->right, nodeB->left, results);
-				queryBVH(nodeA->right, nodeB->right, results);
-			}
-		}
-
-	}
-
-}
-
-void count_leaf_node(BVHNode* nodeA, int& num_leaves)
-{
-	if (nodeA->isLeaf())
-	{
-		num_leaves += 1;
-
-		if (nodeA->box.face_index == 0)
-		{
-			std::cout << "min = " << nodeA->box.min.transpose() << "; max = " << nodeA->box.max.transpose() << std::endl;
-		}
-	}
-	else
-	{
-		count_leaf_node(nodeA->left, num_leaves);
-		count_leaf_node(nodeA->right, num_leaves);
-	}
-}
-
-
-
-
-
-
-
-void parallelQueryBVH(BVHNode* nodeA, BVHNode* nodeB, ThreadPool& threadPool,
-	std::vector<std::vector<std::pair<int, int>>>& localResults, int threadIndex, int maxDepth) {
-	if (!nodeA || !nodeB) return;
-
-	if (!nodeA->box.intersects(nodeB->box)) return;
-
-	if (nodeA->isLeaf() && nodeB->isLeaf()) {
-		localResults[threadIndex].emplace_back(nodeA->box.face_index, nodeB->box.face_index);
-		return;
-	}
-
-	if (maxDepth <= 0) {
-
-		if (!nodeA->isLeaf()) {
-			parallelQueryBVH(nodeA->left, nodeB, threadPool, localResults, threadIndex, maxDepth - 1);
-			parallelQueryBVH(nodeA->right, nodeB, threadPool, localResults, threadIndex, maxDepth - 1);
-		}
-		if (!nodeB->isLeaf()) {
-			parallelQueryBVH(nodeA, nodeB->left, threadPool, localResults, threadIndex, maxDepth - 1);
-			parallelQueryBVH(nodeA, nodeB->right, threadPool, localResults, threadIndex, maxDepth - 1);
-		}
-		return;
-	}
-
-
-	if (!nodeA->isLeaf()) {
-		threadPool.enqueue([=, &localResults, &threadPool]() {
-			parallelQueryBVH(nodeA->left, nodeB, threadPool, localResults, threadIndex, maxDepth - 1);
-			});
-		threadPool.enqueue([=, &localResults, &threadPool]() {
-			parallelQueryBVH(nodeA->right, nodeB, threadPool, localResults, threadIndex, maxDepth - 1);
-			});
-	}
-
-	if (!nodeB->isLeaf()) {
-		threadPool.enqueue([=, &localResults, &threadPool]() {
-			parallelQueryBVH(nodeA, nodeB->left, threadPool, localResults, threadIndex, maxDepth - 1);
-			});
-		threadPool.enqueue([=, &localResults, &threadPool]() {
-			parallelQueryBVH(nodeA, nodeB->right, threadPool, localResults, threadIndex, maxDepth - 1);
-			});
-	}
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int main()
 {
 
-	if (1)
+	if (0)
 	{
 		
 		double dilation = 0;
@@ -355,17 +24,38 @@ int main()
 		std::string bunny = "D:/Research/Hydrostatic_object/code/FEM_IPC/input/bunny_highRes.obj";
 		objMeshFormat bunny1;
 		bunny1.readObjFile(bunny, false);
-		std::vector<AABB> bunny1_AABBs;
+
+
+
+
+		std::vector<AABB> bunny1_AABBs(bunny1.faces.size());
 		for (size_t i = 0; i < bunny1.faces.size(); ++i) 
 		{
 			AABB aabb_;
 			aabb_.init(bunny1.vertices, bunny1.faces[i],i, dilation);
-			bunny1_AABBs.push_back(aabb_);
+			bunny1_AABBs[i] = aabb_;
 		}
 
+		double startTime1_, endTime1_;
+		startTime1_ = omp_get_wtime();
 
-		std::cout << "111" << std::endl;
+		//std::cout << "111" << std::endl;
+
 		BVHNode* bunny1_root = buildBVH(bunny1_AABBs, 0, bunny1_AABBs.size(), 0);
+
+
+		endTime1_ = omp_get_wtime();
+		std::cout << "Build BVH Time is : " << endTime1_ - startTime1_ << "s" << std::endl;
+
+
+
+
+
+
+
+
+
+
 
 		int num_leaves = 0;
 		count_leaf_node(bunny1_root, num_leaves);
@@ -1217,9 +907,11 @@ int main()
 		// Case:
 		// 0. Cube tower stress test for ABD of triMesh ABD implementation
 		// 1. Bunny test to verify the correctness of mpm simulation
-		int caseNum = 1;
+		int caseNum = 0;
 		if (caseNum == 0)
 		{
+
+			double IPC_dis = 0.01;
 
 			Material mat1;
 			mat1.density = 800;
@@ -1238,7 +930,7 @@ int main()
 			m1.filePath = "../input/cube_eq.obj";
 			m1.mesh_material = mat1;
 			m1.note = "cube_0";
-			Eigen::Vector3d trans = { 1.5, 1.5, 4.8 };
+			Eigen::Vector3d trans = { -4.5, 1.5, 1.5 };
 			m1.translation = trans;
 			m1.per_point_volume = 0.01;
 			config.push_back(m1);
@@ -1266,12 +958,12 @@ int main()
 
 
 			triMesh triSimMesh;
-			triSimMesh.createGlobalSimulationTriMesh_ABD(config);
+			triSimMesh.createGlobalSimulationTriMesh_ABD(config, IPC_dis / 2.0);
 			for (int num = 1; num < triSimMesh.translation_vel_ABD.size(); num++)
 			{
 				triSimMesh.translation_vel_ABD[num] = { 0,0,0 };
 			}
-			triSimMesh.translation_vel_ABD[0] = { 0,0,-1 };
+			triSimMesh.translation_vel_ABD[0] = { 4,0,0 };
 
 
 			std::cout << "tetSimMesh.pos_node_surface.size() = " << triSimMesh.pos_node_surface.size() << std::endl;
@@ -1282,13 +974,13 @@ int main()
 			parameters.num_timesteps = 5000;
 			parameters.numOfThreads = 12;
 			parameters.dt = 1.0e-2;
-			parameters.outputFrequency = 5;
+			parameters.outputFrequency = 1;
 			parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
 			parameters.enableGround = true;
 			parameters.searchResidual = 0.05;
 			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;
-			parameters.IPC_dis = 0.01;
+			parameters.IPC_dis = IPC_dis;
 			parameters.IPC_eta = 0.05;
 			parameters.IPC_kStiffness = 1.0e9;
 			parameters.IPC_hashSize = triSimMesh.calLargestEdgeLength() * 1.1;
@@ -1299,9 +991,12 @@ int main()
 
 			implicitFEM_ABD_triMesh(triSimMesh, parameters);
 
+			
+
 		}
 		else if (caseNum == 1)
 		{
+			double IPC_dis = 0.01;
 
 			Material mat1;
 			mat1.density = 3000;
@@ -1339,7 +1034,7 @@ int main()
 
 
 			triMesh triSimMesh;
-			triSimMesh.createGlobalSimulationTriMesh_ABD(config);
+			triSimMesh.createGlobalSimulationTriMesh_ABD(config, IPC_dis / 2.0);
 
 
 			std::cout << "tetSimMesh.pos_node_surface.size() = " << triSimMesh.pos_node_surface.size() << std::endl;
@@ -1356,7 +1051,7 @@ int main()
 			parameters.searchResidual = 0.5;
 			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;
-			parameters.IPC_dis = 0.05;
+			parameters.IPC_dis = IPC_dis;
 			parameters.IPC_eta = 0.05;
 			parameters.IPC_kStiffness = 1.0e12;
 			parameters.IPC_hashSize = triSimMesh.calLargestEdgeLength() * 1.1;

@@ -121,6 +121,110 @@ void surface_Info::updateBEInfo(std::vector<Eigen::Vector3d>& vertices, std::vec
 
 }
 
+void triMesh::build_BVH_object(double dilation)
+{
+
+#pragma omp parallel for
+	for (int ii = 0; ii < allObjects.size(); ii++)
+	{
+		// initialize face BVH
+		{
+			std::vector<AABB> obj_AABBs_face(allObjects[ii].objectSurfaceMesh.faces.size());
+			for (int jj = 0; jj < allObjects[ii].objectSurfaceMesh.faces.size(); ++jj)
+			{
+				AABB aabb_face;
+				aabb_face.init(pos_node_surface, allObjects[ii].objectSurfaceMesh.faces[jj], jj, dilation, allObjects[ii].objectSurfaceMeshes_node_start_end[0]);
+				obj_AABBs_face[jj] = aabb_face;
+				//std::cout << "aabb_face = " << aabb_face.vert_edge_face << std::endl;
+			}
+			allObjects[ii].object_BVH_faces = buildBVH(obj_AABBs_face, 0, obj_AABBs_face.size(), 0);
+		}
+
+		// initialize edge BVH
+		{
+			std::vector<AABB> obj_AABBs_edge(allObjects[ii].objectSurfaceMesh.edges.size());
+			for (int jj = 0; jj < allObjects[ii].objectSurfaceMesh.edges.size(); ++jj)
+			{
+				AABB aabb_edge;
+				aabb_edge.init(pos_node_surface, allObjects[ii].objectSurfaceMesh.edges[jj], jj, dilation, allObjects[ii].objectSurfaceMeshes_node_start_end[0]);
+				obj_AABBs_edge[jj] = aabb_edge;
+			}
+			allObjects[ii].object_BVH_edges = buildBVH(obj_AABBs_edge, 0, obj_AABBs_edge.size(), 0);
+		}
+
+		// initialize node BVH
+		{
+			std::vector<AABB> obj_AABBs_node(allObjects[ii].objectSurfaceMesh.vertices.size());
+			for (int jj = 0; jj < allObjects[ii].objectSurfaceMesh.vertices.size(); ++jj)
+			{
+				AABB aabb_node;
+				aabb_node.init(pos_node_surface, jj, dilation, allObjects[ii].objectSurfaceMeshes_node_start_end[0]);
+				obj_AABBs_node[jj] = aabb_node;
+			}
+			allObjects[ii].object_BVH_nodes = buildBVH(obj_AABBs_node, 0, obj_AABBs_node.size(), 0);
+		}
+
+	}
+
+}
+
+void triMesh::build_BVH_object_advect(double dilation, const std::vector<Eigen::Vector3d>& direction)
+{
+
+#pragma omp parallel for
+	for (int ii = 0; ii < allObjects.size(); ii++)
+	{
+		// initialize face BVH
+		{
+			std::vector<AABB> obj_AABBs_face(allObjects[ii].objectSurfaceMesh.faces.size());
+			for (int jj = 0; jj < allObjects[ii].objectSurfaceMesh.faces.size(); ++jj)
+			{
+				AABB aabb_face;
+				aabb_face.init_advect(pos_node_surface, allObjects[ii].objectSurfaceMesh.faces[jj], jj, dilation, direction, allObjects[ii].objectSurfaceMeshes_node_start_end[0]);
+				obj_AABBs_face[jj] = aabb_face;
+				//std::cout << "aabb_face = " << aabb_face.vert_edge_face << std::endl;
+			}
+			allObjects[ii].object_BVH_faces = buildBVH(obj_AABBs_face, 0, obj_AABBs_face.size(), 0);
+		}
+
+		// initialize edge BVH
+		{
+			std::vector<AABB> obj_AABBs_edge(allObjects[ii].objectSurfaceMesh.edges.size());
+			for (int jj = 0; jj < allObjects[ii].objectSurfaceMesh.edges.size(); ++jj)
+			{
+				AABB aabb_edge;
+				aabb_edge.init_advect(pos_node_surface, allObjects[ii].objectSurfaceMesh.edges[jj], jj, dilation, direction, allObjects[ii].objectSurfaceMeshes_node_start_end[0]);
+				obj_AABBs_edge[jj] = aabb_edge;
+			}
+			allObjects[ii].object_BVH_edges = buildBVH(obj_AABBs_edge, 0, obj_AABBs_edge.size(), 0);
+		}
+
+		// initialize node BVH
+		{
+			std::vector<AABB> obj_AABBs_node(allObjects[ii].objectSurfaceMesh.vertices.size());
+			for (int jj = 0; jj < allObjects[ii].objectSurfaceMesh.vertices.size(); ++jj)
+			{
+				AABB aabb_node;
+				aabb_node.init_advect(pos_node_surface, jj, dilation, direction, allObjects[ii].objectSurfaceMeshes_node_start_end[0]);
+				obj_AABBs_node[jj] = aabb_node;
+			}
+			allObjects[ii].object_BVH_nodes = buildBVH(obj_AABBs_node, 0, obj_AABBs_node.size(), 0);
+		}
+
+	}
+
+}
+
+void triMesh::update_box_corner()
+{
+#pragma omp parallel for
+	for (int ii = 0; ii < allObjects.size(); ii++)
+	{
+		allObjects[ii].min_rest = allObjects[ii].object_BVH_faces->box.min;
+		allObjects[ii].max_rest = allObjects[ii].object_BVH_faces->box.max;
+	}
+}
+
 void triMesh::clear()
 {
 	triMeshIndex.clear(); 
@@ -149,13 +253,14 @@ void triMesh::clear()
 	vol_node_interior.clear();
 }
 
-void triMesh::createGlobalSimulationTriMesh_ABD(std::vector<meshConfiguration>& configs)
+void triMesh::createGlobalSimulationTriMesh_ABD(std::vector<meshConfiguration>& configs, double dilation)
 {
 	readMeshes(configs);
 	build_surface_mesh();
 	sample_points_inside();
 	update_ABD_info();
-
+	build_BVH_object(0);
+	update_box_corner();
 }
 
 void triMesh::updateGlobalSimulationTriMesh_ABD()
@@ -230,6 +335,7 @@ void triMesh::readMeshes(std::vector<meshConfiguration>& configs)
 
 		objMeshFormat triMesh_;
 		triMesh_.readObjFile(config.filePath, false, rotation, scale, translation);
+		triMesh_.updateMesh();
 		triMesh_.initialVelocity = config.velocity;
 
 
@@ -273,8 +379,10 @@ void triMesh::build_surface_mesh()
 
 	// surface triangles
 	int countNodeNum = 0;
+	int countFaceNum = 0;
 	for (int i = 0; i < allObjects.size(); i++)
 	{
+		allObjects[i].objectSurfaceMeshes_face_start_end[0] = countFaceNum;
 		Eigen::Vector2i se_nodes = {0,0};
 		se_nodes[0] = countNodeNum;
 		for (int j = 0; j < allObjects[i].objectSurfaceMesh.faces.size(); j++)
@@ -283,9 +391,11 @@ void triMesh::build_surface_mesh()
 			face += Eigen::Vector3i::Ones() * countNodeNum;
 			surfaceMeshGlobal.faces.push_back(face);
 		}
+		countFaceNum += allObjects[i].objectSurfaceMesh.faces.size();
 		countNodeNum += allObjects[i].objectSurfaceMesh.vertices.size();
 		se_nodes[1] = countNodeNum;
 		allObjects[i].objectSurfaceMeshes_node_start_end = se_nodes;
+		allObjects[i].objectSurfaceMeshes_face_start_end[1] = countFaceNum;
 	}
 	surfaceMeshGlobal.vertices = pos_node_surface;
 

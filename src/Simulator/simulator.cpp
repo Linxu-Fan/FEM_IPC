@@ -147,6 +147,7 @@ double compute_Barrier_energy(FEMParamters& parameters,
 }
 
 void calContactInfo(
+	triMesh& triSimMesh,
 	FEMParamters& parameters,
 	surface_Info& surfaceInfo,
 	const std::vector<Eigen::Vector3d>& pos_node,
@@ -156,181 +157,162 @@ void calContactInfo(
 	contact_Info& contact_pairs)
 {
 
-	double startTime1, endTime1, endTime2;
+	double startTime1, endTime1;
 	startTime1 = omp_get_wtime();
 
 	contact_pairs.clear();
 
-	std::vector<spatialHashCellData> spatialHash_vec;
-	std::map<std::string, int> hashNameIndex;
-	std::vector<Eigen::Vector3d> direction(pos_node.size(), Eigen::Vector3d::Zero());
-	initSpatialHash(false, parameters, surfaceInfo, direction,
-		spatialHash_vec, hashNameIndex, pos_node, note_node, tetMeshIndex, timestep);
+	// update the BVH of each object
+	triSimMesh.build_BVH_object(parameters.IPC_dis / 2.0);
 
-	endTime1 = omp_get_wtime();
-	std::cout << "Spatial Hash Time is : " << endTime1 - startTime1 << "s" << std::endl;
 
-	// Step 1: find contact pairs and types
-	std::vector<std::vector<Vector5i>> cont_pair_vec(spatialHash_vec.size()); // 1st int: 0(PT), 1(EE), 2(PG); 2nd int: index of P(E1)(P: for ground contact case); 3rd int: index of T(E2); 4th int: type; 5th int: actual involved elements, i.e. PP(2), PE(3), PT(4) and EE(4)  
-#pragma omp parallel for num_threads(parameters.numOfThreads)
-	for (int y = 0; y < spatialHash_vec.size(); y++)
+	// find contact pairs between objects
+	std::vector<std::pair<int, int>> contact_objects;
+	for (int i = 0; i < triSimMesh.allObjects.size() - 1; i++)
 	{
-		std::vector<Vector5i> cont_pair;
-		for (std::set<int>::iterator itP = spatialHash_vec[y].vertIndices.begin();
-			itP != spatialHash_vec[y].vertIndices.end(); itP++)
+		for (int j = i + 1; j < triSimMesh.allObjects.size(); j++)
 		{
-			Eigen::Vector3i bottomLeftCorner = spatialHash_vec[y].bottomLeftCorner;
-			for (int xx = bottomLeftCorner[0] - 1; xx <= bottomLeftCorner[0] + 1; xx++)
+			bool intersect = triSimMesh.allObjects[i].object_BVH_faces->box.intersects(triSimMesh.allObjects[j].object_BVH_faces->box);
+			if (intersect)
 			{
-				for (int yy = bottomLeftCorner[1] - 1; yy <= bottomLeftCorner[1] + 1; yy++)
-				{
-					for (int zz = bottomLeftCorner[2] - 1; zz <= bottomLeftCorner[2] + 1; zz++)
-					{
-						Eigen::Vector3i index = { xx , yy , zz };
-						std::string ID = calculateID(index);
-						if (hashNameIndex.find(ID) != hashNameIndex.end())
-						{
-							int neigHashIndex = hashNameIndex[ID];
-							for (std::set<int>::iterator itT = spatialHash_vec[neigHashIndex].triaIndices.begin();
-								itT != spatialHash_vec[neigHashIndex].triaIndices.end(); itT++)
-							{
-								int vert = *itP, tri = *itT;
-								if (note_node[vert]
-									!= note_node[surfaceInfo.boundaryTriangles[tri][0]])
-								{
-									if (surfaceInfo.boundaryVertices[vert].find(tri)
-										== surfaceInfo.boundaryVertices[vert].end()) // this triangle is not incident with the point
-									{
-										Eigen::Vector3i triVerts = surfaceInfo.boundaryTriangles[tri];
-										Eigen::Vector3d P = pos_node[vert];
-										Eigen::Vector3d A = pos_node[triVerts[0]];
-										Eigen::Vector3d B = pos_node[triVerts[1]];
-										Eigen::Vector3d C = pos_node[triVerts[2]];
-
-										if (pointTriangleCCDBroadphase(P, A, B, C, parameters.IPC_dis))
-										{
-											int type = DIS::dType_PT(P, A, B, C);
-											double dis2 = 0;
-											DIS::computePointTriD(P, A, B, C, dis2);
-
-											if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
-											{
-												if (type <= 2)
-												{
-													Vector5i ct = { 0 , vert , tri , type, 2 };
-													cont_pair.push_back(ct);
-												}
-												else if (type > 2 && type <= 5)
-												{
-													Vector5i ct = { 0 , vert , tri , type, 3 };
-													cont_pair.push_back(ct);
-												}
-												else if (type == 6)
-												{
-													Vector5i ct = { 0 , vert , tri , type, 4 };
-													cont_pair.push_back(ct);
-												}
-											}
-										}
-									}
-								}
-
-							}
-						}
-					}
-				}
+				contact_objects.push_back(std::make_pair(i, j));
 			}
 		}
-
-		for (std::set<int>::iterator itE1 = spatialHash_vec[y].edgeIndices.begin();
-			itE1 != spatialHash_vec[y].edgeIndices.end(); itE1++)
-		{
-			Eigen::Vector3i bottomLeftCorner = spatialHash_vec[y].bottomLeftCorner;
-			for (int xx = bottomLeftCorner[0]; xx <= bottomLeftCorner[0] + 1; xx++)
-			{
-				for (int yy = bottomLeftCorner[1]; yy <= bottomLeftCorner[1] + 1; yy++)
-				{
-					for (int zz = bottomLeftCorner[2]; zz <= bottomLeftCorner[2] + 1; zz++)
-					{
-						Eigen::Vector3i index = { xx , yy , zz };
-						std::string ID = calculateID(index);
-						if (hashNameIndex.find(ID) != hashNameIndex.end())
-						{
-							int neigHashIndex = hashNameIndex[ID];
-							for (std::set<int>::iterator itE2 = spatialHash_vec[neigHashIndex].edgeIndices.begin();
-								itE2 != spatialHash_vec[neigHashIndex].edgeIndices.end(); itE2++)
-							{
-								if (*itE1 != *itE2)
-								{
-									Eigen::Vector2i E1 = surfaceInfo.index_boundaryEdge[*itE1],
-										E2 = surfaceInfo.index_boundaryEdge[*itE2];
-									int P1I = E1[0], P2I = E1[1], Q1I = E2[0], Q2I = E2[1];
-									if (note_node[P1I] != note_node[Q2I])
-									{
-										if (P1I != Q1I && P1I != Q2I && P2I != Q1I && P2I != Q2I) // not duplicated and incident edges
-										{
-											Eigen::Vector3d P1 = pos_node[P1I];
-											Eigen::Vector3d P2 = pos_node[P2I];
-											Eigen::Vector3d Q1 = pos_node[Q1I];
-											Eigen::Vector3d Q2 = pos_node[Q2I];
-
-											if (edgeEdgeCCDBroadphase(P1, P2, Q1, Q2, parameters.IPC_dis))
-											{
-												int type = DIS::dType_EE(P1, P2, Q1, Q2);
-												double dis2 = 0;
-												DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
-
-												if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
-												{
-													Vector5i ct = { 1 , *itE1 , *itE2 , type , 4 };
-													cont_pair.push_back(ct);
-												}
-											}
-										}
-									}
-
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-		cont_pair_vec[y] = cont_pair;
 	}
 
 
-	// Step 2: delete empty pairs
-	std::set<std::string> storedEEPairs;
-	for (int i = 0; i < cont_pair_vec.size(); i++)
+	// find potential contact face pair
+	std::vector<std::vector<Vector5i>> contact_pointTriangle_pair(contact_objects.size());
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+	for (int i = 0; i < contact_objects.size(); i++)
 	{
-		for (int j = 0; j < cont_pair_vec[i].size(); j++)
+		int obj_1 = contact_objects[i].first, obj_2 = contact_objects[i].second;
+		std::vector<std::pair<int, int>> result_;
+		queryBVH(triSimMesh.allObjects[obj_1].object_BVH_nodes, triSimMesh.allObjects[obj_2].object_BVH_faces, result_);
+		// convert the local mesh info to global mesh info
+		int obj_1_node_start = triSimMesh.allObjects[obj_1].objectSurfaceMeshes_node_start_end[0];
+		int obj_2_face_start = triSimMesh.allObjects[obj_2].objectSurfaceMeshes_face_start_end[0];
+
+		// compute the actual contact
+		std::vector<Vector5i> cont_pair;
+		for (int k = 0; k < result_.size(); k++)
 		{
-			if (cont_pair_vec[i][j][0] == 0)
+			int vert_global = result_[k].first + obj_1_node_start;
+			int face_global = result_[k].second + obj_2_face_start;
+
+			Eigen::Vector3i triVerts = surfaceInfo.boundaryTriangles[face_global];
+			Eigen::Vector3d P = pos_node[vert_global];
+			Eigen::Vector3d A = pos_node[triVerts[0]];
+			Eigen::Vector3d B = pos_node[triVerts[1]];
+			Eigen::Vector3d C = pos_node[triVerts[2]];
+
+
+			int type = DIS::dType_PT(P, A, B, C);
+			double dis2 = 0;
+			DIS::computePointTriD(P, A, B, C, dis2);
+
+			if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
 			{
-				if (cont_pair_vec[i][j][4] == 2)
+				if (type <= 2)
 				{
-					contact_pairs.PT_PP.push_back(cont_pair_vec[i][j]);
+					Vector5i ct = { 0 , vert_global , face_global , type, 2 };
+					cont_pair.push_back(ct);
 				}
-				else if (cont_pair_vec[i][j][4] == 3)
+				else if (type > 2 && type <= 5)
 				{
-					contact_pairs.PT_PE.push_back(cont_pair_vec[i][j]);
+					Vector5i ct = { 0 , vert_global , face_global , type, 3 };
+					cont_pair.push_back(ct);
+				}
+				else if (type == 6)
+				{
+					Vector5i ct = { 0 , vert_global , face_global , type, 4 };
+					cont_pair.push_back(ct);
+				}
+			}
+			
+
+		}
+
+		contact_pointTriangle_pair[i] = cont_pair;
+	}
+
+
+	// find potential contact edge pair
+	std::vector<std::vector<Vector5i>> contact_edgeEdge_pair(contact_objects.size());
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+	for (int i = 0; i < contact_objects.size(); i++)
+	{
+		int obj_1 = contact_objects[i].first, obj_2 = contact_objects[i].second;
+		std::vector<std::pair<int, int>> result_;
+		queryBVH(triSimMesh.allObjects[obj_1].object_BVH_edges, triSimMesh.allObjects[obj_2].object_BVH_edges, result_);
+		// convert the local mesh info to global mesh info
+		int obj_1_node_start = triSimMesh.allObjects[obj_1].objectSurfaceMeshes_node_start_end[0];
+		int obj_2_node_start = triSimMesh.allObjects[obj_2].objectSurfaceMeshes_node_start_end[0];
+
+		// compute the actual contact
+		std::vector<Vector5i> cont_pair;
+		for (int k = 0; k < result_.size(); k++)
+		{
+			Eigen::Vector2i edge1 = triSimMesh.allObjects[obj_1].objectSurfaceMesh.edges[result_[k].first] + Eigen::Vector2i::Ones() * obj_1_node_start;
+			Eigen::Vector2i edge2 = triSimMesh.allObjects[obj_2].objectSurfaceMesh.edges[result_[k].second] + Eigen::Vector2i::Ones() * obj_2_node_start;
+
+			int edge1_index = triSimMesh.surfaceInfo.boundaryEdge_index[edge1[0]][edge1[1]];
+			int edge2_index = triSimMesh.surfaceInfo.boundaryEdge_index[edge2[0]][edge2[1]];
+
+			int P1I = edge1[0], P2I = edge1[1], Q1I = edge2[0], Q2I = edge2[1];
+			Eigen::Vector3d P1 = pos_node[P1I];
+			Eigen::Vector3d P2 = pos_node[P2I];
+			Eigen::Vector3d Q1 = pos_node[Q1I];
+			Eigen::Vector3d Q2 = pos_node[Q2I];
+
+			int type = DIS::dType_EE(P1, P2, Q1, Q2);
+			double dis2 = 0;
+			DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
+
+			if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+			{
+				Vector5i ct = { 1 , edge1_index , edge2_index , type , 4 };
+				cont_pair.push_back(ct);
+			}
+		
+		}
+
+		contact_edgeEdge_pair[i] = cont_pair;
+	}
+
+
+
+	// find final actual contact pairs
+	for (int i = 0; i < contact_pointTriangle_pair.size(); i++)
+	{
+		if (contact_pointTriangle_pair[i].size() != 0)
+		{
+			for (int j = 0; j < contact_pointTriangle_pair[i].size(); j++)
+			{
+				if (contact_pointTriangle_pair[i][j][4] == 2)
+				{
+					contact_pairs.PT_PP.push_back(contact_pointTriangle_pair[i][j]);
+				}
+				else if (contact_pointTriangle_pair[i][j][4] == 3)
+				{
+					contact_pairs.PT_PE.push_back(contact_pointTriangle_pair[i][j]);
 				}
 				else
 				{
-					contact_pairs.PT_PT.push_back(cont_pair_vec[i][j]);
+					contact_pairs.PT_PT.push_back(contact_pointTriangle_pair[i][j]);
 				}
 			}
-			else
+		}		
+	}
+
+
+	for (int i = 0; i < contact_edgeEdge_pair.size(); i++)
+	{
+		if (contact_edgeEdge_pair[i].size() != 0)
+		{
+			for (int j = 0; j < contact_edgeEdge_pair[i].size(); j++)
 			{
-				std::string EEPair = std::to_string(std::min(cont_pair_vec[i][j][1],
-					cont_pair_vec[i][j][2])) + "#" + std::to_string(std::max(cont_pair_vec[i][j][1],
-						cont_pair_vec[i][j][2]));
-				if (storedEEPairs.find(EEPair) == storedEEPairs.end())
-				{
-					contact_pairs.EE_EE.push_back(cont_pair_vec[i][j]);
-					storedEEPairs.insert(EEPair);
-				}
+				contact_pairs.EE_EE.push_back(contact_edgeEdge_pair[i][j]);
 			}
 		}
 	}
@@ -352,10 +334,11 @@ void calContactInfo(
 	}
 
 
-	endTime2 = omp_get_wtime();
-	std::cout << "Contact Pairs Time is : " << endTime2 - endTime1 << "s" << std::endl;
+	endTime1 = omp_get_wtime();
+	std::cout << "			Contact Pairs Time is : " << endTime1 - startTime1 << "s" << std::endl;
 
 }
+
 
 // calculate the maximum feasible step size
 double calMaxStepSize(
@@ -460,31 +443,18 @@ double calMaxStepSize(
 	//}
 	//else // use spatial hash to calculate the actual full CCD
 	{
-		double CCD_step = calMaxStep_spatialHash(
-			parameters,
-			surfaceInfo,
-			direction,
-			pos_node,
-			note_node,
-			tetMeshIndex,
-			timestep);
-		if (parameters.enableGround == true)
-		{
-			double stepGround = 1.0;
-			for (std::map<int, std::set<int>>::iterator it = surfaceInfo.boundaryVertices.begin();
-				it != surfaceInfo.boundaryVertices.end(); it++)
-			{
-				int ptInd = it->first;
-				if (direction[ptInd][2] < 0)
-				{
-					double coor_z = pos_node[ptInd][2];
-					stepGround = std::min(stepGround, coor_z * (1.0 - parameters.IPC_eta) / std::abs(direction[ptInd][2]));
-				}
+		//double CCD_step = calMaxStep_spatialHash(
+		//	parameters,
+		//	surfaceInfo,
+		//	direction,
+		//	pos_node,
+		//	note_node,
+		//	tetMeshIndex,
+		//	timestep);
+		
 
-			}
-			CCD_step = std::min(stepGround, CCD_step);
-		}
-		return CCD_step;
+
+		return 0;
 	}
 
 }

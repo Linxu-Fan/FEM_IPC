@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "objMesh.h"
 #include "MLS.h"
+#include "AABB.h"
 
 // store key information of simulating mesh like velocity, material etc.
 struct meshConfiguration
@@ -72,7 +73,8 @@ struct ABD_Object
 	bool breakable = false;                   //
 	double volume = 0;                        //
 	double per_point_volume = 0.01;
-	Eigen::Vector2i objectSurfaceMeshes_node_start_end;  //
+	Eigen::Vector2i objectSurfaceMeshes_node_start_end = Eigen::Vector2i::Ones() * (-99);  //
+	Eigen::Vector2i objectSurfaceMeshes_face_start_end = Eigen::Vector2i::Ones() * (-99);  //
 	Eigen::Vector3d translation_prev_ABD = Eigen::Vector3d::Zero();
 	Eigen::Vector3d translation_vel_ABD = Eigen::Vector3d::Zero();
 	Eigen::Vector3d translation_ABD = Eigen::Vector3d::Zero();
@@ -80,6 +82,14 @@ struct ABD_Object
 	Eigen::Matrix3d deformation_vel_ABD = Eigen::Matrix3d::Zero();
 	Eigen::Matrix3d deformation_ABD = Eigen::Matrix3d::Identity();
 	bool need_update_rest_position = false; // update the position in the rest configuration
+
+	// box corner in the rest configuration
+	Eigen::Vector3d min_rest = Eigen::Vector3d::Ones() * 1.0e9;
+	Eigen::Vector3d max_rest = -Eigen::Vector3d::Ones() * 1.0e9;
+
+	BVHNode* object_BVH_nodes;
+	BVHNode* object_BVH_edges;
+	BVHNode* object_BVH_faces;
 
 };
 
@@ -113,6 +123,28 @@ public:
 
 
 	/**
+	 * @brief build the BVH data for this ABD object in advection mode, i.e., calculate the step size
+	 *
+	 * @param direction moving direction of the surface mesh
+	 */
+	void build_BVH_object_advect(double dilation, const std::vector<Eigen::Vector3d>& direction);
+
+
+	/**
+	 * @brief build the BVH data for this ABD object
+	 *
+	 */
+	void build_BVH_object(double dilation);
+
+
+	/**
+	 * @brief update mesh's box corner in the rest configuration
+	 *
+	 */
+	void update_box_corner();
+
+
+	/**
 	 * @brief clear all information except allObjects
 	 *
 	 */
@@ -129,7 +161,7 @@ public:
 	 * @brief create the simulation mesh the first time, i.e. from configuration file
 	 *
 	 */
-	void createGlobalSimulationTriMesh_ABD(std::vector<meshConfiguration>& configs);
+	void createGlobalSimulationTriMesh_ABD(std::vector<meshConfiguration>& configs, double dilation);
 
 
 	// read meshes from file
