@@ -334,10 +334,187 @@ void calContactInfo(
 	}
 
 
+	std::cout << "			PT_PP.size() = " << contact_pairs.PT_PP.size();
+	std::cout << "; PT_PE.size() = " << contact_pairs.PT_PE.size();
+	std::cout << "; PT_PT.size() = " << contact_pairs.PT_PT.size();
+	std::cout << "; EE_EE.size() = " << contact_pairs.EE_EE.size() << std::endl;
+
+
+	//if (timestep == 87)
+	//{
+	//	for (int h = 0; h < triSimMesh.allObjects.size(); h++)
+	//	{
+	//		triSimMesh.allObjects[h].object_BVH_faces->export_bounding_box_mesh(true, triSimMesh.allObjects[h].objectNote);
+	//	}
+	//}
+
 	endTime1 = omp_get_wtime();
 	std::cout << "			Contact Pairs Time is : " << endTime1 - startTime1 << "s" << std::endl;
 
 }
+
+
+
+
+void calContactInfo_advect(
+	triMesh& triSimMesh,
+	FEMParamters& parameters,
+	surface_Info& surfaceInfo,
+	const std::vector<Eigen::Vector3d>& pos_node,
+	const std::vector<std::string>& note_node,
+	std::map<std::string, int>& tetMeshIndex,
+	const int timestep,
+	contact_Info& contact_pairs,
+	const std::vector<Eigen::Vector3d>& moving_direction)
+{
+
+	double startTime1, endTime1;
+	startTime1 = omp_get_wtime();
+
+	contact_pairs.clear();
+
+	// update the BVH of each object
+	triSimMesh.build_BVH_object_advect(parameters.IPC_dis / 2.0, moving_direction);
+
+
+
+	// find contact pairs between objects
+	std::vector<std::pair<int, int>> contact_objects;
+	for (int i = 0; i < triSimMesh.allObjects.size() - 1; i++)
+	{
+		for (int j = i + 1; j < triSimMesh.allObjects.size(); j++)
+		{
+			bool intersect = triSimMesh.allObjects[i].object_BVH_faces->box.intersects(triSimMesh.allObjects[j].object_BVH_faces->box);
+			if (intersect)
+			{
+				contact_objects.push_back(std::make_pair(i, j));
+			}
+		}
+	}
+
+
+	// find potential contact face pair
+	std::vector<std::vector<Vector5i>> contact_pointTriangle_pair(contact_objects.size());
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+	for (int i = 0; i < contact_objects.size(); i++)
+	{
+		int obj_1 = contact_objects[i].first, obj_2 = contact_objects[i].second;
+		std::vector<std::pair<int, int>> result_;
+		queryBVH(triSimMesh.allObjects[obj_1].object_BVH_nodes, triSimMesh.allObjects[obj_2].object_BVH_faces, result_);
+		// convert the local mesh info to global mesh info
+		int obj_1_node_start = triSimMesh.allObjects[obj_1].objectSurfaceMeshes_node_start_end[0];
+		int obj_2_face_start = triSimMesh.allObjects[obj_2].objectSurfaceMeshes_face_start_end[0];
+
+		// compute the actual contact
+		std::vector<Vector5i> cont_pair;
+		for (int k = 0; k < result_.size(); k++)
+		{
+			int vert_global = result_[k].first + obj_1_node_start;
+			int face_global = result_[k].second + obj_2_face_start;
+
+			Vector5i ct = { 0 , vert_global , face_global , -99, -99 };
+			cont_pair.push_back(ct);
+		}
+
+		contact_pointTriangle_pair[i] = cont_pair;
+	}
+
+
+	// find potential contact edge pair
+	std::vector<std::vector<Vector5i>> contact_edgeEdge_pair(contact_objects.size());
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+	for (int i = 0; i < contact_objects.size(); i++)
+	{
+		int obj_1 = contact_objects[i].first, obj_2 = contact_objects[i].second;
+		std::vector<std::pair<int, int>> result_;
+		queryBVH(triSimMesh.allObjects[obj_1].object_BVH_edges, triSimMesh.allObjects[obj_2].object_BVH_edges, result_);
+		// convert the local mesh info to global mesh info
+		int obj_1_node_start = triSimMesh.allObjects[obj_1].objectSurfaceMeshes_node_start_end[0];
+		int obj_2_node_start = triSimMesh.allObjects[obj_2].objectSurfaceMeshes_node_start_end[0];
+
+		// compute the actual contact
+		std::vector<Vector5i> cont_pair;
+		for (int k = 0; k < result_.size(); k++)
+		{
+			Eigen::Vector2i edge1 = triSimMesh.allObjects[obj_1].objectSurfaceMesh.edges[result_[k].first] + Eigen::Vector2i::Ones() * obj_1_node_start;
+			Eigen::Vector2i edge2 = triSimMesh.allObjects[obj_2].objectSurfaceMesh.edges[result_[k].second] + Eigen::Vector2i::Ones() * obj_2_node_start;
+
+			int edge1_index = triSimMesh.surfaceInfo.boundaryEdge_index[edge1[0]][edge1[1]];
+			int edge2_index = triSimMesh.surfaceInfo.boundaryEdge_index[edge2[0]][edge2[1]];
+
+			Vector5i ct = { 1 , edge1_index , edge2_index , -99 , -99 };
+			cont_pair.push_back(ct);
+		}
+
+		contact_edgeEdge_pair[i] = cont_pair;
+	}
+
+
+
+	// find final actual contact pairs
+	for (int i = 0; i < contact_pointTriangle_pair.size(); i++)
+	{
+		if (contact_pointTriangle_pair[i].size() != 0)
+		{
+			for (int j = 0; j < contact_pointTriangle_pair[i].size(); j++)
+			{
+				if (contact_pointTriangle_pair[i][j][4] == 2)
+				{
+					contact_pairs.PT_PP.push_back(contact_pointTriangle_pair[i][j]);
+				}
+				else if (contact_pointTriangle_pair[i][j][4] == 3)
+				{
+					contact_pairs.PT_PE.push_back(contact_pointTriangle_pair[i][j]);
+				}
+				else
+				{
+					contact_pairs.PT_PT.push_back(contact_pointTriangle_pair[i][j]);
+				}
+			}
+		}
+	}
+
+
+	for (int i = 0; i < contact_edgeEdge_pair.size(); i++)
+	{
+		if (contact_edgeEdge_pair[i].size() != 0)
+		{
+			for (int j = 0; j < contact_edgeEdge_pair[i].size(); j++)
+			{
+				contact_pairs.EE_EE.push_back(contact_edgeEdge_pair[i][j]);
+			}
+		}
+	}
+
+
+	// Step 3: find ground contact pairs if any
+	if (parameters.enableGround == true)
+	{
+		for (int ft = 0; ft < surfaceInfo.boundaryVertices_vec.size(); ft++)
+		{
+			int ptInd = surfaceInfo.boundaryVertices_vec[ft];
+			if (pos_node[ptInd][2] <= parameters.IPC_dis)
+			{
+				Vector5i ct = { 2 , ptInd , 0 , 0 , 0 };
+				contact_pairs.PG_PG.push_back(ct);
+			}
+		}
+
+	}
+
+
+	std::cout << "			PT_PP.size() = " << contact_pairs.PT_PP.size();
+	std::cout << "; PT_PE.size() = " << contact_pairs.PT_PE.size();
+	std::cout << "; PT_PT.size() = " << contact_pairs.PT_PT.size();
+	std::cout << "; EE_EE.size() = " << contact_pairs.EE_EE.size() << std::endl;
+
+
+
+	endTime1 = omp_get_wtime();
+	std::cout << "			Contact Pairs Time is : " << endTime1 - startTime1 << "s" << std::endl;
+
+}
+
 
 
 // calculate the maximum feasible step size

@@ -38,6 +38,18 @@ void calContactInfo(
 	const int timestep,
 	contact_Info& contact_pairs);
 
+// calculate the contact info in advection mode
+void calContactInfo_advect(
+	triMesh& triSimMesh,
+	FEMParamters& parameters,
+	surface_Info& surfaceInfo,
+	const std::vector<Eigen::Vector3d>& pos_node,
+	const std::vector<std::string>& note_node,
+	std::map<std::string, int>& tetMeshIndex,
+	const int timestep,
+	contact_Info& contact_pairs,
+	const std::vector<Eigen::Vector3d>& moving_direction = {});
+
 
 // calculate the maximum feasible step size
 double calMaxStepSize(

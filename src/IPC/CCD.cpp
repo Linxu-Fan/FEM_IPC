@@ -681,11 +681,9 @@ double calMaxStep(
             Eigen::Vector3d dB = direction[triVerts[1]];
             Eigen::Vector3d dC = direction[triVerts[2]];
 
-            if (pointTriangleCCDBroadphase(P, dP, A, dA, B, dB, C, dC, dist_threshold))
-            {
-                PT_PP_Step[i] = pointTriangleCCDNarrowphase(P, dP, A,
-                    dA, B, dB, C, dC, eta);
-            }
+            PT_PP_Step[i] = pointTriangleCCDNarrowphase(P, dP, A,
+                dA, B, dB, C, dC, eta);
+
         }
         double min_PT_PP_Step = *std::min_element(PT_PP_Step.begin(), PT_PP_Step.end());
         step = std::min(step , min_PT_PP_Step);
@@ -711,11 +709,9 @@ double calMaxStep(
             Eigen::Vector3d dB = direction[triVerts[1]];
             Eigen::Vector3d dC = direction[triVerts[2]];
 
-            if (pointTriangleCCDBroadphase(P, dP, A, dA, B, dB, C, dC, dist_threshold))
-            {
-                PT_PE_Step[i] = pointTriangleCCDNarrowphase(P, dP, A,
-                    dA, B, dB, C, dC, eta);
-            }
+
+            PT_PE_Step[i] = pointTriangleCCDNarrowphase(P, dP, A,
+                dA, B, dB, C, dC, eta);
         }
         double min_PT_PE_Step = *std::min_element(PT_PE_Step.begin(), PT_PE_Step.end());
         step = std::min(step, min_PT_PE_Step);
@@ -742,11 +738,9 @@ double calMaxStep(
             Eigen::Vector3d dB = direction[triVerts[1]];
             Eigen::Vector3d dC = direction[triVerts[2]];
 
-            if (pointTriangleCCDBroadphase(P, dP, A, dA, B, dB, C, dC, dist_threshold))
-            {
-                PT_PT_Step[i] = pointTriangleCCDNarrowphase(P, dP, A,
-                    dA, B, dB, C, dC, eta);
-            }
+
+            PT_PT_Step[i] = pointTriangleCCDNarrowphase(P, dP, A,
+                dA, B, dB, C, dC, eta);
         }
         double min_PT_PT_Step = *std::min_element(PT_PT_Step.begin(), PT_PT_Step.end());
         step = std::min(step, min_PT_PT_Step);
@@ -774,22 +768,12 @@ double calMaxStep(
             Eigen::Vector3d dQ1 = direction[Q1I];
             Eigen::Vector3d dQ2 = direction[Q2I];
 
-            if (edgeEdgeCCDBroadphase(P1, P2, dP1, dP2,
-                Q1, Q2, dQ1, dQ2, dist_threshold))
-            {
 
-                EE_EE_Step[i] = edgeEdgeCCDNarrowphase(P1, P2, dP1,
-                    dP2, Q1, Q2, dQ1, dQ2, eta);
-
-                if (timestep == 87)
-                {
-                    std::cout << EE_EE_Step[i] << " " << std::endl;
-                }
-            }
+            EE_EE_Step[i] = edgeEdgeCCDNarrowphase(P1, P2, dP1,
+                dP2, Q1, Q2, dQ1, dQ2, eta);
 
         }
 
-        std::cout << std::endl;
         double min_EE_EE_Step = *std::min_element(EE_EE_Step.begin(), EE_EE_Step.end());
         step = std::min(step, min_EE_EE_Step);
     }

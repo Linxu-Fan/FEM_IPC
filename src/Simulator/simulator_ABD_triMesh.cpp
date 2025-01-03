@@ -60,11 +60,6 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			convert_to_position_direction_triMesh(parameters, triSimMesh, direction_ABD, position_direction);
 			double dist_to_converge = infiniteNorm(position_direction);
 
-			if (timestep == 87)
-			{
-				//std::cout << "position_direction = " << position_direction.size() << std::endl;
-				//std::cout << "position_direction = " << position_direction.size() << std::endl;
-			}
 
 
 			std::cout << std::scientific << std::setprecision(4) << "			dist_to_converge = "
@@ -80,6 +75,16 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			startTime1 = omp_get_wtime();
 
 			std::cout << "			Calculate step size;" << std::endl;
+			calContactInfo_advect(
+				triSimMesh,
+				parameters,
+				triSimMesh.surfaceInfo,
+				triSimMesh.pos_node_surface,
+				triSimMesh.note_node_surface,
+				triSimMesh.triMeshIndex,
+				timestep,
+				contact_pairs,
+				position_direction);
 			double step = calMaxStep(
 				parameters,
 				triSimMesh.surfaceInfo,
@@ -92,6 +97,8 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 			endTime1 = omp_get_wtime();
 			std::cout << "			Calcualte Step Size Time is : " << endTime1 - startTime1 << "s" << std::endl;
+
+
 
 
 			//step = 1.0;
@@ -280,10 +287,7 @@ void solve_linear_system_ABD_triMesh(
 
 	// contribution from contact
 	//		calculate contacts
-	std::cout << "			PT_PP.size() = " << contact_pairs.PT_PP.size();
-	std::cout << "; PT_PE.size() = " << contact_pairs.PT_PE.size();
-	std::cout << "; PT_PT.size() = " << contact_pairs.PT_PT.size();
-	std::cout << "; EE_EE.size() = " << contact_pairs.EE_EE.size() << std::endl;
+
 
 
 

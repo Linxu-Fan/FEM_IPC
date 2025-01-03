@@ -948,7 +948,7 @@ int main()
 						count += 1;
 						m1.mesh_material = mat2;
 						m1.note = "cube_" + std::to_string(count);
-						Eigen::Vector3d trans = { (double)x * 1.03, (double)y * 1.03, (double)z * 1.03 + 0.5 };
+						Eigen::Vector3d trans = { (double)x * 1.03, (double)y * 1.03, (double)z * 1.03 + 1.5 };
 						m1.translation = trans;
 						config.push_back(m1);
 					}
@@ -974,7 +974,7 @@ int main()
 			parameters.num_timesteps = 5000;
 			parameters.numOfThreads = 12;
 			parameters.dt = 1.0e-2;
-			parameters.outputFrequency = 1;
+			parameters.outputFrequency = 5;
 			parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
 			parameters.enableGround = true;
 			parameters.searchResidual = 0.05;
