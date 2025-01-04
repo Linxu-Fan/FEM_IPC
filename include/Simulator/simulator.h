@@ -29,6 +29,7 @@ double compute_Barrier_energy(
 
 // calculate the contact info
 void calContactInfo(
+	double step,
 	triMesh& triSimMesh,
 	FEMParamters& parameters,
 	surface_Info& surfaceInfo,
@@ -36,7 +37,9 @@ void calContactInfo(
 	const std::vector<std::string>& note_node,
 	std::map<std::string, int>& tetMeshIndex,
 	const int timestep,
-	contact_Info& contact_pairs);
+	contact_Info& contact_pairs,
+	const std::vector<Vector12d>& moving_direction_ABD = {},
+	const std::vector<Eigen::Vector3d>& moving_direction_pos = {});
 
 // calculate the contact info in advection mode
 void calContactInfo_advect(
@@ -60,6 +63,66 @@ double calMaxStepSize(
 	const std::vector<std::string>& note_node,
 	std::map<std::string, int>& tetMeshIndex,
 	const int timestep);
+
+
+
+/**
+ * @brief Find potential contact object pair in the bounding box level using the original bounding-box with transformation
+ *
+ * @note If in advect_mode, moving_direction is mandatory. Then the object's bounding box covers the potential moving trajectory.
+ *			   If not in advect_mode, calculate the actual bounding box with/without moving_direction
+ * 
+ * @return vector of contact pairs. 1st int: index of the first object; 2nd int: index of the second object
+ * 
+ */
+std::vector<std::pair<int, int>> find_contact_pair_BBX_level(
+	const double& dilation, 
+	triMesh& triSimMesh, 
+	const std::vector<Vector12d>& moving_direction_ABD = {});
+
+/**
+ * @brief Find potential contact object pair in the BVH level 
+ *
+ * @note If in advect_mode, moving_direction is mandatory. Then the object's bounding box covers the potential moving trajectory.
+ *			   If not in advect_mode, calculate the actual bounding box with/without moving_direction
+ *
+ * @return vector of contact pairs. 1st int: index of the first object; 2nd int: index of the second object
+ *
+ */
+std::vector<std::pair<int, int>> find_contact_pair_BVH_level(
+	const double& dilation,
+	const std::vector<std::pair<int, int>>& BBX_pair,
+	triMesh& triSimMesh,
+	const std::vector<Eigen::Vector3d>& advection_direction = {});
+
+
+/**
+ * @brief Find the exact contact pair in the finest level
+ *
+ *
+ *
+ */
+void find_contact_pair_finest_level(
+	const std::vector<std::pair<int, int>>& BVH_pair,
+	triMesh& triSimMesh,
+	FEMParamters& parameters,
+	contact_Info& contact_pairs);
+
+void find_contact_pair_finest_level_advect(
+	const std::vector<std::pair<int, int>>& BVH_pair,
+	triMesh& triSimMesh,
+	FEMParamters& parameters,
+	contact_Info& contact_pairs);
+
+
+// calculate the contact info
+void find_contact(
+	triMesh& triSimMesh,
+	FEMParamters& parameters,
+	contact_Info& contact_pairs,
+	const std::vector<Vector12d>& moving_direction_ABD = {},
+	const std::vector<Eigen::Vector3d>& moving_direction_pos = {});
+
 
 
 

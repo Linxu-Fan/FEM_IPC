@@ -61,6 +61,28 @@ public:
 };
 
 
+struct bounding_box
+{
+	Eigen::Vector3d left_front_bottom = Eigen::Vector3d::Zero();
+	Eigen::Vector3d right_front_bottom = Eigen::Vector3d::Zero();
+	Eigen::Vector3d right_back_bottom = Eigen::Vector3d::Zero();
+	Eigen::Vector3d left_back_bottom = Eigen::Vector3d::Zero();
+	Eigen::Vector3d left_front_top = Eigen::Vector3d::Zero();
+	Eigen::Vector3d right_front_top = Eigen::Vector3d::Zero();
+	Eigen::Vector3d right_back_top = Eigen::Vector3d::Zero();
+	Eigen::Vector3d left_back_top = Eigen::Vector3d::Zero();
+
+	Eigen::Vector3d min = Eigen::Vector3d::Ones() * 1.0e9;
+	Eigen::Vector3d max = -Eigen::Vector3d::Ones() * 1.0e9;
+
+	void cal_min_max(const Eigen::Matrix3d& deformation, const Eigen::Vector3d& translation, const double& dilation);
+
+	void merges(const bounding_box& other);
+
+	bool intersects(const bounding_box& other);
+};
+
+
 //////////////////////////////////////////////
 // Triangular mesh for simulation
 //////////////////////////////////////////////
@@ -83,13 +105,12 @@ struct ABD_Object
 	Eigen::Matrix3d deformation_ABD = Eigen::Matrix3d::Identity();
 	bool need_update_rest_position = false; // update the position in the rest configuration
 
-	// box corner in the rest configuration
-	Eigen::Vector3d min_rest = Eigen::Vector3d::Ones() * 1.0e9;
-	Eigen::Vector3d max_rest = -Eigen::Vector3d::Ones() * 1.0e9;
+	// Bounding box in the rest configuration
+	bounding_box BBX;
 
-	BVHNode* object_BVH_nodes;
-	BVHNode* object_BVH_edges;
-	BVHNode* object_BVH_faces;
+	BVHNode* object_BVH_nodes = nullptr;
+	BVHNode* object_BVH_edges = nullptr;
+	BVHNode* object_BVH_faces = nullptr;
 
 };
 
@@ -127,14 +148,14 @@ public:
 	 *
 	 * @param direction moving direction of the surface mesh
 	 */
-	void build_BVH_object_advect(double dilation, const std::vector<Eigen::Vector3d>& direction);
+	void build_BVH_object_advect(double dilation, const std::vector<Eigen::Vector3d>& direction,  int object_index);
 
 
 	/**
 	 * @brief build the BVH data for this ABD object
 	 *
 	 */
-	void build_BVH_object(double dilation);
+	void build_BVH_object(double dilation, int object_index);
 
 
 	/**
@@ -161,7 +182,7 @@ public:
 	 * @brief create the simulation mesh the first time, i.e. from configuration file
 	 *
 	 */
-	void createGlobalSimulationTriMesh_ABD(std::vector<meshConfiguration>& configs, double dilation);
+	void createGlobalSimulationTriMesh_ABD(std::vector<meshConfiguration>& configs);
 
 
 	// read meshes from file

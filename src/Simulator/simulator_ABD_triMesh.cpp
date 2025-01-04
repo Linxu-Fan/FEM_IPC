@@ -23,15 +23,18 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 		std::vector<Eigen::Vector3d> position_direction(triSimMesh.pos_node_surface.size(), Eigen::Vector3d::Zero());
 		std::map<int, std::vector<Vector6d>> broken_objects;
 		contact_Info contact_pairs;
-		calContactInfo(
-			triSimMesh,
-			parameters, 
-			triSimMesh.surfaceInfo,
-			triSimMesh.pos_node_surface,
-			triSimMesh.note_node_surface,
-			triSimMesh.triMeshIndex,
-			timestep,
-			contact_pairs);
+		//calContactInfo(
+		//	1.0,
+		//	triSimMesh,
+		//	parameters,
+		//	triSimMesh.surfaceInfo,
+		//	triSimMesh.pos_node_surface,
+		//	triSimMesh.note_node_surface,
+		//	triSimMesh.triMeshIndex,
+		//	timestep,
+		//	contact_pairs);
+		find_contact(triSimMesh,parameters,contact_pairs);
+
 		double lastEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep, contact_pairs);
 
 
@@ -39,9 +42,9 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 		for (int ite = 0; ite < 15; ite++)
 		{
 
-			if (timestep % parameters.outputFrequency == 0)
+			if (timestep == 87 && ite == 1)
 			{
-				//triSimMesh.exportSurfaceMesh("surfMesh", timestep);
+				triSimMesh.exportSurfaceMesh("AAA_MESH", timestep);
 			}
 
 
@@ -75,7 +78,8 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			startTime1 = omp_get_wtime();
 
 			std::cout << "			Calculate step size;" << std::endl;
-			calContactInfo_advect(
+
+/*			calContactInfo_advect(
 				triSimMesh,
 				parameters,
 				triSimMesh.surfaceInfo,
@@ -84,7 +88,9 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 				triSimMesh.triMeshIndex,
 				timestep,
 				contact_pairs,
-				position_direction);
+				position_direction);	*/		
+			find_contact(triSimMesh, parameters, contact_pairs, direction_ABD, position_direction);
+
 			double step = calMaxStep(
 				parameters,
 				triSimMesh.surfaceInfo,
@@ -101,18 +107,21 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 
 
-			//step = 1.0;
 			std::cout << "			Step forward = " << step << std::endl;
 			step_forward_ABD_triMesh(parameters, triSimMesh, current_ABD_translation, current_ABD_deformation, direction_ABD, currentPosition, step);
-			calContactInfo(
-				triSimMesh,
-				parameters,
-				triSimMesh.surfaceInfo,
-				triSimMesh.pos_node_surface,
-				triSimMesh.note_node_surface,
-				triSimMesh.triMeshIndex,
-				timestep,
-				contact_pairs);
+			//calContactInfo(
+			//	step,
+			//	triSimMesh,
+			//	parameters,
+			//	triSimMesh.surfaceInfo,
+			//	triSimMesh.pos_node_surface,
+			//	triSimMesh.note_node_surface,
+			//	triSimMesh.triMeshIndex,
+			//	timestep,
+			//	contact_pairs,
+			//	direction_ABD,
+			//	position_direction);
+			find_contact(triSimMesh, parameters, contact_pairs);
 			double newEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep, contact_pairs);
 			std::cout << std::scientific << std::setprecision(4) << "			step = "
 				<< step << "; newEnergyVal = " << newEnergyVal  << std::endl;
@@ -123,15 +132,17 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 				step /= 2.0;
 
 				step_forward_ABD_triMesh(parameters, triSimMesh, current_ABD_translation, current_ABD_deformation, direction_ABD, currentPosition, step);
-				calContactInfo(
-					triSimMesh,
-					parameters,
-					triSimMesh.surfaceInfo,
-					triSimMesh.pos_node_surface,
-					triSimMesh.note_node_surface,
-					triSimMesh.triMeshIndex,
-					timestep,
-					contact_pairs);
+				//calContactInfo(
+				//	step,
+				//	triSimMesh,
+				//	parameters,
+				//	triSimMesh.surfaceInfo,
+				//	triSimMesh.pos_node_surface,
+				//	triSimMesh.note_node_surface,
+				//	triSimMesh.triMeshIndex,
+				//	timestep,
+				//	contact_pairs);
+				find_contact(triSimMesh, parameters, contact_pairs);
 				newEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep, contact_pairs);
 				std::cout << "				step = " << step << "; newEnergyVal = "
 					<< newEnergyVal << std::endl;
@@ -146,7 +157,7 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 
 			// The energy has been greatly minimized. It is time to stop
-			if (newEnergyVal / lastEnergyVal < 0.001)
+			if (std::abs(newEnergyVal - lastEnergyVal) / lastEnergyVal < 0.001)
 			{
 				break;
 			}

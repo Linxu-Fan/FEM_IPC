@@ -8,6 +8,11 @@
 // 1. Accelerate and parallel openMP
 // 2. Decimate the generated mesh for performance
 // 3. triSimMesh.boundaryCondition_node_surface (& boundaryCondition_node_interior) is not properly handled
+// 4. find_contact_pair_BBX_level is not working
+// 5. No friction implementation
+// 6. contact_Info can be simplified
+// 7. Remove redundant functions in simulator.h
+// 8. surface_Info may not be necessary
 
 
 
@@ -930,7 +935,7 @@ int main()
 			m1.filePath = "../input/cube_eq.obj";
 			m1.mesh_material = mat1;
 			m1.note = "cube_0";
-			Eigen::Vector3d trans = { -4.5, 1.5, 1.5 };
+			Eigen::Vector3d trans = { -4.5, 1.5, 1.73 };
 			m1.translation = trans;
 			m1.per_point_volume = 0.01;
 			config.push_back(m1);
@@ -958,7 +963,7 @@ int main()
 
 
 			triMesh triSimMesh;
-			triSimMesh.createGlobalSimulationTriMesh_ABD(config, IPC_dis / 2.0);
+			triSimMesh.createGlobalSimulationTriMesh_ABD(config);
 			for (int num = 1; num < triSimMesh.translation_vel_ABD.size(); num++)
 			{
 				triSimMesh.translation_vel_ABD[num] = { 0,0,0 };
@@ -971,10 +976,10 @@ int main()
 
 			FEMParamters parameters;
 			parameters.gravity = { 0, 0, -9.8};
-			parameters.num_timesteps = 5000;
+			parameters.num_timesteps = 10089;
 			parameters.numOfThreads = 12;
 			parameters.dt = 1.0e-2;
-			parameters.outputFrequency = 5;
+			parameters.outputFrequency = 20;
 			parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
 			parameters.enableGround = true;
 			parameters.searchResidual = 0.05;
@@ -1034,7 +1039,7 @@ int main()
 
 
 			triMesh triSimMesh;
-			triSimMesh.createGlobalSimulationTriMesh_ABD(config, IPC_dis / 2.0);
+			triSimMesh.createGlobalSimulationTriMesh_ABD(config);
 
 
 			std::cout << "tetSimMesh.pos_node_surface.size() = " << triSimMesh.pos_node_surface.size() << std::endl;

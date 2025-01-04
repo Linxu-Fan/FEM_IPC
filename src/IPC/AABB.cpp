@@ -26,7 +26,7 @@ void AABB::init(const std::vector<Eigen::Vector3d>& pos_node_surface, int index_
 	compute_min_max(pos_node_surface, dx, devia);
 }
 
-void AABB::init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector3i& face_vertices_, int index_, double dx, const std::vector<Eigen::Vector3d>& direction, int devia)
+void AABB::init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector3i& face_vertices_, int index_, double dx, const std::vector<Eigen::Vector3d>& direction,int devia)
 {
 	vert_edge_face = 2;
 	index = index_;
@@ -35,7 +35,7 @@ void AABB::init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, Eig
 
 }
 
-void AABB::init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector2i& edge_vertices_, int index_, double dx, const std::vector<Eigen::Vector3d>& direction, int devia)
+void AABB::init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector2i& edge_vertices_, int index_, double dx, const std::vector<Eigen::Vector3d>& direction,int devia)
 {
 	vert_edge_face = 1;
 	index = index_;
@@ -294,6 +294,18 @@ BVHNode* buildBVH(const std::vector<AABB>& triangles, int start, int end, size_t
 
 
 	return node;
+}
+
+void deleteBVH(BVHNode* node) 
+{
+	if (node == nullptr) {
+		return; 
+	}
+
+	deleteBVH(node->left);
+	deleteBVH(node->right);
+
+	delete node;
 }
 
 void updateBVHLeafNodes(BVHNode* node, const std::vector<Eigen::Vector3d>& pos_node_surface, double dilation, int devia) {
