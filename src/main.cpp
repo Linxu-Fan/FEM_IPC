@@ -8,7 +8,7 @@
 // 1. Accelerate and parallel openMP
 // 2. Decimate the generated mesh for performance
 // 3. triSimMesh.boundaryCondition_node_surface (& boundaryCondition_node_interior) is not properly handled
-// 4. find_contact_pair_BBX_level is not working
+// 4. There are penetration occasionally
 // 5. No friction implementation
 // 6. contact_Info can be simplified
 // 7. Remove redundant functions in simulator.h
@@ -912,7 +912,7 @@ int main()
 		// Case:
 		// 0. Cube tower stress test for ABD of triMesh ABD implementation
 		// 1. Bunny test to verify the correctness of mpm simulation
-		int caseNum = 0;
+		int caseNum = 1;
 		if (caseNum == 0)
 		{
 
@@ -976,7 +976,7 @@ int main()
 
 			FEMParamters parameters;
 			parameters.gravity = { 0, 0, -9.8};
-			parameters.num_timesteps = 10089;
+			parameters.num_timesteps = 8009;
 			parameters.numOfThreads = 12;
 			parameters.dt = 1.0e-2;
 			parameters.outputFrequency = 20;
@@ -1018,17 +1018,18 @@ int main()
 			m1.mesh_material = mat1;
 			m1.note = "bunny";
 			m1.breakable = true;
-			m1.velocity = { 0,1.0,0 };
+			m1.rotation_angle = {0,0,0};
+			m1.velocity = { 0,10.0,0 };
 			m1.per_point_volume = 0.01;
 			config.push_back(m1);
 
 			meshConfiguration m2;
-			m2.filePath = "../input/cube_eq.obj";
+			m2.filePath = "../input/bunny_highRes.obj";
 			m2.mesh_material = mat1;
 			m2.note = "cube";
-			Eigen::Vector3d trans = { 0, 1.5, 0 };
+			Eigen::Vector3d trans = { 1, 2, -2 };
 			m2.translation = trans;
-			m2.velocity = {0,-20,0};
+			m2.velocity = {0,-2,0};
 			m2.breakable = false;
 			m2.per_point_volume = 0.01;
 			config.push_back(m2);
@@ -1048,12 +1049,12 @@ int main()
 			FEMParamters parameters;
 			parameters.gravity = { 0, 0, 0 };
 			parameters.num_timesteps = 10000;
-			parameters.numOfThreads = 12;
+			parameters.numOfThreads = 20;
 			parameters.dt = 1.0e-2;
-			parameters.outputFrequency = 1;
+			parameters.outputFrequency = 5;
 			parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
 			parameters.enableGround = false;
-			parameters.searchResidual = 0.5;
+			parameters.searchResidual = 0.05;
 			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;
 			parameters.IPC_dis = IPC_dis;
@@ -1061,7 +1062,7 @@ int main()
 			parameters.IPC_kStiffness = 1.0e12;
 			parameters.IPC_hashSize = triSimMesh.calLargestEdgeLength() * 1.1;
 			parameters.IPC_B3Stiffness = 500;
-			parameters.ABD_Coeff = 1.0e10;
+			parameters.ABD_Coeff = 1.0e12;
 
 
 

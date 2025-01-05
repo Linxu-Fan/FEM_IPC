@@ -27,31 +27,6 @@ double compute_Barrier_energy(
 	contact_Info& contact_pairs,
 	const int timestep);
 
-// calculate the contact info
-void calContactInfo(
-	double step,
-	triMesh& triSimMesh,
-	FEMParamters& parameters,
-	surface_Info& surfaceInfo,
-	const std::vector<Eigen::Vector3d>& pos_node,
-	const std::vector<std::string>& note_node,
-	std::map<std::string, int>& tetMeshIndex,
-	const int timestep,
-	contact_Info& contact_pairs,
-	const std::vector<Vector12d>& moving_direction_ABD = {},
-	const std::vector<Eigen::Vector3d>& moving_direction_pos = {});
-
-// calculate the contact info in advection mode
-void calContactInfo_advect(
-	triMesh& triSimMesh,
-	FEMParamters& parameters,
-	surface_Info& surfaceInfo,
-	const std::vector<Eigen::Vector3d>& pos_node,
-	const std::vector<std::string>& note_node,
-	std::map<std::string, int>& tetMeshIndex,
-	const int timestep,
-	contact_Info& contact_pairs,
-	const std::vector<Eigen::Vector3d>& moving_direction = {});
 
 
 // calculate the maximum feasible step size
@@ -97,23 +72,19 @@ std::vector<std::pair<int, int>> find_contact_pair_BVH_level(
 	const std::vector<Eigen::Vector3d>& advection_direction = {});
 
 
-/**
- * @brief Find the exact contact pair in the finest level
- *
- *
- *
- */
-void find_contact_pair_finest_level(
+void find_contact_pair_element_level(
 	const std::vector<std::pair<int, int>>& BVH_pair,
 	triMesh& triSimMesh,
 	FEMParamters& parameters,
 	contact_Info& contact_pairs);
 
-void find_contact_pair_finest_level_advect(
-	const std::vector<std::pair<int, int>>& BVH_pair,
+
+
+void find_contact_pair_IPC_level(
 	triMesh& triSimMesh,
 	FEMParamters& parameters,
 	contact_Info& contact_pairs);
+
 
 
 // calculate the contact info

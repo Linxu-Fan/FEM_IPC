@@ -31,13 +31,6 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 		for (int ite = 0; ite < 15; ite++)
 		{
-
-			if (timestep == 87 && ite == 1)
-			{
-				triSimMesh.exportSurfaceMesh("AAA_MESH", timestep);
-			}
-
-
 			std::vector<Eigen::Vector3d> currentPosition = triSimMesh.pos_node_surface;
 			std::vector<Eigen::Vector3d> current_ABD_translation = triSimMesh.translation_ABD;
 			std::vector<Eigen::Matrix3d> current_ABD_deformation = triSimMesh.deformation_ABD;
@@ -83,13 +76,11 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 				timestep);
 
 			endTime1 = omp_get_wtime();
-			std::cout << "			Calcualte Step Size Time is : " << endTime1 - startTime1 << "s" << std::endl;
-
-
 
 
 			std::cout << "			Step forward = " << step << std::endl;
 			step_forward_ABD_triMesh(parameters, triSimMesh, current_ABD_translation, current_ABD_deformation, direction_ABD, currentPosition, step);
+			//find_contact_pair_IPC_level(triSimMesh, parameters, contact_pairs);
 			find_contact(triSimMesh, parameters, contact_pairs);
 			double newEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep, contact_pairs);
 			std::cout << std::scientific << std::setprecision(4) << "			step = "
@@ -112,7 +103,7 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			}
 
 			// The energy has been greatly minimized. It is time to stop
-			if (std::abs(newEnergyVal - lastEnergyVal) / lastEnergyVal < 0.001)
+			if (std::abs(newEnergyVal) / lastEnergyVal < 0.0001)
 			{
 				break;
 			}
@@ -600,6 +591,7 @@ void solve_linear_system_ABD_triMesh(
 
 	leftHandSide.makeCompressed();
 	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper, Eigen::IncompleteLUT<double>> solver;
+	//Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> solver;
 	solver.compute(leftHandSide);
 	Eigen::VectorXd result = solver.solve(-rightHandSide);
 	solver.setTolerance(1e-12); // 设置容差
