@@ -28,6 +28,7 @@ public:
 
 	// data structure specialized for ABD
 	std::vector<Matrix12d> massMatrix_ABD; // the mass matrix of each mesh if in ABD mode
+	std::vector<Vector12d> affine;
 	std::vector<Eigen::Vector3d> translation_prev_ABD; // translation of each mesh in previous timestep if in ABD mode
 	std::vector<Eigen::Vector3d> translation_vel_ABD; // translation velocity
 	std::vector<Eigen::Vector3d> translation_ABD; // translation of each mesh if in ABD mode
@@ -75,11 +76,17 @@ struct bounding_box
 	Eigen::Vector3d min = Eigen::Vector3d::Ones() * 1.0e9;
 	Eigen::Vector3d max = -Eigen::Vector3d::Ones() * 1.0e9;
 
-	void cal_min_max(const Eigen::Matrix3d& deformation, const Eigen::Vector3d& translation, const double& dilation);
+
+	void cal_min_max_ABD(const Vector12d& affine, const double& dilation);
 
 	void merges(const bounding_box& other);
 
 	bool intersects(const bounding_box& other);
+
+	void export_BBX_rest(std::string fileName);
+
+	void export_BBX_world(std::string fileName);
+
 };
 
 
@@ -97,6 +104,7 @@ struct ABD_Object
 	double per_point_volume = 0.01;
 	Eigen::Vector2i objectSurfaceMeshes_node_start_end = Eigen::Vector2i::Ones() * (-99);  //
 	Eigen::Vector2i objectSurfaceMeshes_face_start_end = Eigen::Vector2i::Ones() * (-99);  //
+	Vector12d affine = Vector12d::Zero();
 	Eigen::Vector3d translation_prev_ABD = Eigen::Vector3d::Zero();
 	Eigen::Vector3d translation_vel_ABD = Eigen::Vector3d::Zero();
 	Eigen::Vector3d translation_ABD = Eigen::Vector3d::Zero();

@@ -1,15 +1,15 @@
 #include "mesh.h"
 
-void bounding_box::cal_min_max(const Eigen::Matrix3d& deformation, const Eigen::Vector3d& translation, const double& dilation)
+void bounding_box::cal_min_max_ABD(const Vector12d& affine, const double& dilation)
 {
-	Eigen::Vector3d left_front_bottom_ = deformation * left_front_bottom + translation;
-	Eigen::Vector3d right_front_bottom_ = deformation * right_front_bottom + translation;
-	Eigen::Vector3d right_back_bottom_ = deformation * right_back_bottom + translation;
-	Eigen::Vector3d left_back_bottom_ = deformation * left_back_bottom + translation;
-	Eigen::Vector3d left_front_top_ = deformation * left_front_top + translation;
-	Eigen::Vector3d right_front_top_ = deformation * right_front_top + translation;
-	Eigen::Vector3d right_back_top_ = deformation * right_back_top + translation;
-	Eigen::Vector3d left_back_top_ = deformation * left_back_top + translation;
+	Eigen::Vector3d left_front_bottom_ = build_Jx_matrix_for_ABD(left_front_bottom) * affine;
+	Eigen::Vector3d right_front_bottom_ = build_Jx_matrix_for_ABD(right_front_bottom) * affine;
+	Eigen::Vector3d right_back_bottom_ = build_Jx_matrix_for_ABD(right_back_bottom) * affine;
+	Eigen::Vector3d left_back_bottom_ = build_Jx_matrix_for_ABD(left_back_bottom) * affine;
+	Eigen::Vector3d left_front_top_ = build_Jx_matrix_for_ABD(left_front_top) * affine;
+	Eigen::Vector3d right_front_top_ = build_Jx_matrix_for_ABD(right_front_top) * affine;
+	Eigen::Vector3d right_back_top_ = build_Jx_matrix_for_ABD(right_back_top) * affine;
+	Eigen::Vector3d left_back_top_ = build_Jx_matrix_for_ABD(left_back_top) * affine;
 
 	Eigen::Vector3d min1 = left_front_bottom_.cwiseMin(right_front_bottom_).cwiseMin(right_back_bottom_).cwiseMin(left_back_bottom_);
 	Eigen::Vector3d max1 = left_front_bottom_.cwiseMax(right_front_bottom_).cwiseMax(right_back_bottom_).cwiseMax(left_back_bottom_);
@@ -22,7 +22,6 @@ void bounding_box::cal_min_max(const Eigen::Matrix3d& deformation, const Eigen::
 
 	min -= Eigen::Vector3d(dilation, dilation, dilation);
 	max += Eigen::Vector3d(dilation, dilation, dilation);
-
 }
 
 void bounding_box::merges(const bounding_box& other)
@@ -36,6 +35,79 @@ bool bounding_box::intersects(const bounding_box& other)
 	return (min.x() <= other.max.x() && max.x() >= other.min.x() &&
 		min.y() <= other.max.y() && max.y() >= other.min.y() &&
 		min.z() <= other.max.z() && max.z() >= other.min.z());
+}
+
+void bounding_box::export_BBX_rest(std::string fileName)
+{
+	std::ofstream outfile9("./output/" + fileName + ".obj", std::ios::trunc);
+
+	outfile9 << std::scientific << std::setprecision(8) << "v " << left_front_bottom[0] << " " << left_front_bottom[1] << " " << left_front_bottom[2] << std::endl;
+	outfile9 << std::scientific << std::setprecision(8) << "v " << right_front_bottom[0] << " " << right_front_bottom[1] << " " << right_front_bottom[2] << std::endl;
+	outfile9 << std::scientific << std::setprecision(8) << "v " << right_back_bottom[0] << " " << right_back_bottom[1] << " " << right_back_bottom[2] << std::endl;
+	outfile9 << std::scientific << std::setprecision(8) << "v " << left_back_bottom[0] << " " << left_back_bottom[1] << " " << left_back_bottom[2] << std::endl;
+	outfile9 << std::scientific << std::setprecision(8) << "v " << left_front_top[0] << " " << left_front_top[1] << " " << left_front_top[2] << std::endl;
+	outfile9 << std::scientific << std::setprecision(8) << "v " << right_front_top[0] << " " << right_front_top[1] << " " << right_front_top[2] << std::endl;
+	outfile9 << std::scientific << std::setprecision(8) << "v " << right_back_top[0] << " " << right_back_top[1] << " " << right_back_top[2] << std::endl;
+	outfile9 << std::scientific << std::setprecision(8) << "v " << left_back_top[0] << " " << left_back_top[1] << " " << left_back_top[2] << std::endl;
+
+	outfile9 << "l 1 2" << std::endl;
+	outfile9 << "l 2 3" << std::endl;
+	outfile9 << "l 3 4" << std::endl;
+	outfile9 << "l 4 1" << std::endl;
+	outfile9 << "l 5 6" << std::endl;
+	outfile9 << "l 6 7" << std::endl;
+	outfile9 << "l 7 8" << std::endl;
+	outfile9 << "l 8 5" << std::endl;
+	outfile9 << "l 1 5" << std::endl;
+	outfile9 << "l 2 6" << std::endl;
+	outfile9 << "l 3 7" << std::endl;
+	outfile9 << "l 4 8" << std::endl;
+
+	outfile9.close();
+}
+
+void bounding_box::export_BBX_world(std::string fileName)
+{
+	std::ofstream outfile9("./output/" + fileName + ".obj", std::ios::trunc);
+
+
+	Eigen::Vector3d dxyz = max - min;
+	double dx = dxyz[0], dy = dxyz[1], dz = dxyz[2];
+
+	Eigen::Vector3d v1 = {min[0], min[1], min[2]};
+	Eigen::Vector3d v2 = {min[0] + dx, min[1], min[2]};
+	Eigen::Vector3d v3 = {min[0] + dx, min[1] + dy, min[2]};
+	Eigen::Vector3d v4 = {min[0], min[1] + dy, min[2]};
+	Eigen::Vector3d v5 = {min[0], min[1], min[2] + dz};
+	Eigen::Vector3d v6 = {min[0] + dx, min[1], min[2] + dz };
+	Eigen::Vector3d v7 = {min[0] + dx, min[1] + dy, min[2] + dz };
+	Eigen::Vector3d v8 = {min[0], min[1] + dy, min[2] + dz };
+
+
+
+	outfile9 << std::scientific << std::setprecision(8) << "v " << v1[0] << " " << v1[1] << " " << v1[2] << std::endl;
+	outfile9 << std::scientific << std::setprecision(8) << "v " << v2[0] << " " << v2[1] << " " << v2[2] << std::endl;
+	outfile9 << std::scientific << std::setprecision(8) << "v " << v3[0] << " " << v3[1] << " " << v3[2] << std::endl;
+	outfile9 << std::scientific << std::setprecision(8) << "v " << v4[0] << " " << v4[1] << " " << v4[2] << std::endl;
+	outfile9 << std::scientific << std::setprecision(8) << "v " << v5[0] << " " << v5[1] << " " << v5[2] << std::endl;
+	outfile9 << std::scientific << std::setprecision(8) << "v " << v6[0] << " " << v6[1] << " " << v6[2] << std::endl;
+	outfile9 << std::scientific << std::setprecision(8) << "v " << v7[0] << " " << v7[1] << " " << v7[2] << std::endl;
+	outfile9 << std::scientific << std::setprecision(8) << "v " << v8[0] << " " << v8[1] << " " << v8[2] << std::endl;
+
+	outfile9 << "l 1 2" << std::endl;
+	outfile9 << "l 2 3" << std::endl;
+	outfile9 << "l 3 4" << std::endl;
+	outfile9 << "l 4 1" << std::endl;
+	outfile9 << "l 5 6" << std::endl;
+	outfile9 << "l 6 7" << std::endl;
+	outfile9 << "l 7 8" << std::endl;
+	outfile9 << "l 8 5" << std::endl;
+	outfile9 << "l 1 5" << std::endl;
+	outfile9 << "l 2 6" << std::endl;
+	outfile9 << "l 3 7" << std::endl;
+	outfile9 << "l 4 8" << std::endl;
+
+	outfile9.close();
 }
 
 void surface_Info::updateBEInfo(std::vector<Eigen::Vector3d>& vertices, std::vector<Eigen::Vector3i>& faces)
@@ -407,6 +479,12 @@ void triMesh::readMeshes(std::vector<meshConfiguration>& configs)
 		obj_.objectSurfaceMesh = triMesh_;
 		obj_.objectSurfaceMesh.updateVolume();
 		obj_.translation_vel_ABD = config.velocity;
+
+		obj_.affine.block(0, 0, 3, 1) = config.velocity;
+		obj_.affine[3] = 1.0;
+		obj_.affine[6] = 1.0;
+		obj_.affine[9] = 1.0;
+
 		obj_.per_point_volume = config.per_point_volume;
 		allObjects.push_back(obj_);
 
@@ -517,6 +595,7 @@ void triMesh::update_ABD_info()
 	}
 	for (int i = 0; i < allObjects.size(); i++)
 	{
+		affine.push_back(allObjects[i].affine);
 		translation_prev_ABD.push_back(allObjects[i].translation_prev_ABD);
 		translation_vel_ABD.push_back(allObjects[i].translation_vel_ABD);
 		translation_ABD.push_back(allObjects[i].translation_ABD);

@@ -93,6 +93,7 @@ std::vector<std::pair<int, int>> find_contact_pair_BVH_level(
 	const double& dilation,
 	const std::vector<std::pair<int, int>>& BBX_pair,
 	triMesh& triSimMesh,
+	std::vector<int>& BVH_objects,
 	const std::vector<Eigen::Vector3d>& advection_direction = {});
 
 

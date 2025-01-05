@@ -23,16 +23,6 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 		std::vector<Eigen::Vector3d> position_direction(triSimMesh.pos_node_surface.size(), Eigen::Vector3d::Zero());
 		std::map<int, std::vector<Vector6d>> broken_objects;
 		contact_Info contact_pairs;
-		//calContactInfo(
-		//	1.0,
-		//	triSimMesh,
-		//	parameters,
-		//	triSimMesh.surfaceInfo,
-		//	triSimMesh.pos_node_surface,
-		//	triSimMesh.note_node_surface,
-		//	triSimMesh.triMeshIndex,
-		//	timestep,
-		//	contact_pairs);
 		find_contact(triSimMesh,parameters,contact_pairs);
 
 		double lastEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep, contact_pairs);
@@ -79,16 +69,7 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 			std::cout << "			Calculate step size;" << std::endl;
 
-/*			calContactInfo_advect(
-				triSimMesh,
-				parameters,
-				triSimMesh.surfaceInfo,
-				triSimMesh.pos_node_surface,
-				triSimMesh.note_node_surface,
-				triSimMesh.triMeshIndex,
-				timestep,
-				contact_pairs,
-				position_direction);	*/		
+
 			find_contact(triSimMesh, parameters, contact_pairs, direction_ABD, position_direction);
 
 			double step = calMaxStep(
@@ -109,18 +90,6 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 			std::cout << "			Step forward = " << step << std::endl;
 			step_forward_ABD_triMesh(parameters, triSimMesh, current_ABD_translation, current_ABD_deformation, direction_ABD, currentPosition, step);
-			//calContactInfo(
-			//	step,
-			//	triSimMesh,
-			//	parameters,
-			//	triSimMesh.surfaceInfo,
-			//	triSimMesh.pos_node_surface,
-			//	triSimMesh.note_node_surface,
-			//	triSimMesh.triMeshIndex,
-			//	timestep,
-			//	contact_pairs,
-			//	direction_ABD,
-			//	position_direction);
 			find_contact(triSimMesh, parameters, contact_pairs);
 			double newEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep, contact_pairs);
 			std::cout << std::scientific << std::setprecision(4) << "			step = "
@@ -132,16 +101,6 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 				step /= 2.0;
 
 				step_forward_ABD_triMesh(parameters, triSimMesh, current_ABD_translation, current_ABD_deformation, direction_ABD, currentPosition, step);
-				//calContactInfo(
-				//	step,
-				//	triSimMesh,
-				//	parameters,
-				//	triSimMesh.surfaceInfo,
-				//	triSimMesh.pos_node_surface,
-				//	triSimMesh.note_node_surface,
-				//	triSimMesh.triMeshIndex,
-				//	timestep,
-				//	contact_pairs);
 				find_contact(triSimMesh, parameters, contact_pairs);
 				newEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep, contact_pairs);
 				std::cout << "				step = " << step << "; newEnergyVal = "
@@ -151,10 +110,6 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 					break;
 				}
 			}
-
-
-
-
 
 			// The energy has been greatly minimized. It is time to stop
 			if (std::abs(newEnergyVal - lastEnergyVal) / lastEnergyVal < 0.001)
@@ -680,6 +635,8 @@ void step_forward_ABD_triMesh(FEMParamters& parameters, triMesh& triSimMesh, std
 		trial_ABD_deformation.col(2) = ABD_direction[vI].block(9, 0, 3, 1);
 
 		triSimMesh.deformation_ABD[vI] = current_ABD_deformation[vI] + step * trial_ABD_deformation;
+
+		triSimMesh.affine[vI] += step * ABD_direction[vI];
 	}
 
 	// update the actual vertex position on the surface

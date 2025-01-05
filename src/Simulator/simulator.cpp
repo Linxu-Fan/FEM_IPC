@@ -556,9 +556,16 @@ std::vector<std::pair<int, int>> find_contact_pair_BBX_level(
 {
 
 #pragma omp parallel for 
-	for (int i = 0; i < triSimMesh.allObjects.size(); i++)
+	for (int ii = 0; ii < triSimMesh.allObjects.size(); ii++)
 	{
-		triSimMesh.allObjects[i].BBX.cal_min_max(triSimMesh.deformation_ABD[i], triSimMesh.translation_ABD[i], dilation);
+		Vector12d AFFINE;
+		AFFINE.block(0, 0, 3, 1) = triSimMesh.translation_ABD[ii];
+		AFFINE.block(3, 0, 3, 1) = triSimMesh.deformation_ABD[ii].col(0);
+		AFFINE.block(6, 0, 3, 1) = triSimMesh.deformation_ABD[ii].col(1);
+		AFFINE.block(9, 0, 3, 1) = triSimMesh.deformation_ABD[ii].col(2);
+
+
+		triSimMesh.allObjects[ii].BBX.cal_min_max_ABD(AFFINE, dilation);
 	}
 
 
@@ -567,15 +574,17 @@ std::vector<std::pair<int, int>> find_contact_pair_BBX_level(
 #pragma omp parallel for 
 		for (int ii = 0; ii < triSimMesh.allObjects.size(); ii++)
 		{
-			Eigen::Vector3d trial_obj_translation_increment = Eigen::Vector3d::Zero();
-			Eigen::Matrix3d trial_obj_deformation_increment = Eigen::Matrix3d::Zero();
-			trial_obj_translation_increment = moving_direction_ABD[ii].block(0, 0, 3, 1);
-			trial_obj_deformation_increment.col(0) = moving_direction_ABD[ii].block(3, 0, 3, 1);
-			trial_obj_deformation_increment.col(1) = moving_direction_ABD[ii].block(6, 0, 3, 1);
-			trial_obj_deformation_increment.col(2) = moving_direction_ABD[ii].block(9, 0, 3, 1);
+
+			Vector12d AFFINE;
+			AFFINE.block(0, 0, 3, 1) = triSimMesh.translation_ABD[ii];
+			AFFINE.block(3, 0, 3, 1) = triSimMesh.deformation_ABD[ii].col(0);
+			AFFINE.block(6, 0, 3, 1) = triSimMesh.deformation_ABD[ii].col(1);
+			AFFINE.block(9, 0, 3, 1) = triSimMesh.deformation_ABD[ii].col(2);
+			AFFINE += moving_direction_ABD[ii];
+
 
 			bounding_box BBX_increment = triSimMesh.allObjects[ii].BBX;
-			BBX_increment.cal_min_max(triSimMesh.deformation_ABD[ii] + trial_obj_deformation_increment, triSimMesh.translation_ABD[ii] + trial_obj_translation_increment, dilation);
+			BBX_increment.cal_min_max_ABD(AFFINE, dilation);
 
 			triSimMesh.allObjects[ii].BBX.merges(BBX_increment);
 
@@ -589,7 +598,7 @@ std::vector<std::pair<int, int>> find_contact_pair_BBX_level(
 	{
 		for (int j = i + 1; j < triSimMesh.allObjects.size(); j++)
 		{
-			//if (triSimMesh.allObjects[i].BBX.intersects(triSimMesh.allObjects[j].BBX))
+			if (triSimMesh.allObjects[i].BBX.intersects(triSimMesh.allObjects[j].BBX))
 			{
 				contact_objects_BBX_level.push_back(std::make_pair(i, j));
 			}
@@ -606,6 +615,7 @@ std::vector<std::pair<int, int>> find_contact_pair_BVH_level(
 	const double& dilation,
 	const std::vector<std::pair<int, int>>& BBX_pair,
 	triMesh& triSimMesh,
+	std::vector<int>& BVH_objects,
 	const std::vector<Eigen::Vector3d>& advection_direction)
 {
 	std::set<int> need_BVH_objects; // objects that need bounding box for a more detailed contact detection
@@ -615,22 +625,23 @@ std::vector<std::pair<int, int>> find_contact_pair_BVH_level(
 		need_BVH_objects.insert(BBX_pair[i].second);
 	}
 
-	std::vector<int> need_BVH_objects_vec(need_BVH_objects.begin(), need_BVH_objects.end());
+	BVH_objects.clear();
+	BVH_objects.insert(BVH_objects.end(), need_BVH_objects.begin(), need_BVH_objects.end());
 	if (advection_direction.size() == 0)
 	{
 #pragma omp parallel for 
-		for (int k = 0; k < need_BVH_objects_vec.size(); k++)
+		for (int k = 0; k < BVH_objects.size(); k++)
 		{
-			triSimMesh.build_BVH_object(dilation, need_BVH_objects_vec[k]);
+			triSimMesh.build_BVH_object(dilation, BVH_objects[k]);
 		}
 	}
 	else
 	{
 #pragma omp parallel for 
-		for (int k = 0; k < need_BVH_objects_vec.size(); k++)
+		for (int k = 0; k < BVH_objects.size(); k++)
 		{
 			//std::cout << "build advect BVH = "<< need_BVH_objects_vec[k] << "; advection_direction = " << advection_direction.size() << std::endl;
-			triSimMesh.build_BVH_object_advect(dilation, advection_direction, need_BVH_objects_vec[k]);
+			triSimMesh.build_BVH_object_advect(dilation, advection_direction, BVH_objects[k]);
 		}
 	}
 
@@ -647,8 +658,6 @@ std::vector<std::pair<int, int>> find_contact_pair_BVH_level(
 		}
 
 	}
-
-	//triSimMesh.allObjects[0].object_BVH_edges->export_bounding_box_mesh(false, "obj0_bbx");
 
 
 	return result;
@@ -968,6 +977,7 @@ void find_contact(
 	const std::vector<Eigen::Vector3d>& moving_direction_pos)
 {
 	contact_pairs.clear();
+	std::vector<int> BVH_objects;
 
 	if (moving_direction_ABD.size() != 0)
 	{
@@ -977,7 +987,7 @@ void find_contact(
 			std::vector<std::pair<int, int>> BBX_contact = find_contact_pair_BBX_level(parameters.IPC_dis / 2.0, triSimMesh, moving_direction_ABD);
 			if (BBX_contact.size() != 0)
 			{
-				std::vector<std::pair<int, int>> BVH_contact = find_contact_pair_BVH_level(parameters.IPC_dis / 2.0, BBX_contact, triSimMesh, moving_direction_pos);
+				std::vector<std::pair<int, int>> BVH_contact = find_contact_pair_BVH_level(parameters.IPC_dis / 2.0, BBX_contact, triSimMesh, BVH_objects, moving_direction_pos);
 				if (BVH_contact.size() != 0)
 				{
 					find_contact_pair_finest_level_advect(BVH_contact, triSimMesh, parameters, contact_pairs);
@@ -991,7 +1001,7 @@ void find_contact(
 		std::vector<std::pair<int, int>> BBX_contact = find_contact_pair_BBX_level(parameters.IPC_dis / 2.0, triSimMesh);
 		if (BBX_contact.size() != 0)
 		{
-			std::vector<std::pair<int, int>> BVH_contact = find_contact_pair_BVH_level(parameters.IPC_dis / 2.0, BBX_contact, triSimMesh);
+			std::vector<std::pair<int, int>> BVH_contact = find_contact_pair_BVH_level(parameters.IPC_dis / 2.0, BBX_contact, triSimMesh, BVH_objects);
 			if (BVH_contact.size() != 0)
 			{
 				find_contact_pair_finest_level(BVH_contact, triSimMesh, parameters, contact_pairs);
@@ -1002,136 +1012,27 @@ void find_contact(
 	}
 
 
+
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-	for (int k = 0; k < triSimMesh.allObjects.size(); k++)
+	for (int k = 0; k < BVH_objects.size(); k++)
 	{
-		deleteBVH(triSimMesh.allObjects[k].object_BVH_nodes);
-		deleteBVH(triSimMesh.allObjects[k].object_BVH_edges);
-		deleteBVH(triSimMesh.allObjects[k].object_BVH_faces);
+		int index = BVH_objects[k];
+
+		deleteBVH(triSimMesh.allObjects[index].object_BVH_nodes);
+		triSimMesh.allObjects[index].object_BVH_nodes = nullptr;
+
+
+		deleteBVH(triSimMesh.allObjects[index].object_BVH_edges);
+		triSimMesh.allObjects[index].object_BVH_edges = nullptr;
+
+		deleteBVH(triSimMesh.allObjects[index].object_BVH_faces);
+		triSimMesh.allObjects[index].object_BVH_faces = nullptr;
+	
+
 	}
 
 
 }
-
-
-//std::vector<std::pair<int, int>> find_potential_contact_object_pair(
-//	bool advect_mode,
-//	FEMParamters& parameters,
-//	triMesh& triSimMesh,
-//	double step,
-//	const std::vector<Vector12d>& moving_direction_ABD,
-//	const std::vector<Eigen::Vector3d>& moving_direction_pos)
-//{
-//
-//	double dilation = parameters.IPC_dis / 2.0;
-//
-//
-//	std::vector<Eigen::Vector3d> obj_mins(triSimMesh.allObjects.size(), Eigen::Vector3d::Zero());
-//	std::vector<Eigen::Vector3d> obj_maxs(triSimMesh.allObjects.size(), Eigen::Vector3d::Zero());
-//#pragma omp parallel for 
-//	for (int i = 0; i < triSimMesh.allObjects.size(); i++)
-//	{
-//		obj_mins[i] = triSimMesh.deformation_ABD[i] * triSimMesh.allObjects[i].min_rest + triSimMesh.translation_ABD[i] - Eigen::Vector3d(dilation, dilation, dilation);
-//		obj_maxs[i] = triSimMesh.deformation_ABD[i] * triSimMesh.allObjects[i].max_rest + triSimMesh.translation_ABD[i] + Eigen::Vector3d(dilation, dilation, dilation);
-//	}
-//
-//
-//	if (moving_direction_ABD.size() != 0)
-//	{
-//		// calculate objects' trial incremental translation and deformation 
-//		std::vector<Eigen::Vector3d> trial_obj_translation_increment(triSimMesh.allObjects.size(), Eigen::Vector3d::Zero());
-//		std::vector<Eigen::Matrix3d> trial_obj_deformation_increment(triSimMesh.allObjects.size(), Eigen::Matrix3d::Zero());
-//#pragma omp parallel for 
-//		for (int i = 0; i < triSimMesh.allObjects.size(); i++)
-//		{
-//			Eigen::Vector3d trial_obj_translation_increment = Eigen::Vector3d::Zero();
-//			Eigen::Matrix3d trial_obj_deformation_increment = Eigen::Matrix3d::Zero();
-//
-//			trial_obj_translation_increment = moving_direction_ABD[i].block(0, 0, 3, 1);
-//			trial_obj_deformation_increment.col(0) = moving_direction_ABD[i].block(3, 0, 3, 1);
-//			trial_obj_deformation_increment.col(1) = moving_direction_ABD[i].block(6, 0, 3, 1);
-//			trial_obj_deformation_increment.col(2) = moving_direction_ABD[i].block(9, 0, 3, 1);
-//
-//			Eigen::Vector3d min_trans = obj_mins[i] + step * trial_obj_deformation_increment * triSimMesh.allObjects[i].min_rest + step * trial_obj_translation_increment;
-//			Eigen::Vector3d max_trans = obj_maxs[i] + step * trial_obj_deformation_increment * triSimMesh.allObjects[i].max_rest + step * trial_obj_translation_increment;
-//
-//			if (!advect_mode)
-//			{
-//				Eigen::Vector3d min = obj_mins[i].cwiseMin(obj_maxs[i]);
-//				Eigen::Vector3d max = obj_mins[i].cwiseMax(obj_maxs[i]);
-//
-//				obj_mins[i] = min;
-//				obj_maxs[i] = max;
-//
-//			}
-//			else
-//			{
-//				Eigen::Vector3d min = obj_mins[i].cwiseMin(obj_maxs[i]).cwiseMin(min_trans).cwiseMin(max_trans);
-//				Eigen::Vector3d max = obj_mins[i].cwiseMax(obj_maxs[i]).cwiseMax(min_trans).cwiseMax(max_trans);
-//
-//				obj_mins[i] = min;
-//				obj_maxs[i] = max;
-//			}
-//
-//		}
-//	}
-//
-//
-//
-//	std::vector<std::pair<int, int>> contact_objects;
-//	std::set<int> need_bounding_box_objects; // objects that need bounding box for a more detailed contact detection
-//	for (int i = 0; i < triSimMesh.allObjects.size() - 1; i++)
-//	{
-//		for (int j = i + 1; j < triSimMesh.allObjects.size(); j++)
-//		{
-//			if (obj_mins[i].x() <= obj_maxs[j].x() && obj_maxs[i].x() >= obj_mins[j].x() &&
-//				obj_mins[i].y() <= obj_maxs[j].y() && obj_maxs[i].y() >= obj_mins[j].y() &&
-//				obj_mins[i].z() <= obj_maxs[j].z() && obj_maxs[i].z() >= obj_mins[j].z())
-//			{
-//				contact_objects.push_back(std::make_pair(i, j));
-//				need_bounding_box_objects.insert(i);
-//				need_bounding_box_objects.insert(j);
-//			}
-//		}
-//	}
-//
-//	std::vector<int> need_bounding_box_objects_vec(need_bounding_box_objects.begin(), need_bounding_box_objects.end());
-//	if (moving_direction_ABD.size() == 0)
-//	{
-//#pragma omp parallel for 
-//		for (int k = 0; k < need_bounding_box_objects_vec.size(); k++)
-//		{
-//			triSimMesh.build_BVH_object(parameters.IPC_dis / 2.0, k);
-//		}
-//	}
-//	else
-//	{
-//#pragma omp parallel for 
-//		for (int k = 0; k < need_bounding_box_objects_vec.size(); k++)
-//		{
-//			triSimMesh.build_BVH_object_advect(parameters.IPC_dis / 2.0, moving_direction_pos, k);
-//		}
-//	}
-//
-//	// find contact pairs between objects
-//	std::vector<std::pair<int, int>> result;
-//	for (int i = 0; i < contact_objects.size(); i++)
-//	{
-//		int obj1 = contact_objects[i].first, obj2 = contact_objects[i].second;
-//		bool intersect = triSimMesh.allObjects[obj1].object_BVH_faces->box.intersects(triSimMesh.allObjects[obj2].object_BVH_faces->box);
-//		if (intersect)
-//		{
-//			std::cout << "contact pair obj = " << obj1 << " , " << obj2 << std::endl;
-//			result.push_back(std::make_pair(obj1, obj2));
-//		}
-//
-//	}
-//
-//	return result;
-//
-//}
-//
-//
 
 
 
