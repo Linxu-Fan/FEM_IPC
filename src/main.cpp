@@ -13,6 +13,8 @@
 // 6. contact_Info can be simplified
 // 7. Remove redundant functions in simulator.h
 // 8. surface_Info may not be necessary
+// 9. change the step update rule to per object base
+// 10. change the timestep size according to the solution automatically
 
 
 
@@ -919,7 +921,7 @@ int main()
 			double IPC_dis = 0.01;
 
 			Material mat1;
-			mat1.density = 800;
+			mat1.density = 4000;
 			mat1.E = 7.26e12;
 			mat1.updateDenpendecies();
 
@@ -968,7 +970,7 @@ int main()
 			{
 				triSimMesh.translation_vel_ABD[num] = { 0,0,0 };
 			}
-			triSimMesh.translation_vel_ABD[0] = { 4,0,0 };
+			triSimMesh.translation_vel_ABD[0] = { 5,0,0 };
 
 
 			std::cout << "tetSimMesh.pos_node_surface.size() = " << triSimMesh.pos_node_surface.size() << std::endl;
@@ -977,20 +979,20 @@ int main()
 			FEMParamters parameters;
 			parameters.gravity = { 0, 0, -9.8};
 			parameters.num_timesteps = 8009;
-			parameters.numOfThreads = 12;
-			parameters.dt = 1.0e-2;
-			parameters.outputFrequency = 20;
+			parameters.numOfThreads = 20;
+			parameters.dt = 1.0e-3;
+			parameters.outputFrequency = 5;
 			parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
 			parameters.enableGround = true;
-			parameters.searchResidual = 0.05;
+			parameters.searchResidual = 0.01;
 			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;
 			parameters.IPC_dis = IPC_dis;
 			parameters.IPC_eta = 0.05;
-			parameters.IPC_kStiffness = 1.0e9;
+			parameters.IPC_kStiffness = 1.0e12;
 			parameters.IPC_hashSize = triSimMesh.calLargestEdgeLength() * 1.1;
 			parameters.IPC_B3Stiffness = 500;
-			parameters.ABD_Coeff = 1.0e10;
+			parameters.ABD_Coeff = 1.0e12;
 
 
 
@@ -1018,8 +1020,9 @@ int main()
 			m1.mesh_material = mat1;
 			m1.note = "bunny";
 			m1.breakable = true;
-			m1.rotation_angle = {0,0,0};
-			m1.velocity = { 0,10.0,0 };
+			m1.translation = { 0, 0, 6 };
+			m1.rotation_angle = {0,20,45};
+			m1.velocity = { 0,10,0 };
 			m1.per_point_volume = 0.01;
 			config.push_back(m1);
 
@@ -1027,9 +1030,8 @@ int main()
 			m2.filePath = "../input/bunny_highRes.obj";
 			m2.mesh_material = mat1;
 			m2.note = "cube";
-			Eigen::Vector3d trans = { 1, 2, -2 };
-			m2.translation = trans;
-			m2.velocity = {0,-2,0};
+			m2.translation = { 1, 4, 4 };
+			m2.velocity = {0,0,0};
 			m2.breakable = false;
 			m2.per_point_volume = 0.01;
 			config.push_back(m2);
@@ -1051,10 +1053,10 @@ int main()
 			parameters.num_timesteps = 10000;
 			parameters.numOfThreads = 20;
 			parameters.dt = 1.0e-2;
-			parameters.outputFrequency = 5;
+			parameters.outputFrequency = 1;
 			parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
-			parameters.enableGround = false;
-			parameters.searchResidual = 0.05;
+			parameters.enableGround = true;
+			parameters.searchResidual = 0.1;
 			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;
 			parameters.IPC_dis = IPC_dis;

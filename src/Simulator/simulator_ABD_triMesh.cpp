@@ -80,7 +80,6 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 			std::cout << "			Step forward = " << step << std::endl;
 			step_forward_ABD_triMesh(parameters, triSimMesh, current_ABD_translation, current_ABD_deformation, direction_ABD, currentPosition, step);
-			//find_contact_pair_IPC_level(triSimMesh, parameters, contact_pairs);
 			find_contact(triSimMesh, parameters, contact_pairs);
 			double newEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep, contact_pairs);
 			std::cout << std::scientific << std::setprecision(4) << "			step = "
@@ -103,7 +102,7 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			}
 
 			// The energy has been greatly minimized. It is time to stop
-			if (std::abs(newEnergyVal) / lastEnergyVal < 0.0001)
+			if (std::abs(newEnergyVal) / lastEnergyVal < 0.000001)
 			{
 				break;
 			}
@@ -147,19 +146,18 @@ double compute_IP_energy_ABD_triMesh(triMesh& triSimMesh, FEMParamters& paramete
 
 	// initeria energy contribution per affine body
 	std::vector<Vector12d> affine_force(triSimMesh.num_meshes, Vector12d::Zero());
-	//for (int i = 0; i < triSimMesh.pos_node_interior.size(); i++) // interior boundary conditions
-	//{
-	//	if (triSimMesh.boundaryCondition_node_interior[i].type == 2)
-	//	{
-	//		Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.pos_node_Rest_interior[i].transpose());
+	if (parameters.gravity.norm() != 0)
+	{
+		for (int i = 0; i < triSimMesh.pos_node_interior.size(); i++) // interior boundary conditions
+		{
+			Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.pos_node_Rest_interior[i].transpose());
 
-	//		int AB_index = triSimMesh.index_node_interior[i][0];
-	//		Eigen::Vector3d ext_force = compute_external_force(triSimMesh.boundaryCondition_node_interior, i, timestep);
-	//		Vector12d affine_force_node = Jx.transpose() * ext_force;
+			int AB_index = triSimMesh.index_node_interior[i][0];
+			Vector12d affine_force_node = Jx.transpose() * parameters.gravity;
 
-	//		affine_force[AB_index] += affine_force_node;		
-	//	}
-	//}
+			affine_force[AB_index] += affine_force_node;		
+		}
+	}
 	//for (int i = 0; i < triSimMesh.pos_node_surface.size(); i++) // surface boundary conditions
 	//{
 	//	if (triSimMesh.boundaryCondition_node_surface[i].type == 2)
@@ -191,8 +189,6 @@ double compute_IP_energy_ABD_triMesh(triMesh& triSimMesh, FEMParamters& paramete
 	}	
 	energyVal += std::accumulate(AB_ine_energy_vec.begin(), AB_ine_energy_vec.end(), 0.0);
 
-
-	//std::cout << "energyVal = " << energyVal << std::endl;
 
 	// affine energy contribution per affine body
 	std::vector<double> AB_aff_energy_vec(triSimMesh.num_meshes,0);
@@ -259,21 +255,19 @@ void solve_linear_system_ABD_triMesh(
 
 	// contribution from inertia term 
 	std::vector<Vector12d> affine_force(triSimMesh.num_meshes, Vector12d::Zero());
-	for (int i = 0; i < triSimMesh.pos_node_interior.size(); i++)
+	if (parameters.gravity.norm() != 0)
 	{
-		if (triSimMesh.boundaryCondition_node_interior[i].type == 2)
+		for (int i = 0; i < triSimMesh.pos_node_interior.size(); i++) // interior boundary conditions
 		{
 			Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.pos_node_Rest_interior[i].transpose());
 
 			int AB_index = triSimMesh.index_node_interior[i][0];
-			Eigen::Vector3d ext_force = compute_external_force(triSimMesh.boundaryCondition_node_interior, i, timestep);
-			Vector12d affine_force_node = Jx.transpose() * ext_force;
+			Vector12d affine_force_node = Jx.transpose() * parameters.gravity;
 
 			affine_force[AB_index] += affine_force_node;
 		}
 	}
-	
-	
+
 	int startIndex_grad = 0, startIndex_hess = 0;
 	std::vector<double> AB_ine_energy_vec(triSimMesh.num_meshes, 0);
 #pragma omp parallel for num_threads(parameters.numOfThreads)
@@ -590,8 +584,9 @@ void solve_linear_system_ABD_triMesh(
 
 
 	leftHandSide.makeCompressed();
-	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper, Eigen::IncompleteLUT<double>> solver;
-	//Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> solver;
+	//Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper, Eigen::IncompleteLUT<double>> solver;
+	//Eigen::SimplicialLLT<Eigen::SparseMatrix<double>> solver;
+	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> solver;
 	solver.compute(leftHandSide);
 	Eigen::VectorXd result = solver.solve(-rightHandSide);
 	solver.setTolerance(1e-12); // 设置容差
@@ -599,7 +594,6 @@ void solve_linear_system_ABD_triMesh(
 
 	std::cout << "			Newton solver iterations: " << solver.iterations() << "; error: " << solver.error() << std::endl;
 
-	
 
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 	for (int i = 0; i < triSimMesh.num_meshes; i++)

@@ -43,7 +43,7 @@ double compute_Barrier_energy(FEMParamters& parameters,
 	contact_Info& contact_pairs,
 	const int timestep)
 {
-
+	double threshold2 = parameters.IPC_dis * parameters.IPC_dis;
 
 	double barrierEnergy = 0;
 	std::vector<double> energy_PT_PP(contact_pairs.PT_PP.size(), 0), energy_PT_PE(contact_pairs.PT_PE.size(), 0),
@@ -56,7 +56,11 @@ double compute_Barrier_energy(FEMParamters& parameters,
 			int ptInd = contact_pairs.PG_PG[i][1];
 			Eigen::Vector3d P = pos_node[ptInd];
 			double z2 = P[2] * P[2];
-			energy_PG_PG[i] = Ground::val(z2, surfaceInfo.boundaryVertices_area[ptInd], parameters);		
+			if (z2 < threshold2)
+			{
+				energy_PG_PG[i] = Ground::val(z2, surfaceInfo.boundaryVertices_area[ptInd], parameters);
+
+			}
 		}
 		barrierEnergy += std::accumulate(energy_PG_PG.begin(), energy_PG_PG.end(), 0.0);
 
@@ -76,7 +80,10 @@ double compute_Barrier_energy(FEMParamters& parameters,
 
 			double dis2 = 0;
 			DIS::computePointTriD(P, A, B, C, dis2, cont_PT[3]);
-			energy_PT_PP[i] = BarrierEnergy::val_PT(surfaceInfo.boundaryVertices_area[ptInd], dis2, parameters);
+			if (dis2 < threshold2)
+			{
+				energy_PT_PP[i] = BarrierEnergy::val_PT(surfaceInfo.boundaryVertices_area[ptInd], dis2, parameters);
+			}
 		}
 		barrierEnergy += std::accumulate(energy_PT_PP.begin(), energy_PT_PP.end(), 0.0);
 
@@ -95,8 +102,10 @@ double compute_Barrier_energy(FEMParamters& parameters,
 
 			double dis2 = 0;
 			DIS::computePointTriD(P, A, B, C, dis2, cont_PT[3]);
-			energy_PT_PE[i] = BarrierEnergy::val_PT(surfaceInfo.boundaryVertices_area[ptInd], dis2, parameters);
-
+			if (dis2 < threshold2)
+			{
+				energy_PT_PE[i] = BarrierEnergy::val_PT(surfaceInfo.boundaryVertices_area[ptInd], dis2, parameters);
+			}
 		}
 		barrierEnergy += std::accumulate(energy_PT_PE.begin(), energy_PT_PE.end(), 0.0);
 
@@ -115,7 +124,10 @@ double compute_Barrier_energy(FEMParamters& parameters,
 
 			double dis2 = 0;
 			DIS::computePointTriD(P, A, B, C, dis2, cont_PT[3]);
-			energy_PT_PT[i] = BarrierEnergy::val_PT(surfaceInfo.boundaryVertices_area[ptInd], dis2, parameters);
+			if (dis2 < threshold2)
+			{
+				energy_PT_PT[i] = BarrierEnergy::val_PT(surfaceInfo.boundaryVertices_area[ptInd], dis2, parameters);
+			}
 
 		}
 		barrierEnergy += std::accumulate(energy_PT_PT.begin(), energy_PT_PT.end(), 0.0);
@@ -136,10 +148,12 @@ double compute_Barrier_energy(FEMParamters& parameters,
 
 			double dis2 = 0;
 			DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2, cont_EE[3]);
-			Eigen::Vector4i ptIndices = { e1p1 , e1p2 , e2p1 , e2p2 };
-			energy_EE_EE[i] = BarrierEnergy::val_EE(surfaceInfo.boundaryEdges_area[e1p1][e1p2],
-				dis2, pos_node, pos_node_Rest, ptIndices, parameters);
-
+			if (dis2 < threshold2)
+			{
+				Eigen::Vector4i ptIndices = { e1p1 , e1p2 , e2p1 , e2p2 };
+				energy_EE_EE[i] = BarrierEnergy::val_EE(surfaceInfo.boundaryEdges_area[e1p1][e1p2],
+					dis2, pos_node, pos_node_Rest, ptIndices, parameters);
+			}
 		}
 		barrierEnergy += std::accumulate(energy_EE_EE.begin(), energy_EE_EE.end(), 0.0);
 
@@ -304,19 +318,19 @@ void find_contact_pair_element_level(
 		}
 
 
-		// Contact between obj_1's faces and obj_2's points
-		{
-			std::vector<std::pair<int, int>> result_;
-			queryBVH(triSimMesh.allObjects[obj_1].object_BVH_faces, triSimMesh.allObjects[obj_2].object_BVH_nodes, result_);
+		//// Contact between obj_1's faces and obj_2's points
+		//{
+		//	std::vector<std::pair<int, int>> result_;
+		//	queryBVH(triSimMesh.allObjects[obj_1].object_BVH_faces, triSimMesh.allObjects[obj_2].object_BVH_nodes, result_);
 
-			// compute the actual contact
-			for (int k = 0; k < result_.size(); k++)
-			{
-				int vert_global = result_[k].first + obj_1_node_start;
-				int face_global = result_[k].second + obj_2_face_start;
-				cont_pair.push_back(std::make_pair(vert_global, face_global));
-			}
-		}
+		//	// compute the actual contact
+		//	for (int k = 0; k < result_.size(); k++)
+		//	{
+		//		int vert_global = result_[k].first + obj_1_node_start;
+		//		int face_global = result_[k].second + obj_2_face_start;
+		//		cont_pair.push_back(std::make_pair(vert_global, face_global));
+		//	}
+		//}
 
 
 		contact_pointTriangle_pair[i] = cont_pair;
@@ -370,6 +384,7 @@ void find_contact_pair_element_level(
 			contact_pairs.EE.insert(contact_pairs.EE.end(), contact_edgeEdge_pair[i].begin(), contact_edgeEdge_pair[i].end());
 		}
 	}
+
 
 
 	// Step 3: find ground contact pairs if any
@@ -546,10 +561,10 @@ void find_contact(
 		if (moving_direction_pos.size() != 0) // detect the contact before calculating the maximum step size
 		{
 			std::vector<std::pair<int, int>> BBX_contact = find_contact_pair_BBX_level(parameters.IPC_dis / 2.0, triSimMesh, moving_direction_ABD);
-			if (BBX_contact.size() != 0)
+			if (BBX_contact.size() != 0 || parameters.enableGround == true)
 			{
 				std::vector<std::pair<int, int>> BVH_contact = find_contact_pair_BVH_level(parameters.IPC_dis / 2.0, BBX_contact, triSimMesh, BVH_objects, moving_direction_pos);
-				if (BVH_contact.size() != 0)
+				if (BVH_contact.size() != 0 || parameters.enableGround == true)
 				{
 					find_contact_pair_element_level(BVH_contact, triSimMesh, parameters, contact_pairs);
 
@@ -562,10 +577,10 @@ void find_contact(
 	else  // detect the contact at the begining of a timestep
 	{
 		std::vector<std::pair<int, int>> BBX_contact = find_contact_pair_BBX_level(parameters.IPC_dis / 2.0, triSimMesh);
-		if (BBX_contact.size() != 0)
+		if (BBX_contact.size() != 0 || parameters.enableGround == true)
 		{
 			std::vector<std::pair<int, int>> BVH_contact = find_contact_pair_BVH_level(parameters.IPC_dis / 2.0, BBX_contact, triSimMesh, BVH_objects);
-			if (BVH_contact.size() != 0)
+			if (BVH_contact.size() != 0 || parameters.enableGround == true)
 			{
 				find_contact_pair_element_level(BVH_contact, triSimMesh, parameters,contact_pairs);
 				find_contact_pair_IPC_level(triSimMesh, parameters, contact_pairs);
