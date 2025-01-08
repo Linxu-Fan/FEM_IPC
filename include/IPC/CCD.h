@@ -120,15 +120,6 @@ double calMaxStep_spatialHash(
 	const int timestep);
 
 
-double calMaxStep(
-	FEMParamters& parameters,
-	surface_Info& surfaceInfo,
-	const std::vector<Eigen::Vector3d>& direction,
-	const std::vector<Eigen::Vector3d>& pos_node,
-	const std::vector<std::string>& note_node,
-	std::map<std::string, int>& tetMeshIndex,
-	contact_Info& contact_pairs,
-	const int timestep);
 
 
 #endif

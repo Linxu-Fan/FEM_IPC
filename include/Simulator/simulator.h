@@ -11,23 +11,20 @@
 
 
 
-
-// compute external force excluding gravity
-Eigen::Vector3d compute_external_force(
-	std::vector<boundaryCondition>& boundaryCondition_node, 
-	int vertInd, 
-	int timestep);
-
 // calculate the barrier energy of contact
 double compute_Barrier_energy(
+	triMesh& triSimMesh,
 	FEMParamters& parameters,
-	surface_Info& surfaceInfo,
-	const std::vector<Eigen::Vector3d>& pos_node,
-	const std::vector<Eigen::Vector3d>& pos_node_Rest,
 	contact_Info& contact_pairs,
 	const int timestep);
 
 
+
+double calMaxStep(
+	FEMParamters& parameters,
+	triMesh& triSimMesh,
+	contact_Info& contact_pairs,
+	const int timestep);
 
 // calculate the maximum feasible step size
 double calMaxStepSize(
@@ -69,7 +66,7 @@ std::vector<std::pair<int, int>> find_contact_pair_BVH_level(
 	const std::vector<std::pair<int, int>>& BBX_pair,
 	triMesh& triSimMesh,
 	std::vector<int>& BVH_objects,
-	const std::vector<Eigen::Vector3d>& advection_direction = {});
+	bool advection);
 
 
 void find_contact_pair_element_level(
@@ -92,8 +89,7 @@ void find_contact(
 	triMesh& triSimMesh,
 	FEMParamters& parameters,
 	contact_Info& contact_pairs,
-	const std::vector<Vector12d>& moving_direction_ABD = {},
-	const std::vector<Eigen::Vector3d>& moving_direction_pos = {});
+	const std::vector<Vector12d>& moving_direction_ABD = {});
 
 
 
@@ -112,13 +108,9 @@ void solve_linear_system_ABD_triMesh(triMesh& triSimMesh,
 	contact_Info& contact_pairs,
 	const int& iteration);
 
-void step_forward_ABD_triMesh(FEMParamters& parameters, triMesh& triSimMesh, std::vector<Eigen::Vector3d>& current_ABD_translation,
-	std::vector<Eigen::Matrix3d>& current_ABD_deformation, std::vector<Vector12d>& ABD_direction, std::vector<Eigen::Vector3d>& currentPosition, double step);
+void step_forward_ABD_triMesh(FEMParamters& parameters, triMesh& triSimMesh, std::vector<Vector12d>& ABD_direction, double step);
 
-void convert_to_position_direction_triMesh(FEMParamters& parameters, 
-	triMesh& triSimMesh, 
-	std::vector<Vector12d>& direction_ABD, 
-	std::vector<Eigen::Vector3d>& position_direction);
+double calculate_maximum_velocity(FEMParamters& parameters, triMesh& triSimMesh, std::vector<Vector12d>& direction_ABD);
 
 /**
  * @brief check if start fracture simulation or not based on the contact force

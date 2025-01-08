@@ -16,11 +16,18 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			triSimMesh.exportSurfaceMesh("surfMesh", timestep);
 		}
 
+		for (int i = 0; i < triSimMesh.allObjects.size(); i++)
+		{
+			triSimMesh.allObjects[i].translation_prev_ABD = triSimMesh.allObjects[i].translation_ABD;
+			triSimMesh.allObjects[i].deformation_prev_ABD = triSimMesh.allObjects[i].deformation_ABD;
+			triSimMesh.allObjects[i].affine_prev = triSimMesh.allObjects[i].affine;
 
-		triSimMesh.translation_prev_ABD = triSimMesh.translation_ABD;
-		triSimMesh.deformation_prev_ABD = triSimMesh.deformation_ABD;
 
-		std::vector<Eigen::Vector3d> position_direction(triSimMesh.pos_node_surface.size(), Eigen::Vector3d::Zero());
+			triSimMesh.allObjects[i].pos_node_interior_prev = triSimMesh.allObjects[i].pos_node_interior;
+			triSimMesh.allObjects[i].pos_node_surface_prev = triSimMesh.allObjects[i].pos_node_surface;
+		}
+
+
 		std::map<int, std::vector<Vector6d>> broken_objects;
 		contact_Info contact_pairs;
 		find_contact(triSimMesh,parameters,contact_pairs);
@@ -28,12 +35,8 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 		double lastEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep, contact_pairs);
 
 
-
 		for (int ite = 0; ite < 15; ite++)
 		{
-			std::vector<Eigen::Vector3d> currentPosition = triSimMesh.pos_node_surface;
-			std::vector<Eigen::Vector3d> current_ABD_translation = triSimMesh.translation_ABD;
-			std::vector<Eigen::Matrix3d> current_ABD_deformation = triSimMesh.deformation_ABD;
 
 			std::cout << "		ite = " << ite << "; lastEnergyVal = " << lastEnergyVal << std::endl;
 			std::vector<Vector12d> direction_ABD;
@@ -43,8 +46,8 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			{
 				break;
 			}
-			convert_to_position_direction_triMesh(parameters, triSimMesh, direction_ABD, position_direction);
-			double dist_to_converge = infiniteNorm(position_direction);
+			double dist_to_converge = calculate_maximum_velocity(parameters, triSimMesh, direction_ABD);
+
 
 
 
@@ -63,15 +66,11 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			std::cout << "			Calculate step size;" << std::endl;
 
 
-			find_contact(triSimMesh, parameters, contact_pairs, direction_ABD, position_direction);
+			find_contact(triSimMesh, parameters, contact_pairs, direction_ABD);
 
 			double step = calMaxStep(
 				parameters,
-				triSimMesh.surfaceInfo,
-				position_direction,
-				triSimMesh.pos_node_surface,
-				triSimMesh.note_node_surface,
-				triSimMesh.triMeshIndex,
+				triSimMesh,
 				contact_pairs,
 				timestep);
 
@@ -79,7 +78,7 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 
 			std::cout << "			Step forward = " << step << std::endl;
-			step_forward_ABD_triMesh(parameters, triSimMesh, current_ABD_translation, current_ABD_deformation, direction_ABD, currentPosition, step);
+			step_forward_ABD_triMesh(parameters, triSimMesh, direction_ABD, step);
 			find_contact(triSimMesh, parameters, contact_pairs);
 			double newEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep, contact_pairs);
 			std::cout << std::scientific << std::setprecision(4) << "			step = "
@@ -90,7 +89,7 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			{
 				step /= 2.0;
 
-				step_forward_ABD_triMesh(parameters, triSimMesh, current_ABD_translation, current_ABD_deformation, direction_ABD, currentPosition, step);
+				step_forward_ABD_triMesh(parameters, triSimMesh, direction_ABD, step);
 				find_contact(triSimMesh, parameters, contact_pairs);
 				newEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep, contact_pairs);
 				std::cout << "				step = " << step << "; newEnergyVal = "
@@ -128,10 +127,10 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 
 		// update the velocity of the ABD objects
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-		for (int i = 0; i < triSimMesh.num_meshes; i++)
+		for (int i = 0; i < triSimMesh.allObjects.size(); i++)
 		{
-			triSimMesh.translation_vel_ABD[i] = (triSimMesh.translation_ABD[i] - triSimMesh.translation_prev_ABD[i]) / parameters.dt;
-			triSimMesh.deformation_vel_ABD[i] = (triSimMesh.deformation_ABD[i] - triSimMesh.deformation_prev_ABD[i]) / parameters.dt;
+			triSimMesh.allObjects[i].translation_vel_ABD = (triSimMesh.allObjects[i].translation_ABD - triSimMesh.allObjects[i].translation_prev_ABD) / parameters.dt;
+			triSimMesh.allObjects[i].deformation_vel_ABD = (triSimMesh.allObjects[i].deformation_ABD - triSimMesh.allObjects[i].deformation_prev_ABD) / parameters.dt;
 		}
 
 
@@ -148,15 +147,18 @@ double compute_IP_energy_ABD_triMesh(triMesh& triSimMesh, FEMParamters& paramete
 	std::vector<Vector12d> affine_force(triSimMesh.num_meshes, Vector12d::Zero());
 	if (parameters.gravity.norm() != 0)
 	{
-		for (int i = 0; i < triSimMesh.pos_node_interior.size(); i++) // interior boundary conditions
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+		for (int obj = 0; obj < triSimMesh.allObjects.size(); obj++)
 		{
-			Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.pos_node_Rest_interior[i].transpose());
+			for (int i = 0; i < triSimMesh.allObjects[obj].pos_node_interior.size(); i++) // interior boundary conditions
+			{
+				Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.allObjects[obj].pos_node_Rest_interior[i].transpose());
+				Vector12d affine_force_node = Jx.transpose() * parameters.gravity;
 
-			int AB_index = triSimMesh.index_node_interior[i][0];
-			Vector12d affine_force_node = Jx.transpose() * parameters.gravity;
-
-			affine_force[AB_index] += affine_force_node;		
+				affine_force[obj] += affine_force_node;
+			}
 		}
+
 	}
 	//for (int i = 0; i < triSimMesh.pos_node_surface.size(); i++) // surface boundary conditions
 	//{
@@ -176,14 +178,14 @@ double compute_IP_energy_ABD_triMesh(triMesh& triSimMesh, FEMParamters& paramete
 	for (int AI = 0; AI < AB_ine_energy_vec.size(); AI++)
 	{
 		// reconstruct q_prev vector
-		Vector12d qb_prev = constructQVec(triSimMesh.translation_prev_ABD[AI], triSimMesh.deformation_prev_ABD[AI]);
+		Vector12d qb_prev = constructQVec(triSimMesh.allObjects[AI].translation_prev_ABD, triSimMesh.allObjects[AI].deformation_prev_ABD);
 		// reconstruct qb_vel vector
-		Vector12d qb_vel = constructQVec(triSimMesh.translation_vel_ABD[AI], triSimMesh.deformation_vel_ABD[AI]);	
+		Vector12d qb_vel = constructQVec(triSimMesh.allObjects[AI].translation_vel_ABD, triSimMesh.allObjects[AI].deformation_vel_ABD);
 		// reconstruct q vector
-		Vector12d qb = constructQVec(triSimMesh.translation_ABD[AI], triSimMesh.deformation_ABD[AI]);
+		Vector12d qb = constructQVec(triSimMesh.allObjects[AI].translation_ABD, triSimMesh.allObjects[AI].deformation_ABD);
 
-		Vector12d qb_Minus_qbHat = qb - (qb_prev + parameters.dt * qb_vel + parameters.dt * parameters.dt * triSimMesh.massMatrix_ABD[AI].inverse() * affine_force[AI]);
-		AB_ine_energy_vec[AI] = 0.5 * qb_Minus_qbHat.transpose() * triSimMesh.massMatrix_ABD[AI] * qb_Minus_qbHat;
+		Vector12d qb_Minus_qbHat = qb - (qb_prev + parameters.dt * qb_vel + parameters.dt * parameters.dt * triSimMesh.allObjects[AI].massMatrix_ABD.inverse() * affine_force[AI]);
+		AB_ine_energy_vec[AI] = 0.5 * qb_Minus_qbHat.transpose() * triSimMesh.allObjects[AI].massMatrix_ABD * qb_Minus_qbHat;
 
 
 	}	
@@ -196,28 +198,20 @@ double compute_IP_energy_ABD_triMesh(triMesh& triSimMesh, FEMParamters& paramete
 	for (int AI = 0; AI < AB_aff_energy_vec.size(); AI++)
 	{
 		// original implementation
-		AB_aff_energy_vec[AI] = parameters.dt * parameters.dt * parameters.ABD_Coeff * triSimMesh.volume_ABD[AI] * (triSimMesh.deformation_ABD[AI].transpose() * triSimMesh.deformation_ABD[AI] - Eigen::Matrix3d::Identity()).squaredNorm();
-
-		//// Linear ARAP implementation
-		//double J = triSimMesh.deformation_ABD[AI].determinant();
-		//AB_aff_energy_vec[AI] = parameters.dt * parameters.dt * triSimMesh.volume_ABD[AI] * parameters.ABD_Coeff / 2.0 * (0.5 * (triSimMesh.deformation_ABD[AI]
-		//						+ triSimMesh.deformation_ABD[AI].transpose()) - Eigen::Matrix3d::Identity()).squaredNorm();
+		AB_aff_energy_vec[AI] = parameters.dt * parameters.dt * parameters.ABD_Coeff * triSimMesh.allObjects[AI].volume
+			* (triSimMesh.allObjects[AI].deformation_ABD.transpose() * triSimMesh.allObjects[AI].deformation_ABD - Eigen::Matrix3d::Identity()).squaredNorm();
 
 	}
 	energyVal += std::accumulate(AB_aff_energy_vec.begin(), AB_aff_energy_vec.end(), 0.0);
 
-	//std::cout << "energyVal = " << energyVal << std::endl;
 
 	// energy contribution from barrier
 	energyVal += compute_Barrier_energy(
+		triSimMesh,
 		parameters,
-		triSimMesh.surfaceInfo,
-		triSimMesh.pos_node_surface,
-		triSimMesh.pos_node_Rest_surface,
 		contact_pairs,
 		timestep);
 
-	//std::cout << "energyVal = " << energyVal << std::endl;
 
 	return energyVal;
 }
@@ -244,46 +238,53 @@ void solve_linear_system_ABD_triMesh(
 
 
 
-	int gradSize = triSimMesh.num_meshes * 12 + triSimMesh.num_meshes * 9 + contact_pairs.PG_PG.size() * 12
-		+ contact_pairs.PT_PP.size() * 24 + contact_pairs.PT_PE.size() * 36 + contact_pairs.PT_PT.size() * 48 + contact_pairs.EE_EE.size() * 48;
-	int hessSize = triSimMesh.num_meshes * 144 + triSimMesh.num_meshes * 81 + contact_pairs.PG_PG.size() * 144
-		+ contact_pairs.PT_PP.size() * 144 * 4 + contact_pairs.PT_PE.size() * 144 * 9 + contact_pairs.PT_PT.size() * 144 * 16 + contact_pairs.EE_EE.size() * 144 * 16;
+	int gradSize = triSimMesh.num_meshes * 12 + triSimMesh.num_meshes * 9 + contact_pairs.Point_Ground.size() * 12
+		+ contact_pairs.Point_Triangle_PP_index.size() * 24 + contact_pairs.Point_Triangle_PE_index.size() * 36 
+		+ contact_pairs.Point_Triangle_PT_index.size() * 48 + contact_pairs.Edge_Edge.size() * 48;
+	int hessSize = triSimMesh.num_meshes * 144 + triSimMesh.num_meshes * 81 + contact_pairs.Point_Ground.size() * 144
+		+ contact_pairs.Point_Triangle_PP_index.size() * 144 * 4 + contact_pairs.Point_Triangle_PE_index.size() * 144 * 9 
+		+ contact_pairs.Point_Triangle_PT_index.size() * 144 * 16 + contact_pairs.Edge_Edge.size() * 144 * 16;
 	std::vector<std::pair<int, double>> grad_triplet(gradSize, std::make_pair(0,0.0));
 	std::vector<Eigen::Triplet<double>> hessian_triplet(hessSize, Eigen::Triplet<double>(0, 0, 0.0));
 
 
 
 	// contribution from inertia term 
-	std::vector<Vector12d> affine_force(triSimMesh.num_meshes, Vector12d::Zero());
+	std::vector<Vector12d> affine_force(triSimMesh.allObjects.size(), Vector12d::Zero());
 	if (parameters.gravity.norm() != 0)
 	{
-		for (int i = 0; i < triSimMesh.pos_node_interior.size(); i++) // interior boundary conditions
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+		for (int obj = 0; obj < triSimMesh.allObjects.size(); obj++)
 		{
-			Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.pos_node_Rest_interior[i].transpose());
+			for (int i = 0; i < triSimMesh.allObjects[obj].pos_node_interior.size(); i++) // interior boundary conditions
+			{
+				Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.allObjects[obj].pos_node_Rest_interior[i].transpose());
+				Vector12d affine_force_node = Jx.transpose() * parameters.gravity;
 
-			int AB_index = triSimMesh.index_node_interior[i][0];
-			Vector12d affine_force_node = Jx.transpose() * parameters.gravity;
-
-			affine_force[AB_index] += affine_force_node;
+				affine_force[obj] += affine_force_node;
+			}
 		}
+
+
 	}
 
 	int startIndex_grad = 0, startIndex_hess = 0;
-	std::vector<double> AB_ine_energy_vec(triSimMesh.num_meshes, 0);
+	std::vector<double> AB_ine_energy_vec(triSimMesh.allObjects.size(), 0);
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 	for (int AI = 0; AI < AB_ine_energy_vec.size(); AI++)
 	{
 		// reconstruct q_prev vector
-		Vector12d qb_prev = constructQVec(triSimMesh.translation_prev_ABD[AI], triSimMesh.deformation_prev_ABD[AI]);
+		Vector12d qb_prev = constructQVec(triSimMesh.allObjects[AI].translation_prev_ABD, triSimMesh.allObjects[AI].deformation_prev_ABD);
 		// reconstruct qb_vel vector
-		Vector12d qb_vel = constructQVec(triSimMesh.translation_vel_ABD[AI], triSimMesh.deformation_vel_ABD[AI]);
+		Vector12d qb_vel = constructQVec(triSimMesh.allObjects[AI].translation_vel_ABD, triSimMesh.allObjects[AI].deformation_vel_ABD);
 		// reconstruct q vector
-		Vector12d qb = constructQVec(triSimMesh.translation_ABD[AI], triSimMesh.deformation_ABD[AI]);
+		Vector12d qb = constructQVec(triSimMesh.allObjects[AI].translation_ABD, triSimMesh.allObjects[AI].deformation_ABD);
 
-		Vector12d qb_Minus_qbHat = qb - (qb_prev + parameters.dt * qb_vel + parameters.dt * parameters.dt * triSimMesh.massMatrix_ABD[AI].inverse() * affine_force[AI]);
+		Vector12d qb_Minus_qbHat = qb - (qb_prev + parameters.dt * qb_vel + parameters.dt * parameters.dt * triSimMesh.allObjects[AI].massMatrix_ABD.inverse() * affine_force[AI]);
 
-		Vector12d grad = triSimMesh.massMatrix_ABD[AI] * qb_Minus_qbHat;
-		Matrix12d hess = triSimMesh.massMatrix_ABD[AI];
+
+		Vector12d grad = triSimMesh.allObjects[AI].massMatrix_ABD * qb_Minus_qbHat;
+		Matrix12d hess = triSimMesh.allObjects[AI].massMatrix_ABD;
 
 		for (int i = 0; i < 12; i++)
 		{
@@ -301,13 +302,13 @@ void solve_linear_system_ABD_triMesh(
 	// contribution from affine energy
 	startIndex_grad = triSimMesh.num_meshes * 12 , startIndex_hess = triSimMesh.num_meshes * 144;
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-	for (int AI = 0; AI < triSimMesh.num_meshes; AI++)
+	for (int AI = 0; AI < triSimMesh.allObjects.size(); AI++)
 	{
-		Eigen::Matrix3d F = triSimMesh.deformation_ABD[AI];
+		Eigen::Matrix3d F = triSimMesh.allObjects[AI].deformation_ABD;
 		Eigen::Matrix3d I_ = Eigen::Matrix3d::Identity();
 
 		// original implementation
-		Eigen::Matrix3d PK1 = parameters.dt * parameters.dt * triSimMesh.volume_ABD[AI] * parameters.ABD_Coeff * 4.0 * F *
+		Eigen::Matrix3d PK1 = parameters.dt * parameters.dt * triSimMesh.allObjects[AI].volume * parameters.ABD_Coeff * 4.0 * F *
 							  (F.transpose() * F - Eigen::Matrix3d::Identity());
 		Vector9d grad_E_wrt_F = flatenMatrix3d(PK1);
 
@@ -323,7 +324,7 @@ void solve_linear_system_ABD_triMesh(
 			}
 		}
 		Matrix9d matrix_H_II = 4.0 * (kroneckerProduct_matrices(I_, F * F.transpose()) + kroneckerProduct_matrices(F.transpose() * F, I_) + matrix_D);
-		Matrix9d hess_E_wrt_F = parameters.dt * parameters.dt * triSimMesh.volume_ABD[AI] * parameters.ABD_Coeff * 4.0 * (0.25 * matrix_H_II - Matrix9d::Identity());
+		Matrix9d hess_E_wrt_F = parameters.dt * parameters.dt * triSimMesh.allObjects[AI].volume * parameters.ABD_Coeff * 4.0 * (0.25 * matrix_H_II - Matrix9d::Identity());
 
 		for (int i = 0; i < 9; i++)
 		{
@@ -357,191 +358,129 @@ void solve_linear_system_ABD_triMesh(
 
 
 	// calculate the barrier gradient and hessian
-	if (contact_pairs.PG_PG.size() + contact_pairs.PT_PP.size() + contact_pairs.PT_PE.size() + contact_pairs.PT_PT.size() + contact_pairs.EE_EE.size() != 0)
+	if (contact_pairs.Point_Ground.size() + contact_pairs.Point_Triangle_PP_index.size() + contact_pairs.Point_Triangle_PE_index.size() 
+		+ contact_pairs.Point_Triangle_PT_index.size() + contact_pairs.Edge_Edge.size() != 0)
 	{
-		// clear historical force
-		std::fill(triSimMesh.contactForce_node_surface.begin(), triSimMesh.contactForce_node_surface.end(), Eigen::Vector3d::Zero());
 
 
 		startIndex_grad += triSimMesh.num_meshes * 9,
 			startIndex_hess += triSimMesh.num_meshes * 81;
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-		for (int i = 0; i < contact_pairs.PG_PG.size(); i++)
+		for (int i = 0; i < contact_pairs.Point_Ground.size(); i++)
 		{
-			int ptInd = contact_pairs.PG_PG[i][1];
-			Eigen::Vector3d P = triSimMesh.pos_node_surface[ptInd];
+			Vector2i PG_Contact = contact_pairs.Point_Ground[i];
+
 			int actualStartIndex_hess = startIndex_hess + i * 144,
 				actualStartIndex_grad = startIndex_grad + i * 12;
-			double z2 = P[2] * P[2];
+			std::vector<Eigen::Vector3d> contactForce_node;
+
+
 			Ground::gradAndHess(
 				hessian_triplet,
 				grad_triplet,
 				actualStartIndex_hess,
 				actualStartIndex_grad,
-				triSimMesh.pos_node_surface,
-				triSimMesh.pos_node_Rest_surface,
-				triSimMesh.index_node_surface,
-				ptInd,
-				z2,
-				triSimMesh.surfaceInfo.boundaryVertices_area[ptInd],
-				triSimMesh.contactForce_node_surface,
-				parameters,
-				true);
+				PG_Contact,
+				triSimMesh,
+				contactForce_node,
+				parameters);
+
+
 		}
 
-		startIndex_grad += contact_pairs.PG_PG.size() * 12, startIndex_hess += contact_pairs.PG_PG.size() * 144;
+		startIndex_grad += contact_pairs.Point_Ground.size() * 12, startIndex_hess += contact_pairs.Point_Ground.size() * 144;
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-		for (int i = 0; i < contact_pairs.PT_PP.size(); i++)
+		for (int i = 0; i < contact_pairs.Point_Triangle_PP_index.size(); i++)
 		{
-			Vector5i cont_PT = contact_pairs.PT_PP[i];
+			int ct_index = contact_pairs.Point_Triangle_PP_index[i];
+			Vector5i PT_Contact = contact_pairs.Point_Triangle[ct_index];
+			double dis2 = contact_pairs.Point_Triangle_Dis[ct_index];
+			std::vector<Eigen::Vector3d> contactForce_node;
 
-			int ptInd = cont_PT[1];
-			Eigen::Vector3d P = triSimMesh.pos_node_surface[ptInd];
-			Eigen::Vector3i tri = triSimMesh.surfaceInfo.boundaryTriangles[cont_PT[2]];
-			Eigen::Vector3d A = triSimMesh.pos_node_surface[tri[0]];
-			Eigen::Vector3d B = triSimMesh.pos_node_surface[tri[1]];
-			Eigen::Vector3d C = triSimMesh.pos_node_surface[tri[2]];
-			int type = cont_PT[3];
-
-			double dis2 = 0;
-			DIS::computePointTriD(P, A, B, C, dis2);
-			Eigen::Vector4i ptIndices = { ptInd , tri[0] , tri[1] , tri[2] };
 			int actualStartIndex_hess = startIndex_hess + i * 144 * 4,
 				actualStartIndex_grad = startIndex_grad + i * 24;
-			double contactArea = triSimMesh.surfaceInfo.boundaryVertices_area[ptInd];
-			BarrierEnergy::gradAndHess_PT(
-				contactArea,
-				hessian_triplet,
+			BarrierEnergy::gradAndHess_PT(hessian_triplet,
 				grad_triplet,
 				actualStartIndex_hess,
 				actualStartIndex_grad,
-				ptIndices,
-				type,
 				dis2,
-				triSimMesh.pos_node_surface,
-				triSimMesh.pos_node_Rest_surface,
-				triSimMesh.index_node_surface,
-				triSimMesh.contactForce_node_surface,
-				parameters,
-				true);
-
+				PT_Contact,
+				triSimMesh,
+				contactForce_node,
+				parameters);		
 		}
 
-		startIndex_grad += contact_pairs.PT_PP.size() * 24, startIndex_hess += contact_pairs.PT_PP.size() * 144 * 4;
+		startIndex_grad += contact_pairs.Point_Triangle_PP_index.size() * 24, startIndex_hess += contact_pairs.Point_Triangle_PP_index.size() * 144 * 4;
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-		for (int i = 0; i < contact_pairs.PT_PE.size(); i++)
+		for (int i = 0; i < contact_pairs.Point_Triangle_PE_index.size(); i++)
 		{
-			Vector5i cont_PT = contact_pairs.PT_PE[i];
+			int ct_index = contact_pairs.Point_Triangle_PE_index[i];
+			Vector5i PT_Contact = contact_pairs.Point_Triangle[ct_index];
+			double dis2 = contact_pairs.Point_Triangle_Dis[ct_index];
+			std::vector<Eigen::Vector3d> contactForce_node;
 
-			int ptInd = cont_PT[1];
-			Eigen::Vector3d P = triSimMesh.pos_node_surface[ptInd];
-			Eigen::Vector3i tri = triSimMesh.surfaceInfo.boundaryTriangles[cont_PT[2]];
-			Eigen::Vector3d A = triSimMesh.pos_node_surface[tri[0]];
-			Eigen::Vector3d B = triSimMesh.pos_node_surface[tri[1]];
-			Eigen::Vector3d C = triSimMesh.pos_node_surface[tri[2]];
-			int type = cont_PT[3];
-
-			double dis2 = 0;
-			DIS::computePointTriD(P, A, B, C, dis2);
-			Eigen::Vector4i ptIndices = { ptInd , tri[0] , tri[1] , tri[2] };
 			int actualStartIndex_hess = startIndex_hess + i * 144 * 9,
 				actualStartIndex_grad = startIndex_grad + i * 36;
-			double contactArea = triSimMesh.surfaceInfo.boundaryVertices_area[ptInd];
-			BarrierEnergy::gradAndHess_PT(
-				contactArea,
-				hessian_triplet,
+			BarrierEnergy::gradAndHess_PT(hessian_triplet,
 				grad_triplet,
 				actualStartIndex_hess,
 				actualStartIndex_grad,
-				ptIndices,
-				type,
 				dis2,
-				triSimMesh.pos_node_surface,
-				triSimMesh.pos_node_Rest_surface,
-				triSimMesh.index_node_surface,
-				triSimMesh.contactForce_node_surface,
-				parameters,
-				true);
-
+				PT_Contact,
+				triSimMesh,
+				contactForce_node,
+				parameters);
 		}
 
-		startIndex_grad += contact_pairs.PT_PE.size() * 36, startIndex_hess += contact_pairs.PT_PE.size() * 144 * 9;
+		startIndex_grad += contact_pairs.Point_Triangle_PE_index.size() * 36, startIndex_hess += contact_pairs.Point_Triangle_PE_index.size() * 144 * 9;
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-		for (int i = 0; i < contact_pairs.PT_PT.size(); i++)
+		for (int i = 0; i < contact_pairs.Point_Triangle_PT_index.size(); i++)
 		{
-			Vector5i cont_PT = contact_pairs.PT_PT[i];
+			int ct_index = contact_pairs.Point_Triangle_PT_index[i];
+			Vector5i PT_Contact = contact_pairs.Point_Triangle[ct_index];
+			double dis2 = contact_pairs.Point_Triangle_Dis[ct_index];
+			std::vector<Eigen::Vector3d> contactForce_node;
 
-			int ptInd = cont_PT[1];
-			Eigen::Vector3d P = triSimMesh.pos_node_surface[ptInd];
-			Eigen::Vector3i tri = triSimMesh.surfaceInfo.boundaryTriangles[cont_PT[2]];
-			Eigen::Vector3d A = triSimMesh.pos_node_surface[tri[0]];
-			Eigen::Vector3d B = triSimMesh.pos_node_surface[tri[1]];
-			Eigen::Vector3d C = triSimMesh.pos_node_surface[tri[2]];
-			int type = cont_PT[3];
-
-			double dis2 = 0;
-			DIS::computePointTriD(P, A, B, C, dis2);
-			Eigen::Vector4i ptIndices = { ptInd , tri[0] , tri[1] , tri[2] };
 			int actualStartIndex_hess = startIndex_hess + i * 144 * 16,
 				actualStartIndex_grad = startIndex_grad + i * 48;
-			double contactArea = triSimMesh.surfaceInfo.boundaryVertices_area[ptInd];
-			BarrierEnergy::gradAndHess_PT(
-				contactArea,
-				hessian_triplet,
+			BarrierEnergy::gradAndHess_PT(hessian_triplet,
 				grad_triplet,
 				actualStartIndex_hess,
 				actualStartIndex_grad,
-				ptIndices,
-				type,
 				dis2,
-				triSimMesh.pos_node_surface,
-				triSimMesh.pos_node_Rest_surface,
-				triSimMesh.index_node_surface,
-				triSimMesh.contactForce_node_surface,
-				parameters,
-				true);
-
+				PT_Contact,
+				triSimMesh,
+				contactForce_node,
+				parameters);
 		}
 
-		startIndex_grad += contact_pairs.PT_PT.size() * 48, startIndex_hess += contact_pairs.PT_PT.size() * 144 * 16;
+		startIndex_grad += contact_pairs.Point_Triangle_PT_index.size() * 48, startIndex_hess += contact_pairs.Point_Triangle_PT_index.size() * 144 * 16;
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-		for (int i = 0; i < contact_pairs.EE_EE.size(); i++)
+		for (int i = 0; i < contact_pairs.Edge_Edge.size(); i++)
 		{
-			Vector5i cont_EE = contact_pairs.EE_EE[i];
-			int E1 = cont_EE[1], E2 = cont_EE[2];
-			int e1p1 = triSimMesh.surfaceInfo.index_boundaryEdge[E1][0], e1p2 = triSimMesh.surfaceInfo.index_boundaryEdge[E1][1],
-				e2p1 = triSimMesh.surfaceInfo.index_boundaryEdge[E2][0], e2p2 = triSimMesh.surfaceInfo.index_boundaryEdge[E2][1];
+			Vector5i EE_Contact = contact_pairs.Edge_Edge[i];
+			if (EE_Contact[4] > 0)
+			{
+				double dis2 = contact_pairs.Edge_Edge_Dis[i];
+				std::vector<Eigen::Vector3d> contactForce_node;
 
-			Eigen::Vector3d P1 = triSimMesh.pos_node_surface[e1p1];
-			Eigen::Vector3d P2 = triSimMesh.pos_node_surface[e1p2];
-			Eigen::Vector3d Q1 = triSimMesh.pos_node_surface[e2p1];
-			Eigen::Vector3d Q2 = triSimMesh.pos_node_surface[e2p2];
-			int type = cont_EE[3];
+				int actualStartIndex_hess = startIndex_hess + i * 144 * 16,
+					actualStartIndex_grad = startIndex_grad + i * 48;
 
-			double dis2 = 0;
-			DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
-			Eigen::Vector4i ptIndices = { e1p1 , e1p2 , e2p1 , e2p2 };
-			int actualStartIndex_hess = startIndex_hess + i * 144 * 16,
-				actualStartIndex_grad = startIndex_grad + i * 48;
 
-			int emin = std::min(ptIndices[0], ptIndices[1]), emax = std::max(ptIndices[0], ptIndices[1]);
-			double contactArea = triSimMesh.surfaceInfo.boundaryEdges_area[emin][emax];
+				BarrierEnergy::gradAndHess_EE(
+					hessian_triplet,
+					grad_triplet,
+					actualStartIndex_hess,
+					actualStartIndex_grad,
+					EE_Contact,
+					dis2,
+					triSimMesh,
+					contactForce_node,
+					parameters);
 
-			BarrierEnergy::gradAndHess_EE(
-				contactArea,
-				hessian_triplet,
-				grad_triplet,
-				actualStartIndex_hess,
-				actualStartIndex_grad,
-				ptIndices,
-				type,
-				dis2,
-				triSimMesh.pos_node_surface,
-				triSimMesh.pos_node_Rest_surface,
-				triSimMesh.index_node_surface,
-				triSimMesh.contactForce_node_surface,
-				parameters,
-				true);
+			}
+				
 
 		}
 
@@ -581,7 +520,8 @@ void solve_linear_system_ABD_triMesh(
 	//double endTime4 = omp_get_wtime();
 	//std::cout << "	Assemble grad_hess Time is : " << endTime4 - endTime3 << "s" << std::endl;
 
-
+	//std::cout << "leftHandSide = " << leftHandSide << std::endl;
+	//std::cout << "rightHandSide = " << rightHandSide << std::endl;
 
 	leftHandSide.makeCompressed();
 	//Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper, Eigen::IncompleteLUT<double>> solver;
@@ -595,6 +535,8 @@ void solve_linear_system_ABD_triMesh(
 	std::cout << "			Newton solver iterations: " << solver.iterations() << "; error: " << solver.error() << std::endl;
 
 
+	//std::cout << "result = " << result << std::endl;
+
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 	for (int i = 0; i < triSimMesh.num_meshes; i++)
 	{
@@ -605,43 +547,46 @@ void solve_linear_system_ABD_triMesh(
 }
 
 // move points' position according to the direction; Note this is a trial movement
-void step_forward_ABD_triMesh(FEMParamters& parameters, triMesh& triSimMesh, std::vector<Eigen::Vector3d>& current_ABD_translation,
-	std::vector<Eigen::Matrix3d>& current_ABD_deformation, std::vector<Vector12d>& ABD_direction, std::vector<Eigen::Vector3d>& currentPosition, double step)
+void step_forward_ABD_triMesh(FEMParamters& parameters, triMesh& triSimMesh, std::vector<Vector12d>& ABD_direction, double step)
 {
 
 	// update the ABD state
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-	for (int vI = 0; vI < triSimMesh.num_meshes; vI++)
+	for (int vI = 0; vI < triSimMesh.allObjects.size(); vI++)
 	{
-		triSimMesh.translation_ABD[vI] = current_ABD_translation[vI] + step * ABD_direction[vI].block(0, 0, 3, 1);
+		triSimMesh.allObjects[vI].translation_ABD = triSimMesh.allObjects[vI].translation_prev_ABD + step * ABD_direction[vI].block(0, 0, 3, 1);
 
 		Eigen::Matrix3d trial_ABD_deformation = Eigen::Matrix3d::Zero();
 		trial_ABD_deformation.col(0) = ABD_direction[vI].block(3, 0, 3, 1);
 		trial_ABD_deformation.col(1) = ABD_direction[vI].block(6, 0, 3, 1);
 		trial_ABD_deformation.col(2) = ABD_direction[vI].block(9, 0, 3, 1);
 
-		triSimMesh.deformation_ABD[vI] = current_ABD_deformation[vI] + step * trial_ABD_deformation;
+		triSimMesh.allObjects[vI].deformation_ABD = triSimMesh.allObjects[vI].deformation_prev_ABD + step * trial_ABD_deformation;
 
-		triSimMesh.affine[vI] += step * ABD_direction[vI];
+		triSimMesh.allObjects[vI].affine = triSimMesh.allObjects[vI].affine_prev + step * ABD_direction[vI];
 	}
 
 	// update the actual vertex position on the surface
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-	for (int vI = 0; vI < triSimMesh.pos_node_surface.size(); vI++)
+	for (int vI = 0; vI < triSimMesh.allObjects.size(); vI++)
 	{
-		Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.pos_node_Rest_surface[vI].transpose());
-		int ABD_index = triSimMesh.index_node_surface[vI][0];
-		triSimMesh.pos_node_surface[vI] = currentPosition[vI] + step * Jx * ABD_direction[ABD_index];
+		for (int j = 0; j < triSimMesh.allObjects[vI].pos_node_surface.size(); j++)
+		{
+			Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.allObjects[vI].objectSurfaceMesh.vertices[j].transpose());
+			triSimMesh.allObjects[vI].pos_node_surface[j] = triSimMesh.allObjects[vI].pos_node_surface_prev[j] +step * Jx * ABD_direction[vI];
+		}
 	}
 
 
 	// update the actual vertex position in the interior
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-	for (int vI = 0; vI < triSimMesh.pos_node_interior.size(); vI++)
+	for (int vI = 0; vI < triSimMesh.allObjects.size(); vI++)
 	{
-		Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.pos_node_Rest_interior[vI].transpose());
-		int ABD_index = triSimMesh.index_node_interior[vI][0];
-		triSimMesh.pos_node_interior[vI] = currentPosition[vI] + step * Jx * ABD_direction[ABD_index];
+		for (int j = 0; j < triSimMesh.allObjects[vI].pos_node_interior.size(); j++)
+		{
+			Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.allObjects[vI].pos_node_interior[j].transpose());
+			triSimMesh.allObjects[vI].pos_node_interior[j] = triSimMesh.allObjects[vI].pos_node_interior_prev[j] + step * Jx * ABD_direction[vI];
+		}
 	}
 
 
@@ -649,17 +594,29 @@ void step_forward_ABD_triMesh(FEMParamters& parameters, triMesh& triSimMesh, std
 }
 
 // convert the ABD state update to position update direction
-void convert_to_position_direction_triMesh(FEMParamters& parameters, triMesh& triSimMesh, std::vector<Vector12d>& direction_ABD, std::vector<Eigen::Vector3d>& position_direction)
+double calculate_maximum_velocity(FEMParamters& parameters, triMesh& triSimMesh, std::vector<Vector12d>& direction_ABD)
 {
-
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-	for (int vI = 0; vI < triSimMesh.pos_node_surface.size(); vI++)
+	for (int obj = 0; obj < triSimMesh.allObjects.size(); obj++)
 	{
-		Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.pos_node_Rest_surface[vI].transpose());
-		int ABD_index = triSimMesh.index_node_surface[vI][0];
-
-		position_direction[vI] = Jx * direction_ABD[ABD_index];
+		for (int vI = 0; vI < triSimMesh.allObjects[obj].pos_node_surface.size(); vI++)
+		{
+			Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(triSimMesh.allObjects[obj].objectSurfaceMesh.vertices[vI].transpose());
+			triSimMesh.allObjects[obj].pos_node_surface_direction[vI] = Jx * direction_ABD[obj];
+		}
 	}
+
+	std::vector<double> max_vel(triSimMesh.allObjects.size(),0);
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+	for (int obj = 0; obj < triSimMesh.allObjects.size(); obj++)
+	{
+		max_vel[obj] = infiniteNorm(triSimMesh.allObjects[obj].pos_node_surface_direction);
+	}
+
+	double maxValue = *std::max_element(max_vel.begin(), max_vel.end());
+	
+	return maxValue;
+
 };
 
 
@@ -670,27 +627,27 @@ void if_start_fracture_sim(triMesh& triSimMesh, std::map<int, std::vector<Vector
 	{
 		if (triSimMesh.allObjects[i].breakable == true)
 		{
-			double max_force = -999999999.0;
-			std::vector<Vector6d> contactForce;
-			for (int j = triSimMesh.allObjects[i].objectSurfaceMeshes_node_start_end[0]; j < triSimMesh.allObjects[i].objectSurfaceMeshes_node_start_end[1]; j++)
-			{
-				Vector6d contact_position_force;
-				Eigen::Vector3d position = triSimMesh.pos_node_surface[j];
-				Eigen::Vector3d force = triSimMesh.contactForce_node_surface[j];
-				if (force.norm() > 0.0001) // to avoid numerical error
-				{
-					contact_position_force.block(0, 0, 3, 1) = position;
-					contact_position_force.block(3, 0, 3, 1) = force * 100;
-					contactForce.push_back(contact_position_force);
-					//std::cout << "position = " << position.transpose() << "; " << "force = " << force.transpose() << std::endl;
-				}
-				max_force = std::max(force.norm(), max_force);
-			}
-			std::cout << "			max_force = " << max_force << std::endl;
-			if (max_force > triSimMesh.allObjects[i].objectMaterial.fracture_start_force )
-			{
-				broken_objects[i] = contactForce;
-			}		
+			//double max_force = -999999999.0;
+			//std::vector<Vector6d> contactForce;
+			//for (int j = triSimMesh.allObjects[i].objectSurfaceMeshes_node_start_end[0]; j < triSimMesh.allObjects[i].objectSurfaceMeshes_node_start_end[1]; j++)
+			//{
+			//	Vector6d contact_position_force;
+			//	Eigen::Vector3d position = triSimMesh.pos_node_surface[j];
+			//	Eigen::Vector3d force = triSimMesh.contactForce_node_surface[j];
+			//	if (force.norm() > 0.0001) // to avoid numerical error
+			//	{
+			//		contact_position_force.block(0, 0, 3, 1) = position;
+			//		contact_position_force.block(3, 0, 3, 1) = force * 100;
+			//		contactForce.push_back(contact_position_force);
+			//		//std::cout << "position = " << position.transpose() << "; " << "force = " << force.transpose() << std::endl;
+			//	}
+			//	max_force = std::max(force.norm(), max_force);
+			//}
+			//std::cout << "			max_force = " << max_force << std::endl;
+			//if (max_force > triSimMesh.allObjects[i].objectMaterial.fracture_start_force )
+			//{
+			//	broken_objects[i] = contactForce;
+			//}		
 		}
 	}
 

@@ -1,64 +1,64 @@
 ﻿#include "AABB.h"
 
 
-void AABB::init(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector3i& face_vertices_, int index_, double dx, int devia)
+void AABB::init(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector3i& face_vertices_, int index_, double dx)
 {
 	vert_edge_face = 2;
 	index = index_;
 	face_vertices = face_vertices_;
-	compute_min_max(pos_node_surface, dx, devia);
+	compute_min_max(pos_node_surface, dx);
 	
 }
 
-void AABB::init(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector2i& edge_vertices_, int index_, double dx, int devia)
+void AABB::init(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector2i& edge_vertices_, int index_, double dx)
 {
 	vert_edge_face = 1;
 	index = index_;
 	edge_vertices = edge_vertices_;
-	compute_min_max(pos_node_surface, dx, devia);
+	compute_min_max(pos_node_surface, dx);
 
 }
 
-void AABB::init(const std::vector<Eigen::Vector3d>& pos_node_surface, int index_, double dx, int devia)
+void AABB::init(const std::vector<Eigen::Vector3d>& pos_node_surface, int index_, double dx)
 {
 	vert_edge_face = 0;
 	index = index_;
-	compute_min_max(pos_node_surface, dx, devia);
+	compute_min_max(pos_node_surface, dx);
 }
 
-void AABB::init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector3i& face_vertices_, int index_, double dx, const std::vector<Eigen::Vector3d>& direction,int devia)
+void AABB::init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector3i& face_vertices_, int index_, double dx, const std::vector<Eigen::Vector3d>& direction)
 {
 	vert_edge_face = 2;
 	index = index_;
 	face_vertices = face_vertices_;
-	compute_min_max_advect(pos_node_surface, dx, direction, devia);
+	compute_min_max_advect(pos_node_surface, dx, direction);
 
 }
 
-void AABB::init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector2i& edge_vertices_, int index_, double dx, const std::vector<Eigen::Vector3d>& direction,int devia)
+void AABB::init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector2i& edge_vertices_, int index_, double dx, const std::vector<Eigen::Vector3d>& direction)
 {
 	vert_edge_face = 1;
 	index = index_;
 	edge_vertices = edge_vertices_;
-	compute_min_max_advect(pos_node_surface, dx, direction, devia);
+	compute_min_max_advect(pos_node_surface, dx, direction);
 
 }
 
-void AABB::init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, int index_, double dx, const std::vector<Eigen::Vector3d>& direction, int devia)
+void AABB::init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, int index_, double dx, const std::vector<Eigen::Vector3d>& direction)
 {
 	vert_edge_face = 0;
 	index = index_;
-	compute_min_max_advect(pos_node_surface, dx, direction, devia);
+	compute_min_max_advect(pos_node_surface, dx, direction);
 }
 
 
-void AABB::compute_min_max(const std::vector<Eigen::Vector3d>& pos_node_surface, double dx, int devia)
+void AABB::compute_min_max(const std::vector<Eigen::Vector3d>& pos_node_surface, double dx)
 {
 	if (vert_edge_face == 2)
 	{
-		Eigen::Vector3d v0 = pos_node_surface[face_vertices[0] + devia];
-		Eigen::Vector3d v1 = pos_node_surface[face_vertices[1] + devia];
-		Eigen::Vector3d v2 = pos_node_surface[face_vertices[2] + devia];
+		Eigen::Vector3d v0 = pos_node_surface[face_vertices[0]];
+		Eigen::Vector3d v1 = pos_node_surface[face_vertices[1]];
+		Eigen::Vector3d v2 = pos_node_surface[face_vertices[2]];
 
 		min = v0.cwiseMin(v1).cwiseMin(v2);
 		max = v0.cwiseMax(v1).cwiseMax(v2);
@@ -67,8 +67,8 @@ void AABB::compute_min_max(const std::vector<Eigen::Vector3d>& pos_node_surface,
 	}
 	else if (vert_edge_face == 1)
 	{
-		Eigen::Vector3d v0 = pos_node_surface[edge_vertices[0] + devia];
-		Eigen::Vector3d v1 = pos_node_surface[edge_vertices[1] + devia];
+		Eigen::Vector3d v0 = pos_node_surface[edge_vertices[0]];
+		Eigen::Vector3d v1 = pos_node_surface[edge_vertices[1]];
 
 		min = v0.cwiseMin(v1);
 		max = v0.cwiseMax(v1);
@@ -76,7 +76,7 @@ void AABB::compute_min_max(const std::vector<Eigen::Vector3d>& pos_node_surface,
 	}
 	else
 	{
-		Eigen::Vector3d v0 = pos_node_surface[index + devia];
+		Eigen::Vector3d v0 = pos_node_surface[index];
 
 		min = v0;
 		max = v0;
@@ -85,17 +85,17 @@ void AABB::compute_min_max(const std::vector<Eigen::Vector3d>& pos_node_surface,
 
 }
 
-void AABB::compute_min_max_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, double dx, const std::vector<Eigen::Vector3d>& direction, int devia)
+void AABB::compute_min_max_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, double dx, const std::vector<Eigen::Vector3d>& direction)
 {
 	if (vert_edge_face == 2)
 	{
-		Eigen::Vector3d v0 = pos_node_surface[face_vertices[0] + devia];
-		Eigen::Vector3d v1 = pos_node_surface[face_vertices[1] + devia];
-		Eigen::Vector3d v2 = pos_node_surface[face_vertices[2] + devia];
+		Eigen::Vector3d v0 = pos_node_surface[face_vertices[0]];
+		Eigen::Vector3d v1 = pos_node_surface[face_vertices[1]];
+		Eigen::Vector3d v2 = pos_node_surface[face_vertices[2]];
 
-		Eigen::Vector3d v3 = v0 + direction[face_vertices[0] + devia];
-		Eigen::Vector3d v4 = v1 + direction[face_vertices[1] + devia];
-		Eigen::Vector3d v5 = v2 + direction[face_vertices[2] + devia];
+		Eigen::Vector3d v3 = v0 + direction[face_vertices[0]];
+		Eigen::Vector3d v4 = v1 + direction[face_vertices[1]];
+		Eigen::Vector3d v5 = v2 + direction[face_vertices[2]];
 
 		min = v0.cwiseMin(v1).cwiseMin(v2).cwiseMin(v3).cwiseMin(v4).cwiseMin(v5);
 		max = v0.cwiseMax(v1).cwiseMax(v2).cwiseMax(v3).cwiseMax(v4).cwiseMax(v5);
@@ -104,11 +104,11 @@ void AABB::compute_min_max_advect(const std::vector<Eigen::Vector3d>& pos_node_s
 	}
 	else if (vert_edge_face == 1)
 	{
-		Eigen::Vector3d v0 = pos_node_surface[edge_vertices[0] + devia];
-		Eigen::Vector3d v1 = pos_node_surface[edge_vertices[1] + devia];
+		Eigen::Vector3d v0 = pos_node_surface[edge_vertices[0]];
+		Eigen::Vector3d v1 = pos_node_surface[edge_vertices[1]];
 
-		Eigen::Vector3d v2 = v0 + direction[edge_vertices[0] + devia];
-		Eigen::Vector3d v3 = v1 + direction[edge_vertices[1] + devia];
+		Eigen::Vector3d v2 = v0 + direction[edge_vertices[0]];
+		Eigen::Vector3d v3 = v1 + direction[edge_vertices[1]];
 
 		min = v0.cwiseMin(v1).cwiseMin(v2).cwiseMin(v3);
 		max = v0.cwiseMax(v1).cwiseMax(v2).cwiseMax(v3);
@@ -116,9 +116,9 @@ void AABB::compute_min_max_advect(const std::vector<Eigen::Vector3d>& pos_node_s
 	}
 	else
 	{
-		Eigen::Vector3d v0 = pos_node_surface[index + devia];
+		Eigen::Vector3d v0 = pos_node_surface[index];
 
-		Eigen::Vector3d v1 = v0 + direction[index + devia];
+		Eigen::Vector3d v1 = v0 + direction[index];
 
 		min = v0.cwiseMin(v1);
 		max = v0.cwiseMax(v1);
@@ -308,26 +308,26 @@ void deleteBVH(BVHNode* node)
 	delete node;
 }
 
-void updateBVHLeafNodes(BVHNode* node, const std::vector<Eigen::Vector3d>& pos_node_surface, double dilation, int devia) {
+void updateBVHLeafNodes(BVHNode* node, const std::vector<Eigen::Vector3d>& pos_node_surface, double dilation) {
 	if (!node) return;
 
 
 	if (node->isLeaf())
 	{
-		node->box.compute_min_max(pos_node_surface, dilation, devia);
+		node->box.compute_min_max(pos_node_surface, dilation);
 		return;
 	}
 
 
-	updateBVHLeafNodes(node->left, pos_node_surface, dilation, devia);
-	updateBVHLeafNodes(node->right, pos_node_surface, dilation, devia);
+	updateBVHLeafNodes(node->left, pos_node_surface, dilation);
+	updateBVHLeafNodes(node->right, pos_node_surface, dilation);
 
 
 	node->box.min = node->left->box.min.cwiseMin(node->right->box.min);
 	node->box.max = node->left->box.max.cwiseMax(node->right->box.max);
 }
 
-void parallelUpdateBVH(BVHNode* root, const std::vector<Eigen::Vector3d>& pos_node_surface, double dilation, int devia)
+void parallelUpdateBVH(BVHNode* root, const std::vector<Eigen::Vector3d>& pos_node_surface, double dilation)
 {
 	if (!root) return;
 
@@ -336,7 +336,7 @@ void parallelUpdateBVH(BVHNode* root, const std::vector<Eigen::Vector3d>& pos_no
 
 
 	auto task = [&](BVHNode* node) {
-		updateBVHLeafNodes(node, pos_node_surface, dilation, devia);
+		updateBVHLeafNodes(node, pos_node_surface, dilation);
 		};
 
 

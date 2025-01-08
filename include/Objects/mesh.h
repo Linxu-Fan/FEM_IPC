@@ -102,9 +102,11 @@ struct ABD_Object
 	bool breakable = false;                   //
 	double volume = 0;                        //
 	double per_point_volume = 0.01;
-	Eigen::Vector2i objectSurfaceMeshes_node_start_end = Eigen::Vector2i::Ones() * (-99);  //
-	Eigen::Vector2i objectSurfaceMeshes_face_start_end = Eigen::Vector2i::Ones() * (-99);  //
+
+
 	Vector12d affine = Vector12d::Zero();
+	Vector12d affine_prev = Vector12d::Zero();
+	Matrix12d massMatrix_ABD = Matrix12d::Zero();
 	Eigen::Vector3d translation_prev_ABD = Eigen::Vector3d::Zero();
 	Eigen::Vector3d translation_vel_ABD = Eigen::Vector3d::Zero();
 	Eigen::Vector3d translation_ABD = Eigen::Vector3d::Zero();
@@ -112,6 +114,22 @@ struct ABD_Object
 	Eigen::Matrix3d deformation_vel_ABD = Eigen::Matrix3d::Zero();
 	Eigen::Matrix3d deformation_ABD = Eigen::Matrix3d::Identity();
 	bool need_update_rest_position = false; // update the position in the rest configuration
+
+
+	// sampled points inside of the object
+	std::vector<Eigen::Vector3d> pos_node_interior; // position of each point in the interior                                  
+	std::vector<Eigen::Vector3d> pos_node_interior_prev; // position of each point in the interior                                  
+	std::vector<Eigen::Vector3d> pos_node_Rest_interior; // rest position of each point in the interior        
+	std::vector<double> mass_node_interior; // mass of each node in the interior	    
+	std::vector<double> vol_node_interior; // volume of each node in the interior
+
+
+	std::vector<Eigen::Vector3d> pos_node_surface;                    
+	std::vector<Eigen::Vector3d> pos_node_surface_prev;                    
+	std::vector<Eigen::Vector3d> pos_node_surface_direction; 
+	std::vector<Eigen::Vector3d> contactForce_node_surface;
+	surface_Info surfaceInfo;
+
 
 	// Bounding box in the rest configuration
 	bounding_box BBX;
@@ -122,7 +140,7 @@ struct ABD_Object
 
 };
 
-class triMesh : public ABD_Info
+class triMesh 
 {
 public:
 	std::vector<ABD_Object> allObjects; // all ABD objects in the simulation                                                   // **********
@@ -130,25 +148,13 @@ public:
 	int num_meshes = 0; // number of independant ABD objects                                                                   // **********
 
 
-	std::vector<std::string> note_node_surface;
-	std::vector<Eigen::Vector3d> contactForce_node_surface; // contact force applied to the surface node                       // **********
-	std::vector<Eigen::Vector3d> pos_node_surface; // position of each point on the surface                                    // **********
-	std::vector<Eigen::Vector3d> pos_node_Rest_surface; // rest position of each point on the surface                          // **********
-	std::vector<Eigen::Vector2i> index_node_surface; // To reuse the code of previous implementation, we keep the same data structure of Class Mesh                    // **********
-	std::vector<boundaryCondition> boundaryCondition_node_surface;  // the respective boundary condition of each node on the surface    // **********
-	
-
 	objMeshFormat surfaceMeshGlobal;
-	surface_Info surfaceInfo; // store the surface information of the mesh
+	//surface_Info surfaceInfo; // store the surface information of the mesh
 
 
-	std::vector<std::string> note_node_interior;
-	std::vector<Eigen::Vector3d> pos_node_interior; // position of each point in the interior                                  // **********
-	std::vector<Eigen::Vector3d> pos_node_Rest_interior; // rest position of each point in the interiorc                       // **********
-	std::vector<Eigen::Vector2i> index_node_interior; // To reuse the code of previous implementation, we keep the same data structure of Class Mesh                   // **********
-	std::vector<boundaryCondition> boundaryCondition_node_interior;  // the respective boundary condition of each node on the interior    // **********
-	std::vector<double> mass_node_interior; // mass of each node in the interior	                                           // **********
-	std::vector<double> vol_node_interior; // volume of each node in the interior	                                           // **********
+
+
+
 
 
 	/**
@@ -156,7 +162,7 @@ public:
 	 *
 	 * @param direction moving direction of the surface mesh
 	 */
-	void build_BVH_object_advect(double dilation, const std::vector<Eigen::Vector3d>& direction,  int object_index);
+	void build_BVH_object_advect(double dilation, const int object_index);
 
 
 	/**

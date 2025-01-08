@@ -15,28 +15,28 @@ struct AABB
 	Eigen::Vector3i face_vertices = Eigen::Vector3i::Ones() * (-99);
 
 	// initialize face
-	void init(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector3i& face_vertices_, int index_, double dx, int devia = 0);
+	void init(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector3i& face_vertices_, int index_, double dx);
 
 	// initialize edge
-	void init(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector2i& edge_vertices_, int index_, double dx, int devia = 0);
+	void init(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector2i& edge_vertices_, int index_, double dx);
 
 	// initialize node
-	void init(const std::vector<Eigen::Vector3d>& pos_node_surface, int index_, double dx, int devia = 0);
+	void init(const std::vector<Eigen::Vector3d>& pos_node_surface, int index_, double dx);
 
 	// initialize face
-	void init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector3i& face_vertices_, int index_, double dx, const std::vector<Eigen::Vector3d>& direction,int devia = 0);
+	void init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector3i& face_vertices_, int index_, double dx, const std::vector<Eigen::Vector3d>& direction);
 
 	// initialize edge
-	void init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector2i& edge_vertices_, int index_, double dx, const std::vector<Eigen::Vector3d>& direction,int devia = 0);
+	void init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, Eigen::Vector2i& edge_vertices_, int index_, double dx, const std::vector<Eigen::Vector3d>& direction);
 
 	// initialize node
-	void init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, int index_, double dx, const std::vector<Eigen::Vector3d>& direction,int devia = 0);
+	void init_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, int index_, double dx, const std::vector<Eigen::Vector3d>& direction);
 
 
 
-	void compute_min_max(const std::vector<Eigen::Vector3d>& pos_node_surface, double dx, int devia = 0);
+	void compute_min_max(const std::vector<Eigen::Vector3d>& pos_node_surface, double dx);
 
-	void compute_min_max_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, double dx, const std::vector<Eigen::Vector3d>& direction,int devia = 0);
+	void compute_min_max_advect(const std::vector<Eigen::Vector3d>& pos_node_surface, double dx, const std::vector<Eigen::Vector3d>& direction);
 
 	bool intersects(const AABB& other);
 
@@ -80,9 +80,9 @@ void deleteBVH(BVHNode* node);
 
 BVHNode* buildBVH(const std::vector<AABB>& triangles, int start, int end, size_t depth);
 
-void updateBVHLeafNodes(BVHNode* node, const std::vector<Eigen::Vector3d>& pos_node_surface, double dilation, int devia = 0);
+void updateBVHLeafNodes(BVHNode* node, const std::vector<Eigen::Vector3d>& pos_node_surface, double dilation);
 
-void parallelUpdateBVH(BVHNode* root, const std::vector<Eigen::Vector3d>& pos_node_surface, double dilation, int devia = 0);
+void parallelUpdateBVH(BVHNode* root, const std::vector<Eigen::Vector3d>& pos_node_surface, double dilation);
 
 void queryBVH(BVHNode* nodeA, BVHNode* nodeB, std::vector<std::pair<int, int>>& results);
 

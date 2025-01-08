@@ -4,29 +4,18 @@
 #include "distance.h"
 #include "mesh.h"
 
-template<int size>
-void assemble_gradAndHess(
-	std::vector<Eigen::Triplet<double>>& hessian_triplet,
-	std::vector<std::pair<int, double>>& grad_triplet,
-	int& startIndex_hess,
-	std::vector<int>& activePts,
-	Eigen::Matrix<double, size * 3, 1>& grad_,
-	Eigen::Matrix<double, size * 3, size * 3>& hess_,
-	int& startIndex_grad);
 
-
-template<int size>
+template <int size>
 void assemble_gradAndHess_ABD(
 	std::vector<Eigen::Triplet<double>>& hessian_triplet,
 	std::vector<std::pair<int, double>>& grad_triplet,
+	int& startIndex_grad,
 	int& startIndex_hess,
-	std::vector<int>& activePts,
+	std::vector<int>& pt_obj_index,
 	Eigen::Matrix<double, size * 3, 1>& grad_,
 	Eigen::Matrix<double, size * 3, size * 3>& hess_,
-	int& startIndex_grad,
-	const std::vector<Eigen::Vector3d>& pos_node,
-	const std::vector<Eigen::Vector3d>& pos_node_Rest,
-	const std::vector<Eigen::Vector2i>& index_node);
+	const std::vector<Eigen::Vector3d>& pos_node_Rest);
+
 
 
 namespace BarrierEnergy
@@ -41,62 +30,72 @@ namespace BarrierEnergy
 	double val_EE(
 		double& contactArea, 
 		double& dis2, 
-		const std::vector<Eigen::Vector3d>& pos_node, 
-		const std::vector<Eigen::Vector3d>& pos_node_Rest,
-		Eigen::Vector4i& ptIndices, 
+		const double val_ek,
 		FEMParamters& parameters);
+
+
+	void cal_gradAndHess_PP_ABD(
+		Vector6d& grad,
+		Matrix6d& hessian,
+		const Eigen::Vector3d& pos1,
+		const Eigen::Vector3d& pos2,
+		std::vector<Eigen::Vector3d>& contactForce_node,
+		FEMParamters& parameters,
+		double& contactArea,
+		double& dis2);
+
+
+	void cal_gradAndHess_PE_ABD(
+		Vector9d& grad,
+		Matrix9d& hessian,
+		const Eigen::Vector3d& pos1,
+		const Eigen::Vector3d& pos2,
+		const Eigen::Vector3d& pos3,
+		std::vector<Eigen::Vector3d>& contactForce_node,
+		FEMParamters& parameters,
+		double& contactArea,
+		double& dis2);
+
+	void cal_gradAndHess_PT_ABD(
+		Vector12d& grad,
+		Matrix12d& hessian,
+		const Eigen::Vector3d& pos1,
+		const Eigen::Vector3d& pos2,
+		const Eigen::Vector3d& pos3,
+		const Eigen::Vector3d& pos4,
+		std::vector<Eigen::Vector3d>& contactForce_node,
+		FEMParamters& parameters,
+		double& contactArea,
+		double& dis2);
+
 
 	// compute the energy gradient and hessian of point-triangle contact
 	void gradAndHess_PT(
-		double& contactArea,
 		std::vector<Eigen::Triplet<double>>& hessian_triplet,
 		std::vector<std::pair<int, double>>& grad_triplet,
 		int& startIndex_hess,
 		int& startIndex_grad,
-		Eigen::Vector4i& ptIndices,
-		int& type,
 		double& dis2,
-		const std::vector<Eigen::Vector3d>& pos_node,
-		const std::vector<Eigen::Vector3d>& pos_node_Rest,
-		const std::vector<Eigen::Vector2i>& index_node,
+		const Vector5i& PT_Contact,
+		triMesh& triSimMesh,
 		std::vector<Eigen::Vector3d>& contactForce_node,
-		FEMParamters& parameters,
-		bool ABD = false);
+		FEMParamters& parameters);
 
-	void cal_and_assemble_gradAndHess(
-		std::vector<Eigen::Triplet<double>>& hessian_triplet,
-		std::vector<std::pair<int, double>>& grad_triplet,
-		int& startIndex_hess,
-		std::vector<int>& activePtsLocalInd,
-		int& startIndex_grad,
-		const std::vector<Eigen::Vector3d>& pos_node,
-		const std::vector<Eigen::Vector3d>& pos_node_Rest,
-		const std::vector<Eigen::Vector2i>& index_node,
-		std::vector<Eigen::Vector3d>& contactForce_node,
-		FEMParamters& parameters,
-		double& contactArea,
-		double& g_bd,
-		double& h_bd,
-		bool ABD);
+
 
 
 
 	// compute the energy gradient and hessian of edge-edge contact
 	void gradAndHess_EE(
-		double contactArea,
 		std::vector<Eigen::Triplet<double>>& hessian_triplet,
 		std::vector<std::pair<int, double>>& grad_triplet,
 		int& startIndex_hess,
 		int& startIndex_grad,
-		Eigen::Vector4i& ptIndices,
-		int& type,
+		const Vector5i& EE_Contact,
 		double& dis2,
-		const std::vector<Eigen::Vector3d>& pos_node,
-		const std::vector<Eigen::Vector3d>& pos_node_Rest,
-		const std::vector<Eigen::Vector2i>& index_node,
+		triMesh& triSimMesh,
 		std::vector<Eigen::Vector3d>& contactForce_node,
-		FEMParamters& parameters,
-		bool ABD = false);
+		FEMParamters& parameters);
 
 
 	// project edge-edge's gradient and hessian into full 12x1 vector and 12x12 matrix to faciliate mollifier mulitiplication
@@ -125,15 +124,10 @@ namespace Ground
 		std::vector<std::pair<int, double>>& grad_triplet,
 		int& startIndex_hess,
 		int& startIndex_grad,
-		const std::vector<Eigen::Vector3d>& pos_node,
-		const std::vector<Eigen::Vector3d>& pos_node_Rest,
-		const std::vector<Eigen::Vector2i>& index_node,
-		int& index_i, 
-		double& coor_z2, 
-		double& contactArea,
+		const Vector2i PG_Contact,
+		triMesh& triSimMesh,
 		std::vector<Eigen::Vector3d>& contactForce_node,
-		FEMParamters& parameters, 
-		bool ABD = false);
+		FEMParamters& parameters);
 
 
 }

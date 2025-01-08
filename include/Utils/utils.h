@@ -85,6 +85,8 @@ typedef std::complex<double> DComplex;
 
 typedef Eigen::Matrix<int, 7, 1> Vector7i;
 typedef Eigen::Matrix<int, 5, 1> Vector5i;
+typedef Eigen::Vector4i Vector4i;
+typedef Eigen::Vector2i Vector2i;
 
 typedef Eigen::Matrix<double, 3, 1> Vector3d;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
@@ -237,20 +239,45 @@ struct boundaryCondition
 
 struct contact_Info
 {
-	std::vector<std::pair<int, int>> PT; // 1st int: point index; 2nd int: triangle index
-	std::vector<std::pair<int, int>> EE; // 1st int: 1st edge index; 2nd int: 2nd edge index
-	std::vector<int> PG; // int: point index;
+	//std::vector<std::pair<int, int>> PT; // 1st int: point index; 2nd int: triangle index
+	//std::vector<std::pair<int, int>> EE; // 1st int: 1st edge index; 2nd int: 2nd edge index
 
-	// 1st int: 0(PT), 1(EE), 2(PG); 
-	// 2nd int: index of P(E1)(P: for ground contact case); 
-	// 3rd int: index of T(E2); 
-	// 4th int: type; 
-	// 5th int: actual involved elements, i.e. PP(2), PE(3), PT(4) and EE(4)  
-	std::vector<Vector5i> PG_PG;
-	std::vector<Vector5i> PT_PP;
-	std::vector<Vector5i> PT_PE;
-	std::vector<Vector5i> PT_PT;
-	std::vector<Vector5i> EE_EE;
+
+	//// 1st int: 0(PT), 1(EE), 2(PG); 
+	//// 2nd int: index of P(E1)(P: for ground contact case); 
+	//// 3rd int: index of T(E2); 
+	//// 4th int: type; 
+	//// 5th int: actual involved elements, i.e. PP(2), PE(3), PT(4) and EE(4)  
+	//std::vector<Vector5i> PG_PG;
+	//std::vector<Vector5i> PT_PP;
+	//std::vector<Vector5i> PT_PE;
+	//std::vector<Vector5i> PT_PT;
+	//std::vector<Vector5i> EE_EE;
+
+
+
+
+	////////////////////////////////////////
+	// for per object information
+	////////////////////////////////////////
+	// 1st int: index of the first object; 2nd int: index of the point in the 1st object; 3rd int: index of the second object;
+	// 4th int: index of the triangle in the 2nd object; 5th int: contact type, -1 means no contact
+	std::vector<Vector5i> Point_Triangle; 
+	std::vector<double> Point_Triangle_Dis; // contact distance 
+	std::vector<int> Point_Triangle_PP_index;
+	std::vector<int> Point_Triangle_PE_index;
+	std::vector<int> Point_Triangle_PT_index;
+
+
+	// 1st int: index of the first object; 2nd int: index of the 1st edge in the 1st object; 3rd int: index of the second object;
+	// 4th int: index of the 2nd edge in the 2nd object; 5th int: contact type, -1 means no contact
+	std::vector<Vector5i> Edge_Edge;
+	std::vector<double> Edge_Edge_Dis;
+
+
+	// 1st int: object's index; 2nd int: point's index
+	std::vector<Vector2i> Point_Ground; // int: point index;
+
 
 	void clear();
 };

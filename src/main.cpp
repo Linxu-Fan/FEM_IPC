@@ -914,7 +914,7 @@ int main()
 		// Case:
 		// 0. Cube tower stress test for ABD of triMesh ABD implementation
 		// 1. Bunny test to verify the correctness of mpm simulation
-		int caseNum = 1;
+		int caseNum = 0;
 		if (caseNum == 0)
 		{
 
@@ -937,7 +937,7 @@ int main()
 			m1.filePath = "../input/cube_eq.obj";
 			m1.mesh_material = mat1;
 			m1.note = "cube_0";
-			Eigen::Vector3d trans = { -4.5, 1.5, 1.73 };
+			Eigen::Vector3d trans = { -3, 0, 0 };
 			m1.translation = trans;
 			m1.per_point_volume = 0.01;
 			config.push_back(m1);
@@ -946,16 +946,16 @@ int main()
 
 
 			int count = 1;
-			for (int z = 0; z < 4; z++)
+			for (int z = 0; z < 1; z++)
 			{
-				for (int x = 0; x < 4; x++)
+				for (int x = 0; x < 1; x++)
 				{
-					for (int y = 0; y < 4; y++)
+					for (int y = 0; y < 1; y++)
 					{
 						count += 1;
 						m1.mesh_material = mat2;
 						m1.note = "cube_" + std::to_string(count);
-						Eigen::Vector3d trans = { (double)x * 1.03, (double)y * 1.03, (double)z * 1.03 + 1.5 };
+						Eigen::Vector3d trans = { (double)x * 1.03 , (double)y * 1.03 , (double)z * 1.03 };
 						m1.translation = trans;
 						config.push_back(m1);
 					}
@@ -966,24 +966,22 @@ int main()
 
 			triMesh triSimMesh;
 			triSimMesh.createGlobalSimulationTriMesh_ABD(config);
-			for (int num = 1; num < triSimMesh.translation_vel_ABD.size(); num++)
+			for (int num = 1; num < triSimMesh.allObjects.size(); num++)
 			{
-				triSimMesh.translation_vel_ABD[num] = { 0,0,0 };
+				triSimMesh.allObjects[num].translation_vel_ABD = { 0,0,0 };
 			}
-			triSimMesh.translation_vel_ABD[0] = { 5,0,0 };
+			triSimMesh.allObjects[0].translation_vel_ABD = { 5,0,0 };
 
-
-			std::cout << "tetSimMesh.pos_node_surface.size() = " << triSimMesh.pos_node_surface.size() << std::endl;
 
 
 			FEMParamters parameters;
-			parameters.gravity = { 0, 0, -9.8};
-			parameters.num_timesteps = 8009;
+			parameters.gravity = { 0, 0, 0};
+			parameters.num_timesteps = 400;
 			parameters.numOfThreads = 20;
 			parameters.dt = 1.0e-3;
 			parameters.outputFrequency = 5;
 			parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
-			parameters.enableGround = true;
+			parameters.enableGround = false;
 			parameters.searchResidual = 0.01;
 			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;
@@ -1045,7 +1043,6 @@ int main()
 			triSimMesh.createGlobalSimulationTriMesh_ABD(config);
 
 
-			std::cout << "tetSimMesh.pos_node_surface.size() = " << triSimMesh.pos_node_surface.size() << std::endl;
 
 
 			FEMParamters parameters;
