@@ -263,7 +263,9 @@ struct contact_Info
 	// 1st int: index of the first object; 2nd int: index of the point in the 1st object; 3rd int: index of the second object;
 	// 4th int: index of the triangle in the 2nd object; 5th int: contact type, -1 means no contact
 	std::vector<Vector5i> Point_Triangle; 
-	std::vector<double> Point_Triangle_Dis; // contact distance 
+	std::vector<double> Point_Triangle_PP_Dis; // contact distance 
+	std::vector<double> Point_Triangle_PE_Dis; // contact distance 
+	std::vector<double> Point_Triangle_PT_Dis; // contact distance 
 	std::vector<int> Point_Triangle_PP_index;
 	std::vector<int> Point_Triangle_PE_index;
 	std::vector<int> Point_Triangle_PT_index;

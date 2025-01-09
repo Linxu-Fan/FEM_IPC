@@ -937,7 +937,7 @@ int main()
 			m1.filePath = "../input/cube_eq.obj";
 			m1.mesh_material = mat1;
 			m1.note = "cube_0";
-			Eigen::Vector3d trans = { -3, 0, 0 };
+			Eigen::Vector3d trans = { -3, 2.4, 1.7 };
 			m1.translation = trans;
 			m1.per_point_volume = 0.01;
 			config.push_back(m1);
@@ -946,16 +946,16 @@ int main()
 
 
 			int count = 1;
-			for (int z = 0; z < 1; z++)
+			for (int z = 0; z < 4; z++)
 			{
-				for (int x = 0; x < 1; x++)
+				for (int x = 0; x < 4; x++)
 				{
-					for (int y = 0; y < 1; y++)
+					for (int y = 0; y < 4; y++)
 					{
 						count += 1;
 						m1.mesh_material = mat2;
 						m1.note = "cube_" + std::to_string(count);
-						Eigen::Vector3d trans = { (double)x * 1.03 , (double)y * 1.03 , (double)z * 1.03 };
+						Eigen::Vector3d trans = { (double)x * 1.03 , (double)y * 1.03 , (double)z * 1.03 + 1 };
 						m1.translation = trans;
 						config.push_back(m1);
 					}
@@ -975,13 +975,13 @@ int main()
 
 
 			FEMParamters parameters;
-			parameters.gravity = { 0, 0, 0};
-			parameters.num_timesteps = 400;
+			parameters.gravity = { 0, 0, -9.8};
+			parameters.num_timesteps = 10000;
 			parameters.numOfThreads = 20;
 			parameters.dt = 1.0e-3;
-			parameters.outputFrequency = 5;
+			parameters.outputFrequency = 20;
 			parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
-			parameters.enableGround = false;
+			parameters.enableGround = true;
 			parameters.searchResidual = 0.01;
 			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
 			parameters.rigidMode = true;

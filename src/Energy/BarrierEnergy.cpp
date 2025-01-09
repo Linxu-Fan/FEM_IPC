@@ -193,10 +193,10 @@ void BarrierEnergy::gradAndHess_PT(
     FEMParamters& parameters)
 {
     int obj_1 = PT_Contact[0], vert = PT_Contact[1], obj_2 = PT_Contact[2], tria = PT_Contact[3];
-    double contactArea = triSimMesh.allObjects[obj_1].surfaceInfo.boundaryVertices_area[vert];
+    double contactArea = triSimMesh.allObjects[obj_1].objectSurfaceMesh.boundaryVertices_area[vert];
 
     Eigen::Vector3d P = triSimMesh.allObjects[obj_1].pos_node_surface[vert];
-    Eigen::Vector3i tri = triSimMesh.allObjects[obj_1].surfaceInfo.boundaryTriangles[tria];
+    Eigen::Vector3i tri = triSimMesh.allObjects[obj_1].objectSurfaceMesh.boundaryTriangles[tria];
 
 
     std::vector<int> pt_obj_index;
@@ -362,10 +362,10 @@ void BarrierEnergy::gradAndHess_EE(
 
     int obj_1 = EE_Contact[0], obj_2 = EE_Contact[2];
     int edge1 = EE_Contact[1], edge2 = EE_Contact[3];
-    Eigen::Vector2i edge1_vert = triSimMesh.allObjects[obj_1].surfaceInfo.index_boundaryEdge[edge1];
-    Eigen::Vector2i edge2_vert = triSimMesh.allObjects[obj_2].surfaceInfo.index_boundaryEdge[edge2];
+    Eigen::Vector2i edge1_vert = triSimMesh.allObjects[obj_1].objectSurfaceMesh.index_boundaryEdge[edge1];
+    Eigen::Vector2i edge2_vert = triSimMesh.allObjects[obj_2].objectSurfaceMesh.index_boundaryEdge[edge2];
     int P1 = edge1_vert[0], P2 = edge1_vert[1], Q1 = edge2_vert[0], Q2 = edge2_vert[1];
-    double contactArea = triSimMesh.allObjects[obj_1].surfaceInfo.boundaryEdges_area[P1][P2];
+    double contactArea = triSimMesh.allObjects[obj_1].objectSurfaceMesh.boundaryEdges_area[P1][P2];
 
 
     Eigen::Vector3d P1Coor = triSimMesh.allObjects[obj_1].pos_node_surface[P1], P2Coor = triSimMesh.allObjects[obj_1].pos_node_surface[P2];
@@ -665,7 +665,7 @@ void Ground::gradAndHess(
     Eigen::Vector3d P = triSimMesh.allObjects[obj_1].pos_node_surface[pt_index];
     double coor_z2 = P[2] * P[2];
 
-    double contactArea = triSimMesh.allObjects[obj_1].surfaceInfo.boundaryTriangles_area[pt_index];
+    double contactArea = triSimMesh.allObjects[obj_1].objectSurfaceMesh.boundaryTriangles_area[pt_index];
 
     double d_hat2 = parameters.IPC_dis * parameters.IPC_dis;
     double g_bd = BarrierEnergy::compute_g_b(coor_z2, d_hat2); // 3

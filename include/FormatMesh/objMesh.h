@@ -60,7 +60,8 @@ bool lineSegmentIntersectsTriangle(const Eigen::Vector3d& orig,
 	Eigen::Vector3d& intersectPoint);
 
 
-struct objMeshFormat
+
+struct objMeshFormat 
 {
     std::vector<Eigen::Vector3d> vertices;
 	std::vector<Eigen::Vector2i> edges; // 1st int: smaller vertex index; 2nd int: larger vertex index
@@ -74,6 +75,25 @@ struct objMeshFormat
 	Eigen::Vector3d initialVelocity = Eigen::Vector3d::Zero();
 	double volume = 0; // watertight volume of this object
 	
+
+
+	//  data structure of boundary elements
+	std::map<int, std::set<int>> boundaryVertices; // int: vertex's index in the original mesh; set<int>: neighbour triangles of this vertex	
+	std::map<int, std::set<int>> boundaryVertices_egde; // int: vertex's index in the original mesh; set<int>: neighbour edges of this vertex	
+	std::vector<int> boundaryVertices_vec; // int: vertex's index in the original mesh
+	std::map<int, double> boundaryVertices_area; // boundary vertex's area (distributed area of this vertex)	
+	std::map<int, std::map<int, Eigen::Vector2i>> boundaryEdges; // 1st (smaller one) & 2nd (larger one) int: edge index containing two vertices in the ORIGINAL mesh; Eigen::Vector2i: triangle indices
+	std::map<int, std::map<int, double>> boundaryEdges_area; // boundary edge's area (distributed area of this edge)
+	std::map<int, std::map<int, int>> boundaryEdge_index; // 1st (smaller one) & 2nd (larger one) int: edge index containing two vertices in the ORIGINAL mesh; 3rd int: index of this edge
+	std::map<int, Eigen::Vector2i> index_boundaryEdge; // 1st int: index of this edge; Eigen::Vector2i two vertices in the ORIGINAL mesh
+	std::vector<int> index_boundaryEdge_vec; // 1st int: index of this edge
+	std::vector<Eigen::Vector3i> boundaryTriangles;
+	std::vector<double> boundaryTriangles_area; // boundary triangle's area
+
+	// update the boundary information given a surface mesh
+	void updateBEInfo();
+
+
 
 	/**
 	 * @brief update the mesh as far as possible
@@ -90,8 +110,6 @@ struct objMeshFormat
     void sepConnectedComponents(); // separate connected comonents. ONLY FOR TRIANGULAR MESH
 
     void outputFile(std::string fileName, int timestep = -99, bool polygonal = false);
-
-	void findVertFaces_Edges();
 
 	bool checkIfMeshIntersectWithTetrahedron(const Eigen::Vector3d tet_v0, const Eigen::Vector3d tet_v1, 
 		const Eigen::Vector3d tet_v2, const Eigen::Vector3d tet_v3); // check if this mesh intersect with a tetrahedron (v0, v1, v2, v3)

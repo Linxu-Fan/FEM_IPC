@@ -39,28 +39,6 @@ public:
 
 };
 
-class surface_Info
-{
-public:
-
-	//  data structure of boundary elements
-	std::map<int, std::set<int>> boundaryVertices; // int: vertex's index in the original mesh; set<int>: neighbour triangles of this vertex	
-	std::map<int, std::set<int>> boundaryVertices_egde; // int: vertex's index in the original mesh; set<int>: neighbour edges of this vertex	
-	std::vector<int> boundaryVertices_vec; // int: vertex's index in the original mesh
-	std::map<int, double> boundaryVertices_area; // boundary vertex's area (distributed area of this vertex)	
-	std::map<int, std::map<int, Eigen::Vector2i>> boundaryEdges; // 1st (smaller one) & 2nd (larger one) int: edge index containing two vertices in the ORIGINAL mesh; Eigen::Vector2i: triangle indices
-	std::map<int, std::map<int, double>> boundaryEdges_area; // boundary edge's area (distributed area of this edge)
-	std::map<int, std::map<int, int>> boundaryEdge_index; // 1st (smaller one) & 2nd (larger one) int: edge index containing two vertices in the ORIGINAL mesh; 3rd int: index of this edge
-	std::map<int, Eigen::Vector2i> index_boundaryEdge; // 1st int: index of this edge; Eigen::Vector2i two vertices in the ORIGINAL mesh
-	std::vector<int> index_boundaryEdge_vec; // 1st int: index of this edge
-	std::vector<Eigen::Vector3i> boundaryTriangles;
-	std::vector<double> boundaryTriangles_area; // boundary triangle's area
-
-	// update the boundary information given a surface mesh
-	void updateBEInfo(std::vector<Eigen::Vector3d>& vertices, std::vector<Eigen::Vector3i>& faces);
-
-};
-
 
 struct bounding_box
 {
@@ -104,12 +82,17 @@ struct ABD_Object
 	double per_point_volume = 0.01;
 
 
-	Vector12d affine = Vector12d::Zero();
+	Vector12d affine_last = Vector12d::Zero();
 	Vector12d affine_prev = Vector12d::Zero();
+	Vector12d affine = Vector12d::Zero();	
 	Matrix12d massMatrix_ABD = Matrix12d::Zero();
+
+	Eigen::Vector3d translation_last_ABD = Eigen::Vector3d::Zero();
 	Eigen::Vector3d translation_prev_ABD = Eigen::Vector3d::Zero();
 	Eigen::Vector3d translation_vel_ABD = Eigen::Vector3d::Zero();
 	Eigen::Vector3d translation_ABD = Eigen::Vector3d::Zero();
+
+	Eigen::Matrix3d deformation_last_ABD = Eigen::Matrix3d::Identity();
 	Eigen::Matrix3d deformation_prev_ABD = Eigen::Matrix3d::Identity();
 	Eigen::Matrix3d deformation_vel_ABD = Eigen::Matrix3d::Zero();
 	Eigen::Matrix3d deformation_ABD = Eigen::Matrix3d::Identity();
@@ -128,7 +111,6 @@ struct ABD_Object
 	std::vector<Eigen::Vector3d> pos_node_surface_prev;                    
 	std::vector<Eigen::Vector3d> pos_node_surface_direction; 
 	std::vector<Eigen::Vector3d> contactForce_node_surface;
-	surface_Info surfaceInfo;
 
 
 	// Bounding box in the rest configuration

@@ -169,7 +169,7 @@ void objMeshFormat::updateMesh()
 	//std::cout << "ct = " << ct << std::endl;
 	vertFaces.clear();
 	edges.clear();
-	findVertFaces_Edges();
+	updateBEInfo();
 }
 
 
@@ -270,38 +270,122 @@ void objMeshFormat::readObjFile(std::string fileName, bool polygonal, Eigen::Aff
 
 	//std::cout << "ct = " << ct << std::endl;
 
-	findVertFaces_Edges();
 
 }
 
-void objMeshFormat::findVertFaces_Edges()
+void objMeshFormat::updateBEInfo()
 {
-	std::set<std::string> edgesStored;
-	for (int i = 0; i < faces.size(); i++)
+	boundaryTriangles = faces;
+
+
+	std::set<std::string> allEdges;
+	// find boundary vertices
+	for (int h = 0; h < boundaryTriangles.size(); h++)
 	{
-		int v1 = faces[i][0], v2 = faces[i][1], v3 = faces[i][2];
-		std::string v1v2 = std::to_string(std::min(v1, v2)) + std::to_string(std::max(v1, v2));
-		std::string v1v3 = std::to_string(std::min(v1, v3)) + std::to_string(std::max(v1, v3));
-		std::string v2v3 = std::to_string(std::min(v2, v3)) + std::to_string(std::max(v2, v3));
-		if (edgesStored.find(v1v2) == edgesStored.end())
-		{
-			edgesStored.insert(v1v2);
-			Eigen::Vector2i eg = { std::min(v1, v2) ,  std::max(v1, v2) };
-			edges.push_back(eg);
-		}
+		Eigen::Vector3i tri = boundaryTriangles[h];
+		boundaryVertices[tri[0]].insert(h);
+		boundaryVertices[tri[1]].insert(h);
+		boundaryVertices[tri[2]].insert(h);
 
-		if (edgesStored.find(v1v3) == edgesStored.end())
-		{
-			edgesStored.insert(v1v3);
-			Eigen::Vector2i eg = { std::min(v1, v3) ,  std::max(v1, v3) };
-			edges.push_back(eg);
-		}
 
-		if (edgesStored.find(v2v3) == edgesStored.end())
+		// find all edges
+		std::string edge1 = std::to_string(std::min(tri[0], tri[1])) + "#"
+			+ std::to_string(std::max(tri[0], tri[1]));
+		std::string edge2 = std::to_string(std::min(tri[1], tri[2])) + "#"
+			+ std::to_string(std::max(tri[1], tri[2]));
+		std::string edge3 = std::to_string(std::min(tri[2], tri[0])) + "#"
+			+ std::to_string(std::max(tri[2], tri[0]));
+		allEdges.insert(edge1);
+		allEdges.insert(edge2);
+		allEdges.insert(edge3);
+	}
+
+
+	// find boundary edges
+	// give each edge an unique index
+	int edgeIndex = 0;
+	for (std::set<std::string>::iterator it = allEdges.begin(); it != allEdges.end(); it++)
+	{
+		std::string edge = *it;
+		std::vector<std::string> seg = split(edge, "#");
+		int v1 = std::stoi(seg[0]);
+		int v2 = std::stoi(seg[1]);
+		Eigen::Vector2i edg = { v1, v2 };
+
+		std::set<int> v1Tris = boundaryVertices[v1], v2Tris = boundaryVertices[v2];
+		std::vector<int> edgeTris;
+		std::set_intersection(v1Tris.begin(), v1Tris.end(), v2Tris.begin(),
+			v2Tris.end(), std::back_inserter(edgeTris));
+		Eigen::Vector2i tris = { edgeTris[0], edgeTris[1] };
+
+
+		int emin = std::min(v1, v2), emax = std::max(v1, v2);
+		boundaryEdges[emin][emax] = tris;
+		boundaryVertices_egde[v1].insert(edgeIndex);
+		boundaryVertices_egde[v2].insert(edgeIndex);
+		boundaryEdge_index[emin][emax] = edgeIndex;
+		edgeIndex += 1;
+	}
+	// reverse index
+	for (std::map<int, std::map<int, int>>::iterator it1 = boundaryEdge_index.begin();
+		it1 != boundaryEdge_index.end(); it1++)
+	{
+		for (std::map<int, int>::iterator it2 = it1->second.begin();
+			it2 != it1->second.end(); it2++)
 		{
-			edgesStored.insert(v2v3);
-			Eigen::Vector2i eg = { std::min(v2, v3) ,  std::max(v2, v3) };
-			edges.push_back(eg);
+			Eigen::Vector2i ed = { it1->first, it2->first };
+			int index = it2->second;
+			index_boundaryEdge[index] = ed;
+			index_boundaryEdge_vec.push_back(index);
+		}
+	}
+
+
+	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin();
+		it != boundaryVertices.end(); it++)
+	{
+		boundaryVertices_vec.push_back(it->first);
+	}
+
+
+	// calculate the area of each triangle
+	for (int i = 0; i < boundaryTriangles.size(); i++)
+	{
+		Eigen::Vector3i triangle = boundaryTriangles[i];
+		Eigen::Vector3d t1Coor = vertices[triangle[0]], t2Coor = vertices[triangle[1]],
+			t3Coor = vertices[triangle[2]];
+		Eigen::Vector3d t1t2 = t2Coor - t1Coor, t1t3 = t3Coor - t1Coor;
+		double triArea = 1.0 / 2.0 * (t1t2.cross(t1t3)).norm();
+		boundaryTriangles_area.push_back(triArea);
+	}
+
+	// calculate the distributed area of each vertex
+	for (std::map<int, std::set<int>>::iterator it = boundaryVertices.begin();
+		it != boundaryVertices.end(); it++)
+	{
+		std::set<int> incidentTriangles = it->second;
+		double vertArea = 0;
+		for (std::set<int>::iterator it = incidentTriangles.begin();
+			it != incidentTriangles.end(); it++)
+		{
+			vertArea += boundaryTriangles_area[*it];
+		}
+		boundaryVertices_area[it->first] = vertArea;
+	}
+
+	// calculate the distributed area of each edge
+	for (std::map<int, std::map<int, Eigen::Vector2i>>::iterator it1 = boundaryEdges.begin();
+		it1 != boundaryEdges.end(); it1++)
+	{
+		int v1 = it1->first;
+		std::map<int, Eigen::Vector2i> trisInd = it1->second;
+		for (std::map<int, Eigen::Vector2i>::iterator it2 = trisInd.begin(); it2 != trisInd.end(); it2++)
+		{
+			int v2 = it2->first;
+			double edgeArea = 0;
+			edgeArea += boundaryTriangles_area[it2->second[0]];
+			edgeArea += boundaryTriangles_area[it2->second[1]];
+			boundaryEdges_area[v1][v2] = edgeArea;
 		}
 	}
 
@@ -314,6 +398,13 @@ void objMeshFormat::findVertFaces_Edges()
 		vertFaces[fc[0]].push_back(fi);
 		vertFaces[fc[1]].push_back(fi);
 		vertFaces[fc[2]].push_back(fi);
+	}
+
+
+	edges.resize(index_boundaryEdge.size());
+	for (std::map<int, Eigen::Vector2i>::iterator it = index_boundaryEdge.begin(); it != index_boundaryEdge.end(); it++)
+	{
+		edges[it->first] = it->second;
 	}
 
 
@@ -378,7 +469,7 @@ void objMeshFormat::sepConnectedComponents()
 			}
 		}
 
-		cop.findVertFaces_Edges();
+		cop.updateBEInfo();
 		componentsSep.push_back(cop);
 	}
 

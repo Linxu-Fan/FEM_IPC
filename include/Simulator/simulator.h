@@ -29,7 +29,7 @@ double calMaxStep(
 // calculate the maximum feasible step size
 double calMaxStepSize(
 	FEMParamters& parameters,
-	surface_Info& surfaceInfo,
+	objMeshFormat& surfaceInfo,
 	const std::vector<Eigen::Vector3d>& direction,
 	const std::vector<Eigen::Vector3d>& pos_node,
 	const std::vector<std::string>& note_node,
@@ -75,7 +75,11 @@ void find_contact_pair_element_level(
 	FEMParamters& parameters,
 	contact_Info& contact_pairs);
 
-
+void find_contact_pair_element_level2(
+	const std::vector<std::pair<int, int>>& BVH_pair,
+	triMesh& triSimMesh,
+	FEMParamters& parameters,
+	contact_Info& contact_pairs);
 
 void find_contact_pair_IPC_level(
 	triMesh& triSimMesh,

@@ -63,7 +63,7 @@ struct spatialHashCellData
 std::pair<Eigen::Vector3d, Eigen::Vector3d> getMinMaxCorner_boundaryVertices(
 	const bool advected,
 	const FEMParamters& parameters,
-	surface_Info& surfaceInfo,
+	objMeshFormat& surfaceInfo,
 	const std::vector<Eigen::Vector3d>& direction,
 	const std::vector<Eigen::Vector3d>& pos_node);
 
@@ -74,7 +74,7 @@ std::pair<Eigen::Vector3d, Eigen::Vector3d> getMinMaxCorner_boundaryVertices(
 std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> getMinMaxCorner_boundaryVertices_eachObject(
 	const bool advected,
 	const FEMParamters& parameters,
-	surface_Info& surfaceInfo,
+	objMeshFormat& surfaceInfo,
 	const std::vector<Eigen::Vector3d>& direction,
 	const std::vector<Eigen::Vector3d>& pos_node,
 	const std::vector<std::string>& note_node,
@@ -85,7 +85,7 @@ std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> getMinMaxCorner_boundar
 std::set<std::string> getTheIntersectedHash(
 	const bool advected, 
 	FEMParamters& parameters,
-	surface_Info& surfaceInfo,
+	objMeshFormat& surfaceInfo,
 	const std::vector<Eigen::Vector3d>& direction,
 	const std::vector<Eigen::Vector3d>& pos_node,
 	const std::vector<std::string>& note_node,
@@ -99,7 +99,7 @@ std::set<std::string> getTheIntersectedHash(
 void initSpatialHash(
 	const bool advected,
 	FEMParamters& parameters,
-	surface_Info& surfaceInfo,
+	objMeshFormat& surfaceInfo,
 	const std::vector<Eigen::Vector3d>& direction,
 	std::vector<spatialHashCellData>& spatialHash_vec,
 	std::map<std::string, int>& hashNameIndex, 
@@ -112,7 +112,7 @@ void initSpatialHash(
 // use spatial hash to calculate the maximum feasible step
 double calMaxStep_spatialHash(
 	FEMParamters& parameters,
-	surface_Info& surfaceInfo,
+	objMeshFormat& surfaceInfo,
 	const std::vector<Eigen::Vector3d>& direction,
 	const std::vector<Eigen::Vector3d>& pos_node,
 	const std::vector<std::string>& note_node,

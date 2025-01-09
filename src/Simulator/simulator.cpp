@@ -16,7 +16,9 @@ void contact_Info::clear()
 
 
 	Point_Triangle.clear();
-	Point_Triangle_Dis.clear();
+	Point_Triangle_PP_Dis.clear();
+	Point_Triangle_PE_Dis.clear();
+	Point_Triangle_PT_Dis.clear();
 	Point_Triangle_PP_index.clear();
 	Point_Triangle_PE_index.clear();
 	Point_Triangle_PT_index.clear();
@@ -37,9 +39,11 @@ double compute_Barrier_energy(
 	double threshold2 = parameters.IPC_dis * parameters.IPC_dis;
 
 	double barrierEnergy = 0;
-	if (contact_pairs.Point_Triangle.size() + contact_pairs.Edge_Edge.size() + contact_pairs.Point_Ground.size() != 0)
+	if (contact_pairs.Point_Triangle_PP_index.size() + contact_pairs.Point_Triangle_PE_index.size() + 
+		contact_pairs.Point_Triangle_PT_index.size() + contact_pairs.Edge_Edge.size() + contact_pairs.Point_Ground.size() != 0)
 	{
-		std::vector<double> energy_PT(contact_pairs.Point_Triangle.size(), 0), energy_EE(contact_pairs.Edge_Edge.size(), 0), energy_PG(contact_pairs.Point_Ground.size(), 0);
+		std::vector<double> energy_PT_PP(contact_pairs.Point_Triangle_PP_index.size(), 0), energy_PT_PE(contact_pairs.Point_Triangle_PE_index.size(), 0), energy_PT_PT(contact_pairs.Point_Triangle_PT_index.size(), 0);
+		std::vector<double> energy_EE(contact_pairs.Edge_Edge.size(), 0), energy_PG(contact_pairs.Point_Ground.size(), 0);
 
 
 #pragma omp parallel for num_threads(parameters.numOfThreads)
@@ -50,7 +54,7 @@ double compute_Barrier_energy(
 			double z2 = P[2] * P[2];
 			if (z2 < threshold2)
 			{
-				energy_PG[i] = Ground::val(z2, triSimMesh.allObjects[ct[0]].surfaceInfo.boundaryVertices_area[ct[1]], parameters);
+				energy_PG[i] = Ground::val(z2, triSimMesh.allObjects[ct[0]].objectSurfaceMesh.boundaryVertices_area[ct[1]], parameters);
 
 			}
 		}
@@ -59,39 +63,72 @@ double compute_Barrier_energy(
 
 
 #pragma omp parallel for num_threads(parameters.numOfThreads)
-		for (int i = 0; i < contact_pairs.Point_Triangle.size(); i++)
+		for (int i = 0; i < contact_pairs.Point_Triangle_PP_index.size(); i++)
 		{
-			Vector5i cont_PT = contact_pairs.Point_Triangle[i];
-			if (cont_PT[4] != -1)
-			{
-				double dis2 = contact_pairs.Point_Triangle_Dis[i];
+			int ppindex = contact_pairs.Point_Triangle_PP_index[i];
+			Vector5i cont_PT = contact_pairs.Point_Triangle[ppindex];
 
-				int obj_1 = cont_PT[0], vert = cont_PT[1];
+			double dis2 = contact_pairs.Point_Triangle_PP_Dis[i];
 
-				double surface_area = triSimMesh.allObjects[obj_1].surfaceInfo.boundaryVertices_area[vert];
-				energy_PT[i] = BarrierEnergy::val_PT(surface_area, dis2, parameters);
-			}
+			int obj_1 = cont_PT[0], vert = cont_PT[1];
+
+			double surface_area = triSimMesh.allObjects[obj_1].objectSurfaceMesh.boundaryVertices_area[vert];
+			energy_PT_PP[i] = BarrierEnergy::val_PT(surface_area, dis2, parameters);
+
 		}
-		barrierEnergy += std::accumulate(energy_PT.begin(), energy_PT.end(), 0.0);
+		barrierEnergy += std::accumulate(energy_PT_PP.begin(), energy_PT_PP.end(), 0.0);
+
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+		for (int i = 0; i < contact_pairs.Point_Triangle_PE_index.size(); i++)
+		{
+			int ppindex = contact_pairs.Point_Triangle_PE_index[i];
+			Vector5i cont_PT = contact_pairs.Point_Triangle[ppindex];
+
+			double dis2 = contact_pairs.Point_Triangle_PE_Dis[i];
+
+			int obj_1 = cont_PT[0], vert = cont_PT[1];
+
+			double surface_area = triSimMesh.allObjects[obj_1].objectSurfaceMesh.boundaryVertices_area[vert];
+			energy_PT_PE[i] = BarrierEnergy::val_PT(surface_area, dis2, parameters);
+
+		}
+		barrierEnergy += std::accumulate(energy_PT_PE.begin(), energy_PT_PE.end(), 0.0);
+
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+		for (int i = 0; i < contact_pairs.Point_Triangle_PT_index.size(); i++)
+		{
+			int ppindex = contact_pairs.Point_Triangle_PT_index[i];
+			Vector5i cont_PT = contact_pairs.Point_Triangle[ppindex];
+
+			double dis2 = contact_pairs.Point_Triangle_PT_Dis[i];
+
+			int obj_1 = cont_PT[0], vert = cont_PT[1];
+
+			double surface_area = triSimMesh.allObjects[obj_1].objectSurfaceMesh.boundaryVertices_area[vert];
+			energy_PT_PT[i] = BarrierEnergy::val_PT(surface_area, dis2, parameters);
+
+		}
+		barrierEnergy += std::accumulate(energy_PT_PT.begin(), energy_PT_PT.end(), 0.0);
+
+		//std::cout << "	Energy after PT contact = " << barrierEnergy << std::endl;
 
 
-
+		//int count = 0;
 #pragma omp parallel for num_threads(parameters.numOfThreads)
 		for (int i = 0; i < contact_pairs.Edge_Edge.size(); i++)
 		{
 			Vector5i cont_PT = contact_pairs.Edge_Edge[i];
-			if (cont_PT[4] != -1)
 			{
 				int obj_1 = cont_PT[0], obj_2 = cont_PT[2];
 				int edge1 = cont_PT[1], edge2 = cont_PT[3];
 
 		
-				Eigen::Vector2i edge1_vert = triSimMesh.allObjects[obj_1].surfaceInfo.index_boundaryEdge[edge1];
-				Eigen::Vector2i edge2_vert = triSimMesh.allObjects[obj_2].surfaceInfo.index_boundaryEdge[edge2];
+				Eigen::Vector2i edge1_vert = triSimMesh.allObjects[obj_1].objectSurfaceMesh.index_boundaryEdge[edge1];
+				Eigen::Vector2i edge2_vert = triSimMesh.allObjects[obj_2].objectSurfaceMesh.index_boundaryEdge[edge2];
 
 
 				int P1I = edge1_vert[0], P2I = edge1_vert[1], Q1I = edge2_vert[0], Q2I = edge2_vert[1];
-				double surface_area = triSimMesh.allObjects[obj_1].surfaceInfo.boundaryEdges_area[P1I][P2I];
+				double surface_area = triSimMesh.allObjects[obj_1].objectSurfaceMesh.boundaryEdges_area[P1I][P2I];
 
 				Eigen::Vector3d P1 = triSimMesh.allObjects[obj_1].pos_node_surface[P1I];
 				Eigen::Vector3d P2 = triSimMesh.allObjects[obj_1].pos_node_surface[P2I];
@@ -114,13 +151,14 @@ double compute_Barrier_energy(
 				energy_EE[i] = BarrierEnergy::val_EE(surface_area,
 					dis2, val_ek, parameters);
 
+				//count += 1;
 	
 			}
 
 		}
 		barrierEnergy += std::accumulate(energy_EE.begin(), energy_EE.end(), 0.0);
 
-
+		//std::cout << "	Energy after EE contact = " << barrierEnergy << "; Actual EE = " << count << std::endl;
 
 	}
 
@@ -142,7 +180,7 @@ std::vector<std::pair<int, int>> find_contact_pair_BBX_level(
 		triSimMesh.allObjects[ii].BBX.cal_min_max_ABD(triSimMesh.allObjects[ii].affine, dilation);
 
 
-		triSimMesh.allObjects[ii].BBX.export_BBX_world("bbx_"+std::to_string(ii));
+		//triSimMesh.allObjects[ii].BBX.export_BBX_world("bbx_"+std::to_string(ii));
 	}
 
 
@@ -229,7 +267,168 @@ std::vector<std::pair<int, int>> find_contact_pair_BVH_level(
 
 }
 
+void find_contact_pair_element_level2(
+	const std::vector<std::pair<int, int>>& BVH_pair,
+	triMesh& triSimMesh,
+	FEMParamters& parameters,
+	contact_Info& contact_pairs)
+{
+	// find potential contact face pair
+	std::vector<std::vector<Vector5i>> contact_pointTriangle_pair(BVH_pair.size());
+	std::vector<std::vector<double>> contact_pointTriangle_dis2(BVH_pair.size());
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+	for (int i = 0; i < BVH_pair.size(); i++)
+	{
+		int obj_1 = BVH_pair[i].first, obj_2 = BVH_pair[i].second;
+		std::vector<Vector5i> cont_pair;
+		std::vector<double> ct_dis2;
 
+
+		std::vector<std::pair<int, int>> result_;
+		queryBVH(triSimMesh.allObjects[obj_1].object_BVH_nodes, triSimMesh.allObjects[obj_2].object_BVH_faces, result_);
+		for (int k = 0; k < result_.size(); k++)
+		{
+			int vert = result_[k].first, face = result_[k].second;
+
+
+			Eigen::Vector3d P = triSimMesh.allObjects[obj_1].pos_node_surface[vert];
+			Eigen::Vector3i triVerts = triSimMesh.allObjects[obj_2].objectSurfaceMesh.boundaryTriangles[face];
+			Eigen::Vector3d A = triSimMesh.allObjects[obj_2].pos_node_surface[triVerts[0]];
+			Eigen::Vector3d B = triSimMesh.allObjects[obj_2].pos_node_surface[triVerts[1]];
+			Eigen::Vector3d C = triSimMesh.allObjects[obj_2].pos_node_surface[triVerts[2]];
+
+
+			int type = DIS::dType_PT(P, A, B, C);
+			double dis2 = 0;
+			DIS::computePointTriD(P, A, B, C, dis2);
+
+			if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+			{
+				Vector5i ct = { obj_1 ,result_[k].first ,obj_2,result_[k].second, type };
+				cont_pair.push_back(ct);
+				ct_dis2.push_back(dis2);
+			}
+		}
+		contact_pointTriangle_pair[i] = cont_pair;
+		contact_pointTriangle_dis2[i] = ct_dis2;
+	}
+
+
+	// find potential contact edge pair
+	std::vector<std::vector<Vector5i>> contact_edgeEdge_pair(BVH_pair.size());
+	std::vector<std::vector<double>> contact_edgeEdge_dis2(BVH_pair.size());
+#pragma omp parallel for num_threads(parameters.numOfThreads)
+	for (int i = 0; i < BVH_pair.size(); i++)
+	{
+		int obj_1 = BVH_pair[i].first, obj_2 = BVH_pair[i].second;
+		std::vector<Vector5i> cont_pair;
+		std::vector<double> ct_dis2;
+
+
+		std::vector<std::pair<int, int>> result_;
+		queryBVH(triSimMesh.allObjects[obj_1].object_BVH_edges, triSimMesh.allObjects[obj_2].object_BVH_edges, result_);
+
+
+		// compute the actual contact	
+		for (int k = 0; k < result_.size(); k++)
+		{
+			int edge1 = result_[k].first, edge2 = result_[k].second;
+			Eigen::Vector2i edge1_vert = triSimMesh.allObjects[obj_1].objectSurfaceMesh.index_boundaryEdge[edge1];
+			Eigen::Vector2i edge2_vert = triSimMesh.allObjects[obj_2].objectSurfaceMesh.index_boundaryEdge[edge2];
+
+			int P1I = edge1_vert[0], P2I = edge1_vert[1], Q1I = edge2_vert[0], Q2I = edge2_vert[1];
+
+			Eigen::Vector3d P1 = triSimMesh.allObjects[obj_1].pos_node_surface[P1I];
+			Eigen::Vector3d P2 = triSimMesh.allObjects[obj_1].pos_node_surface[P2I];
+			Eigen::Vector3d Q1 = triSimMesh.allObjects[obj_2].pos_node_surface[Q1I];
+			Eigen::Vector3d Q2 = triSimMesh.allObjects[obj_2].pos_node_surface[Q2I];
+
+			int type = DIS::dType_EE(P1, P2, Q1, Q2);
+			double dis2 = 0;
+			DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
+			if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+			{
+
+				Vector5i ct = { obj_1 ,result_[k].first ,obj_2,result_[k].second, type };
+				cont_pair.push_back(ct);
+				ct_dis2.push_back(dis2);
+			}
+		}
+		contact_edgeEdge_pair[i] = cont_pair;
+		contact_edgeEdge_dis2[i] = ct_dis2;
+	}
+
+
+	std::vector<double> PT_DIS;
+	// find final actual contact pairs
+	for (int i = 0; i < contact_pointTriangle_pair.size(); i++)
+	{
+		if (contact_pointTriangle_pair[i].size() != 0)
+		{
+			contact_pairs.Point_Triangle.insert(contact_pairs.Point_Triangle.end(), contact_pointTriangle_pair[i].begin(), contact_pointTriangle_pair[i].end());
+			PT_DIS.insert(PT_DIS.end(), contact_pointTriangle_dis2[i].begin(), contact_pointTriangle_dis2[i].end());
+		}
+	}
+
+
+	for (int i = 0; i < contact_edgeEdge_pair.size(); i++)
+	{
+		if (contact_edgeEdge_pair[i].size() != 0)
+		{
+			contact_pairs.Edge_Edge.insert(contact_pairs.Edge_Edge.end(), contact_edgeEdge_pair[i].begin(), contact_edgeEdge_pair[i].end());
+			contact_pairs.Edge_Edge_Dis.insert(contact_pairs.Edge_Edge_Dis.end(), contact_edgeEdge_dis2[i].begin(), contact_edgeEdge_dis2[i].end());
+		}
+	}
+
+
+
+
+	// find final actual contact pairs
+	for (int i = 0; i < contact_pairs.Point_Triangle.size(); i++)
+	{
+		if (contact_pairs.Point_Triangle[i][4] >= 0)
+		{
+			if (contact_pairs.Point_Triangle[i][4] <= 2)
+			{
+				contact_pairs.Point_Triangle_PP_index.push_back(i);
+				contact_pairs.Point_Triangle_PP_Dis.push_back(PT_DIS[i]);
+			}
+			else if (contact_pairs.Point_Triangle[i][4] > 2 && contact_pairs.Point_Triangle[i][4] <= 5)
+			{
+				contact_pairs.Point_Triangle_PE_index.push_back(i);
+				contact_pairs.Point_Triangle_PE_Dis.push_back(PT_DIS[i]);
+			}
+			else if (contact_pairs.Point_Triangle[i][4] == 6)
+			{
+				contact_pairs.Point_Triangle_PT_index.push_back(i);
+				contact_pairs.Point_Triangle_PT_Dis.push_back(PT_DIS[i]);
+			}
+
+		}
+	}
+
+
+
+	// Step 3: find ground contact pairs if any
+	if (parameters.enableGround == true)
+	{
+		for (int ft = 0; ft < triSimMesh.allObjects.size(); ft++)
+		{
+			for (int vt = 0; vt < triSimMesh.allObjects[ft].pos_node_surface.size(); vt++)
+			{
+				if (triSimMesh.allObjects[ft].pos_node_surface[vt][2] <= parameters.IPC_dis)
+				{
+					Vector2i gt = { ft,vt };
+					contact_pairs.Point_Ground.push_back(gt);
+				}
+			}
+
+		}
+
+	}
+
+
+}
 
 void find_contact_pair_element_level(
 	const std::vector<std::pair<int, int>>& BVH_pair,
@@ -270,11 +469,23 @@ void find_contact_pair_element_level(
 
 		std::vector<std::pair<int, int>> result_;
 		queryBVH(triSimMesh.allObjects[obj_1].object_BVH_edges, triSimMesh.allObjects[obj_2].object_BVH_edges, result_);
+
+		//std::sort(result_.begin(), result_.end(),
+		//	[](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+		//		if (a.first == b.first) {
+		//			return a.second < b.second; // 如果第一个元素相同，则按第二个元素排序
+		//		}
+		//		return a.first < b.first; // 否则按第一个元素排序
+		//	});
+
+
 		// compute the actual contact	
 		for (int k = 0; k < result_.size(); k++)
 		{
-			Vector5i ct = { obj_1 ,result_[k].first ,obj_2,result_[k].second ,-1};
+			Vector5i ct = { obj_1 ,result_[k].first ,obj_2, result_[k].second ,-1};
 			cont_pair.push_back(ct);
+
+			//std::cout << "ct = (" << result_[k].first << "," << result_[k].second << ")" << std::endl;
 		}
 		contact_edgeEdge_pair[i] = cont_pair;
 	}
@@ -338,88 +549,127 @@ void find_contact_pair_IPC_level(
 	FEMParamters& parameters,
 	contact_Info& contact_pairs)
 {
-	contact_pairs.Point_Triangle_Dis.resize(contact_pairs.Point_Triangle.size());
-	// find PT pair
-#pragma omp parallel for num_threads(parameters.numOfThreads)
-	for (int i = 0; i < contact_pairs.Point_Triangle.size(); i++)
-	{
-		int obj_1 = contact_pairs.Point_Triangle[i][0], obj_2 = contact_pairs.Point_Triangle[i][2];
-		int vert = contact_pairs.Point_Triangle[i][1], face = contact_pairs.Point_Triangle[i][3];
 
-		
-		Eigen::Vector3d P = triSimMesh.allObjects[obj_1].pos_node_surface[vert];
-
-		Eigen::Vector3i triVerts = triSimMesh.allObjects[obj_2].surfaceInfo.boundaryTriangles[face];
-		Eigen::Vector3d A = triSimMesh.allObjects[obj_2].pos_node_surface[triVerts[0]];
-		Eigen::Vector3d B = triSimMesh.allObjects[obj_2].pos_node_surface[triVerts[1]];
-		Eigen::Vector3d C = triSimMesh.allObjects[obj_2].pos_node_surface[triVerts[2]];
-
-
-		int type = DIS::dType_PT(P, A, B, C);
-		double dis2 = 0;
-		DIS::computePointTriD(P, A, B, C, dis2);
-		if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
-		{
-			contact_pairs.Point_Triangle[i][4] = type;
-			contact_pairs.Point_Triangle_Dis[i] = dis2;
-		}	
-	}
-
-
-	contact_pairs.Edge_Edge_Dis.resize(contact_pairs.Edge_Edge.size());
-	// find potential contact edge pair
-#pragma omp parallel for num_threads(parameters.numOfThreads)
-	for (int i = 0; i < contact_pairs.Edge_Edge.size(); i++)
-	{
-		int obj_1 = contact_pairs.Edge_Edge[i][0], obj_2 = contact_pairs.Edge_Edge[i][2];
-		int edge1 = contact_pairs.Edge_Edge[i][1], edge2 = contact_pairs.Edge_Edge[i][3];
-
-		Eigen::Vector2i edge1_vert = triSimMesh.allObjects[obj_1].surfaceInfo.index_boundaryEdge[edge1];
-		Eigen::Vector2i edge2_vert = triSimMesh.allObjects[obj_2].surfaceInfo.index_boundaryEdge[edge2];
-
-
-		int P1I = edge1_vert[0], P2I = edge1_vert[1], Q1I = edge2_vert[0], Q2I = edge2_vert[1];
-
-		Eigen::Vector3d P1 = triSimMesh.allObjects[obj_1].pos_node_surface[P1I];
-		Eigen::Vector3d P2 = triSimMesh.allObjects[obj_1].pos_node_surface[P2I];
-		Eigen::Vector3d Q1 = triSimMesh.allObjects[obj_2].pos_node_surface[Q1I];
-		Eigen::Vector3d Q2 = triSimMesh.allObjects[obj_2].pos_node_surface[Q2I];
-
-		int type = DIS::dType_EE(P1, P2, Q1, Q2);
-		double dis2 = 0;
-		DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
-		if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
-		{
-			contact_pairs.Edge_Edge[i][4] = type;
-			contact_pairs.Edge_Edge_Dis[i] = dis2;
-		}
-		
-	}
-
-
-
-	// find final actual contact pairs
-	for (int i = 0; i < contact_pairs.Point_Triangle.size(); i++)
-	{
-		if (contact_pairs.Point_Triangle[i][4] > 0)
-		{
-			if (contact_pairs.Point_Triangle[i][4] <= 2)
-			{
-				contact_pairs.Point_Triangle_PP_index.push_back(i);
-			}
-			else if (contact_pairs.Point_Triangle[i][4] > 2 && contact_pairs.Point_Triangle[i][4] <= 5)
-			{
-				contact_pairs.Point_Triangle_PE_index.push_back(i);
-			}
-			else if(contact_pairs.Point_Triangle[i][4] == 6)
-			{
-				contact_pairs.Point_Triangle_PT_index.push_back(i);
-			}
-
-		}
-	}
-
-
+//	//std::map<int, std::map<int, double>> PT_DIS;
+//
+//	contact_pairs.Point_Triangle_Dis.resize(contact_pairs.Point_Triangle.size());
+//	// find PT pair
+//#pragma omp parallel for num_threads(parameters.numOfThreads)
+//	for (int i = 0; i < contact_pairs.Point_Triangle.size(); i++)
+//	{
+//		int obj_1 = contact_pairs.Point_Triangle[i][0], obj_2 = contact_pairs.Point_Triangle[i][2];
+//		int vert = contact_pairs.Point_Triangle[i][1], face = contact_pairs.Point_Triangle[i][3];
+//
+//		//std::cout << "vert = " << vert << "; face = " << face << std::endl;
+//
+//		Eigen::Vector3d P = triSimMesh.allObjects[obj_1].pos_node_surface[vert];
+//
+//		Eigen::Vector3i triVerts = triSimMesh.allObjects[obj_2].objectSurfaceMesh.boundaryTriangles[face];
+//		Eigen::Vector3d A = triSimMesh.allObjects[obj_2].pos_node_surface[triVerts[0]];
+//		Eigen::Vector3d B = triSimMesh.allObjects[obj_2].pos_node_surface[triVerts[1]];
+//		Eigen::Vector3d C = triSimMesh.allObjects[obj_2].pos_node_surface[triVerts[2]];
+//
+//
+//		int type = DIS::dType_PT(P, A, B, C);
+//		double dis2 = 0;
+//		DIS::computePointTriD(P, A, B, C, dis2);
+//
+//		//PT_DIS[vert][face] = dis2;
+//
+//		if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+//		{
+//			contact_pairs.Point_Triangle[i][4] = type;
+//			contact_pairs.Point_Triangle_Dis[i] = dis2;
+//		}	
+//	}
+//
+//
+//
+//
+//	contact_pairs.Edge_Edge_Dis.resize(contact_pairs.Edge_Edge.size());
+//
+//
+//	//std::ofstream outfile9("./output/edgeVert.obj", std::ios::trunc);
+//
+//	// find potential contact edge pair
+//#pragma omp parallel for num_threads(parameters.numOfThreads)
+//	for (int i = 0; i < contact_pairs.Edge_Edge.size(); i++)
+//	{
+//		int obj_1 = contact_pairs.Edge_Edge[i][0], obj_2 = contact_pairs.Edge_Edge[i][2];
+//		int edge1 = contact_pairs.Edge_Edge[i][1], edge2 = contact_pairs.Edge_Edge[i][3];
+//
+//		Eigen::Vector2i edge1_vert = triSimMesh.allObjects[obj_1].objectSurfaceMesh.index_boundaryEdge[edge1];
+//		Eigen::Vector2i edge2_vert = triSimMesh.allObjects[obj_2].objectSurfaceMesh.index_boundaryEdge[edge2];
+//
+//		
+//
+//		int P1I = edge1_vert[0], P2I = edge1_vert[1], Q1I = edge2_vert[0], Q2I = edge2_vert[1];
+//
+//		Eigen::Vector3d P1 = triSimMesh.allObjects[obj_1].pos_node_surface[P1I];
+//		Eigen::Vector3d P2 = triSimMesh.allObjects[obj_1].pos_node_surface[P2I];
+//		Eigen::Vector3d Q1 = triSimMesh.allObjects[obj_2].pos_node_surface[Q1I];
+//		Eigen::Vector3d Q2 = triSimMesh.allObjects[obj_2].pos_node_surface[Q2I];
+//
+//
+//		//outfile9 << "v " << P1.transpose() << std::endl << "v " << P2.transpose() << std::endl;
+//		//outfile9 << "v " << Q1.transpose() << std::endl << "v " << Q2.transpose() << std::endl;
+//		//
+//
+//		////std::cout << "P1 = " << P1.transpose() << " , " << "P2 = " << P2.transpose();
+//		////std::cout << " , " << "Q1 = " << Q1.transpose() << " , " << "Q2 = " << Q2.transpose() << std::endl;
+//		//std::cout << "P1 = " << P1I << " , " << "; P2 = " << P2I;
+//		//std::cout << "; Q1 = " << Q1I << " , " << "; Q2 = " << Q2I  << std::endl;
+//
+//
+//
+//		int type = DIS::dType_EE(P1, P2, Q1, Q2);
+//		double dis2 = 0;
+//		DIS::computeEdgeEdgeD(P1, P2, Q1, Q2, dis2);
+//		//std::cout << "					dis2 = "<<std::sqrt(dis2) << std::endl;
+//		if (dis2 <= squaredDouble(parameters.IPC_dis)) // only calculate the energy when the distance is smaller than the threshold
+//		{
+//			
+//			contact_pairs.Edge_Edge[i][4] = type;
+//			contact_pairs.Edge_Edge_Dis[i] = dis2;
+//		}
+//		
+//	}
+//	//outfile9.close();
+//
+//
+//
+//	// find final actual contact pairs
+//	for (int i = 0; i < contact_pairs.Point_Triangle.size(); i++)
+//	{
+//		if (contact_pairs.Point_Triangle[i][4] >= 0)
+//		{
+//			if (contact_pairs.Point_Triangle[i][4] <= 2)
+//			{
+//				contact_pairs.Point_Triangle_PP_index.push_back(i);
+//			}
+//			else if (contact_pairs.Point_Triangle[i][4] > 2 && contact_pairs.Point_Triangle[i][4] <= 5)
+//			{
+//				contact_pairs.Point_Triangle_PE_index.push_back(i);
+//			}
+//			else if(contact_pairs.Point_Triangle[i][4] == 6)
+//			{
+//				contact_pairs.Point_Triangle_PT_index.push_back(i);
+//			}
+//
+//		}
+//	}
+//
+//	//std::cout << "PP = " << contact_pairs.Point_Triangle_PP_index.size() << std::endl;
+//
+//	//for (std::map<int, std::map<int, double>>::iterator it = PT_DIS.begin(); it != PT_DIS.end(); it++)
+//	//{
+//	//	for (std::map<int, double>::iterator it2 = it->second.begin(); it2 != it->second.end(); it2++)
+//	//	{
+//	//		std::cout << it->first << " , " << it2->first << " , " << it2->second << std::endl;
+//	//	}
+//	//}
+//
+//
 
 }
 
@@ -454,8 +704,8 @@ void find_contact(
 			std::vector<std::pair<int, int>> BVH_contact = find_contact_pair_BVH_level(parameters.IPC_dis / 2.0, BBX_contact, triSimMesh, BVH_objects, false);
 			if (BVH_contact.size() != 0 || parameters.enableGround == true)
 			{
-				find_contact_pair_element_level(BVH_contact, triSimMesh, parameters,contact_pairs);
-				find_contact_pair_IPC_level(triSimMesh, parameters, contact_pairs);
+				find_contact_pair_element_level2(BVH_contact, triSimMesh, parameters,contact_pairs);
+				//find_contact_pair_IPC_level(triSimMesh, parameters, contact_pairs);
 			}
 		}
 
@@ -510,7 +760,7 @@ double calMaxStep(
 			int obj_1 = contact_pairs.Point_Triangle[i][0], obj_2 = contact_pairs.Point_Triangle[i][2];
 			int vert = contact_pairs.Point_Triangle[i][1], face = contact_pairs.Point_Triangle[i][3];
 	
-			Eigen::Vector3i triVerts = triSimMesh.allObjects[obj_2].surfaceInfo.boundaryTriangles[face];
+			Eigen::Vector3i triVerts = triSimMesh.allObjects[obj_2].objectSurfaceMesh.boundaryTriangles[face];
 
 			Eigen::Vector3d P = triSimMesh.allObjects[obj_1].pos_node_surface[vert];
 			Eigen::Vector3d A = triSimMesh.allObjects[obj_2].pos_node_surface[triVerts[0]];
@@ -544,8 +794,8 @@ double calMaxStep(
 			int obj_1 = contact_pairs.Edge_Edge[i][0], obj_2 = contact_pairs.Edge_Edge[i][2];
 			int edge1 = contact_pairs.Edge_Edge[i][1], edge2 = contact_pairs.Edge_Edge[i][3];
 
-			Eigen::Vector2i edge1_vert = triSimMesh.allObjects[obj_1].surfaceInfo.index_boundaryEdge[edge1];
-			Eigen::Vector2i edge2_vert = triSimMesh.allObjects[obj_2].surfaceInfo.index_boundaryEdge[edge2];
+			Eigen::Vector2i edge1_vert = triSimMesh.allObjects[obj_1].objectSurfaceMesh.index_boundaryEdge[edge1];
+			Eigen::Vector2i edge2_vert = triSimMesh.allObjects[obj_2].objectSurfaceMesh.index_boundaryEdge[edge2];
 
 
 			int P1I = edge1_vert[0], P2I = edge1_vert[1], Q1I = edge2_vert[0], Q2I = edge2_vert[1];
@@ -613,7 +863,7 @@ double calMaxStep(
 // calculate the maximum feasible step size
 double calMaxStepSize(
 	FEMParamters& parameters,
-	surface_Info& surfaceInfo,
+	objMeshFormat& surfaceInfo,
 	const std::vector<Eigen::Vector3d>& direction,
 	const std::vector<Eigen::Vector3d>& pos_node,
 	const std::vector<std::string>& note_node,
