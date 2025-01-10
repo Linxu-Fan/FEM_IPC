@@ -537,7 +537,7 @@ double calMaxStep_spatialHash(
                                 int vert = *itP, tri = *itT;
                                 if (surfaceInfo.boundaryVertices[vert].find(tri) == surfaceInfo.boundaryVertices[vert].end()) // this triangle is not incident with the point
                                 {
-                                    Eigen::Vector3i triVerts = surfaceInfo.boundaryTriangles[tri];
+                                    Eigen::Vector3i triVerts = surfaceInfo.faces[tri];
                                     Eigen::Vector3d P = pos_node[vert];
                                     Eigen::Vector3d dP = direction[vert];
                                     Eigen::Vector3d A = pos_node[triVerts[0]];

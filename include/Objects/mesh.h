@@ -21,24 +21,6 @@ struct meshConfiguration
 	std::string note = "";
 };
 
-class ABD_Info
-{
-public:
-	//std::vector<bool> breakable; // if this object is breakable or not
-
-	// data structure specialized for ABD
-	std::vector<Matrix12d> massMatrix_ABD; // the mass matrix of each mesh if in ABD mode
-	std::vector<Vector12d> affine;
-	std::vector<Eigen::Vector3d> translation_prev_ABD; // translation of each mesh in previous timestep if in ABD mode
-	std::vector<Eigen::Vector3d> translation_vel_ABD; // translation velocity
-	std::vector<Eigen::Vector3d> translation_ABD; // translation of each mesh if in ABD mode
-	std::vector<Eigen::Matrix3d> deformation_prev_ABD; // deformation of each mesh in previous timestep if in ABD mode
-	std::vector<Eigen::Matrix3d> deformation_vel_ABD; // deformation velocity
-	std::vector<Eigen::Matrix3d> deformation_ABD; // deformation of each mesh if in ABD mode
-	std::vector<double> volume_ABD; // volume of each mesh if in ABD mode
-
-};
-
 
 struct bounding_box
 {
@@ -78,25 +60,16 @@ struct ABD_Object
 	Material objectMaterial;                  //
 	objMeshFormat objectSurfaceMesh;          //
 	bool breakable = false;                   //
-	double volume = 0;                        //
 	double per_point_volume = 0.01;
 
 
 	Vector12d affine_last = Vector12d::Zero();
 	Vector12d affine_prev = Vector12d::Zero();
+	Vector12d affine_vel = Vector12d::Zero();	
 	Vector12d affine = Vector12d::Zero();	
 	Matrix12d massMatrix_ABD = Matrix12d::Zero();
 
-	Eigen::Vector3d translation_last_ABD = Eigen::Vector3d::Zero();
-	Eigen::Vector3d translation_prev_ABD = Eigen::Vector3d::Zero();
-	Eigen::Vector3d translation_vel_ABD = Eigen::Vector3d::Zero();
-	Eigen::Vector3d translation_ABD = Eigen::Vector3d::Zero();
-
-	Eigen::Matrix3d deformation_last_ABD = Eigen::Matrix3d::Identity();
-	Eigen::Matrix3d deformation_prev_ABD = Eigen::Matrix3d::Identity();
-	Eigen::Matrix3d deformation_vel_ABD = Eigen::Matrix3d::Zero();
-	Eigen::Matrix3d deformation_ABD = Eigen::Matrix3d::Identity();
-	bool need_update_rest_position = false; // update the position in the rest configuration
+	bool need_update = true; // update the position in the rest configuration
 
 
 	// sampled points inside of the object
@@ -110,7 +83,6 @@ struct ABD_Object
 	std::vector<Eigen::Vector3d> pos_node_surface;                    
 	std::vector<Eigen::Vector3d> pos_node_surface_prev;                    
 	std::vector<Eigen::Vector3d> pos_node_surface_direction; 
-	std::vector<Eigen::Vector3d> contactForce_node_surface;
 
 
 	// Bounding box in the rest configuration
@@ -131,12 +103,12 @@ public:
 
 
 	objMeshFormat surfaceMeshGlobal;
-	//surface_Info surfaceInfo; // store the surface information of the mesh
 
 
+	void reset_object_state();
 
-
-
+	// Update object's interior and surface vertices' position in the world space after cutting
+	void update_position_world_after_cutting();
 
 
 	/**
@@ -210,17 +182,7 @@ public:
 	 */
 	void exportSurfaceMesh(std::string fileName, int timestep);
 
-	/**
-	 * @brief largest edge length of the triangular surface mesh
-	 *
-	 */
-	double calLargestEdgeLength();
 
-	/**
-	 * @brief update each ABD object's surface mesh
-	 *
-	 */
-	void updateEachObjectSurfaceMesh();
 
 };
 

@@ -87,7 +87,6 @@ struct objMeshFormat
 	std::map<int, std::map<int, int>> boundaryEdge_index; // 1st (smaller one) & 2nd (larger one) int: edge index containing two vertices in the ORIGINAL mesh; 3rd int: index of this edge
 	std::map<int, Eigen::Vector2i> index_boundaryEdge; // 1st int: index of this edge; Eigen::Vector2i two vertices in the ORIGINAL mesh
 	std::vector<int> index_boundaryEdge_vec; // 1st int: index of this edge
-	std::vector<Eigen::Vector3i> boundaryTriangles;
 	std::vector<double> boundaryTriangles_area; // boundary triangle's area
 
 	// update the boundary information given a surface mesh
@@ -160,6 +159,12 @@ struct objMeshFormat
 	 *
 	 */
 	objMeshFormat boolean_difference_with_mesh(objMeshFormat& B);
+
+	/**
+	 * @brief largest edge length of the mesh
+	 *
+	 */
+	double calLargestEdgeLength();
 
 };
 

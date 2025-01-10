@@ -914,7 +914,7 @@ int main()
 		// Case:
 		// 0. Cube tower stress test for ABD of triMesh ABD implementation
 		// 1. Bunny test to verify the correctness of mpm simulation
-		int caseNum = 0;
+		int caseNum = 1;
 		if (caseNum == 0)
 		{
 
@@ -937,7 +937,8 @@ int main()
 			m1.filePath = "../input/cube_eq.obj";
 			m1.mesh_material = mat1;
 			m1.note = "cube_0";
-			Eigen::Vector3d trans = { -3, 2.4, 1.7 };
+			Eigen::Vector3d trans = { -3, 2.4, 2.7 };
+			m1.velocity = { 5,0,0 };
 			m1.translation = trans;
 			m1.per_point_volume = 0.01;
 			config.push_back(m1);
@@ -955,8 +956,9 @@ int main()
 						count += 1;
 						m1.mesh_material = mat2;
 						m1.note = "cube_" + std::to_string(count);
-						Eigen::Vector3d trans = { (double)x * 1.03 , (double)y * 1.03 , (double)z * 1.03 + 1 };
+						Eigen::Vector3d trans = { (double)x * 1.03 , (double)y * 1.03 , (double)z * 1.03 + 2 };
 						m1.translation = trans;
+						m1.velocity = { 0,0,0 };
 						config.push_back(m1);
 					}
 				}
@@ -966,11 +968,7 @@ int main()
 
 			triMesh triSimMesh;
 			triSimMesh.createGlobalSimulationTriMesh_ABD(config);
-			for (int num = 1; num < triSimMesh.allObjects.size(); num++)
-			{
-				triSimMesh.allObjects[num].translation_vel_ABD = { 0,0,0 };
-			}
-			triSimMesh.allObjects[0].translation_vel_ABD = { 5,0,0 };
+
 
 
 
@@ -988,7 +986,6 @@ int main()
 			parameters.IPC_dis = IPC_dis;
 			parameters.IPC_eta = 0.05;
 			parameters.IPC_kStiffness = 1.0e12;
-			parameters.IPC_hashSize = triSimMesh.calLargestEdgeLength() * 1.1;
 			parameters.IPC_B3Stiffness = 500;
 			parameters.ABD_Coeff = 1.0e12;
 
@@ -1059,7 +1056,6 @@ int main()
 			parameters.IPC_dis = IPC_dis;
 			parameters.IPC_eta = 0.05;
 			parameters.IPC_kStiffness = 1.0e12;
-			parameters.IPC_hashSize = triSimMesh.calLargestEdgeLength() * 1.1;
 			parameters.IPC_B3Stiffness = 500;
 			parameters.ABD_Coeff = 1.0e12;
 

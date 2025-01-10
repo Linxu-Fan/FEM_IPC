@@ -69,13 +69,13 @@ std::vector<std::pair<int, int>> find_contact_pair_BVH_level(
 	bool advection);
 
 
-void find_contact_pair_element_level(
+void find_contact_pair_element_advect(
 	const std::vector<std::pair<int, int>>& BVH_pair,
 	triMesh& triSimMesh,
 	FEMParamters& parameters,
 	contact_Info& contact_pairs);
 
-void find_contact_pair_element_level2(
+void find_contact_pair_element_IPC(
 	const std::vector<std::pair<int, int>>& BVH_pair,
 	triMesh& triSimMesh,
 	FEMParamters& parameters,
@@ -119,9 +119,9 @@ double calculate_maximum_velocity(FEMParamters& parameters, triMesh& triSimMesh,
 /**
  * @brief check if start fracture simulation or not based on the contact force
  *
- * @param int: broken object's index; std::vector<Vector6d>: broken object's contact force
+ * @param std::map<int, std::vector<Vector6d>>: broken object's index; std::vector<Vector6d>: broken object's contact force
  */
-void if_start_fracture_sim(triMesh& triSimMesh, std::map<int, std::vector<Vector6d>>& broken_objects);
+void if_start_fracture_sim(triMesh& triSimMesh, std::map<int, std::vector<Vector6d>>& broken_objects, std::map<int, std::map<int, Eigen::Vector3d>>& contact_force_all);
 
 
 void fracture_sim(FEMParamters& parameters, triMesh& triSimMesh, std::map<int, std::vector<Vector6d>>& broken_objects, std::map<int, objMeshFormat>& crackSurface_object);

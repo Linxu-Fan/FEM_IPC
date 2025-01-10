@@ -275,14 +275,12 @@ void objMeshFormat::readObjFile(std::string fileName, bool polygonal, Eigen::Aff
 
 void objMeshFormat::updateBEInfo()
 {
-	boundaryTriangles = faces;
-
 
 	std::set<std::string> allEdges;
 	// find boundary vertices
-	for (int h = 0; h < boundaryTriangles.size(); h++)
+	for (int h = 0; h < faces.size(); h++)
 	{
-		Eigen::Vector3i tri = boundaryTriangles[h];
+		Eigen::Vector3i tri = faces[h];
 		boundaryVertices[tri[0]].insert(h);
 		boundaryVertices[tri[1]].insert(h);
 		boundaryVertices[tri[2]].insert(h);
@@ -349,9 +347,9 @@ void objMeshFormat::updateBEInfo()
 
 
 	// calculate the area of each triangle
-	for (int i = 0; i < boundaryTriangles.size(); i++)
+	for (int i = 0; i < faces.size(); i++)
 	{
-		Eigen::Vector3i triangle = boundaryTriangles[i];
+		Eigen::Vector3i triangle = faces[i];
 		Eigen::Vector3d t1Coor = vertices[triangle[0]], t2Coor = vertices[triangle[1]],
 			t3Coor = vertices[triangle[2]];
 		Eigen::Vector3d t1t2 = t2Coor - t1Coor, t1t3 = t3Coor - t1Coor;
@@ -747,6 +745,22 @@ void objMeshFormat::updateVolume()
 	double volume_ = 0;
 	igl::centroid(libigl_mesh.first, libigl_mesh.second, center, volume_);
 	volume = std::abs(volume_);
+}
+
+double objMeshFormat::calLargestEdgeLength()
+{
+	double largestLength = -1.0E9;
+	for (int i = 0; i < edges.size(); i++)
+	{
+		int v1_index = edges[i][0], v2_index = edges[i][1];
+		Eigen::Vector3d v1 = vertices[v1_index], v2 = vertices[v2_index];
+		double length = (v1 - v2).norm();
+		if (largestLength < length)
+		{
+			largestLength = length;
+		}
+	}
+	return largestLength;
 }
 
 objMeshFormat objMeshFormat::reconstruct_with_vdb(float& voxel_size)

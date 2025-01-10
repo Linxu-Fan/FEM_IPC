@@ -201,43 +201,47 @@ void triMesh::update_box_corner()
 #pragma omp parallel for
 	for (int ii = 0; ii < allObjects.size(); ii++)
 	{
-		build_BVH_object(0, ii);
-
+		if (allObjects[ii].need_update)
 		{
-			Eigen::Vector3d dxyz = allObjects[ii].object_BVH_faces->box.max - allObjects[ii].object_BVH_faces->box.min;
-			double dx = dxyz[0], dy = dxyz[1], dz = dxyz[2];
+			build_BVH_object(0, ii);
 
-			//std::cout << "min = " << allObjects[ii].object_BVH_faces->box.min.transpose() << "; max = " << allObjects[ii].object_BVH_faces->box.max.transpose() << std::endl;
+			{
+				Eigen::Vector3d dxyz = allObjects[ii].object_BVH_faces->box.max - allObjects[ii].object_BVH_faces->box.min;
+				double dx = dxyz[0], dy = dxyz[1], dz = dxyz[2];
 
-			allObjects[ii].BBX.left_front_bottom = allObjects[ii].object_BVH_faces->box.min;
-			allObjects[ii].BBX.right_front_bottom = allObjects[ii].object_BVH_faces->box.min;
-			allObjects[ii].BBX.right_back_bottom = allObjects[ii].object_BVH_faces->box.min;
-			allObjects[ii].BBX.left_back_bottom = allObjects[ii].object_BVH_faces->box.min;
-			allObjects[ii].BBX.left_front_top = allObjects[ii].object_BVH_faces->box.min;
-			allObjects[ii].BBX.right_front_top = allObjects[ii].object_BVH_faces->box.min;
-			allObjects[ii].BBX.right_back_top = allObjects[ii].object_BVH_faces->box.min;
-			allObjects[ii].BBX.left_back_top = allObjects[ii].object_BVH_faces->box.min;
+				//std::cout << "min = " << allObjects[ii].object_BVH_faces->box.min.transpose() << "; max = " << allObjects[ii].object_BVH_faces->box.max.transpose() << std::endl;
 
-			allObjects[ii].BBX.right_front_bottom[0] += dx;
+				allObjects[ii].BBX.left_front_bottom = allObjects[ii].object_BVH_faces->box.min;
+				allObjects[ii].BBX.right_front_bottom = allObjects[ii].object_BVH_faces->box.min;
+				allObjects[ii].BBX.right_back_bottom = allObjects[ii].object_BVH_faces->box.min;
+				allObjects[ii].BBX.left_back_bottom = allObjects[ii].object_BVH_faces->box.min;
+				allObjects[ii].BBX.left_front_top = allObjects[ii].object_BVH_faces->box.min;
+				allObjects[ii].BBX.right_front_top = allObjects[ii].object_BVH_faces->box.min;
+				allObjects[ii].BBX.right_back_top = allObjects[ii].object_BVH_faces->box.min;
+				allObjects[ii].BBX.left_back_top = allObjects[ii].object_BVH_faces->box.min;
 
-			allObjects[ii].BBX.right_back_bottom[0] += dx;
-			allObjects[ii].BBX.right_back_bottom[1] += dy;
+				allObjects[ii].BBX.right_front_bottom[0] += dx;
 
-			allObjects[ii].BBX.left_back_bottom[1] += dy;
+				allObjects[ii].BBX.right_back_bottom[0] += dx;
+				allObjects[ii].BBX.right_back_bottom[1] += dy;
+
+				allObjects[ii].BBX.left_back_bottom[1] += dy;
 
 
-			allObjects[ii].BBX.left_front_top[2] += dz;
+				allObjects[ii].BBX.left_front_top[2] += dz;
 
-			allObjects[ii].BBX.right_front_top[0] += dx;
-			allObjects[ii].BBX.right_front_top[2] += dz;
+				allObjects[ii].BBX.right_front_top[0] += dx;
+				allObjects[ii].BBX.right_front_top[2] += dz;
 
-			allObjects[ii].BBX.right_back_top[0] += dx;
-			allObjects[ii].BBX.right_back_top[1] += dy;
-			allObjects[ii].BBX.right_back_top[2] += dz;
+				allObjects[ii].BBX.right_back_top[0] += dx;
+				allObjects[ii].BBX.right_back_top[1] += dy;
+				allObjects[ii].BBX.right_back_top[2] += dz;
 
-			allObjects[ii].BBX.left_back_top[1] += dy;
-			allObjects[ii].BBX.left_back_top[2] += dz;
+				allObjects[ii].BBX.left_back_top[1] += dy;
+				allObjects[ii].BBX.left_back_top[2] += dz;
+			}
 		}
+		
 	}
 }
 
@@ -254,6 +258,7 @@ void triMesh::createGlobalSimulationTriMesh_ABD(std::vector<meshConfiguration>& 
 	sample_points_inside();
 	update_ABD_info();
 	update_box_corner();
+	reset_object_state();
 }
 
 void triMesh::updateGlobalSimulationTriMesh_ABD()
@@ -279,26 +284,12 @@ void triMesh::updateGlobalSimulationTriMesh_ABD()
 	build_surface_mesh();
 	sample_points_inside();
 	update_ABD_info();
+	update_box_corner();
+	//!!!!!!!!!!!!!!!!!
+	//! Note update_position_world_after_cutting must be after update_box_corner
+	update_position_world_after_cutting();
+	reset_object_state();
 
-
-	// !!!!!!!!!!!!!!!!!!!!!!!
-// update points' position in the rest configuration
-	std::vector<Eigen::Matrix3d> deformation_ABD_inverse(allObjects.size(), Eigen::Matrix3d::Identity());
-#pragma omp parallel for
-	for (int i = 0 ; i < allObjects.size(); i++)
-	{
-		deformation_ABD_inverse[i] = allObjects[i].deformation_ABD.inverse();
-	}
-#pragma omp parallel for
-	
-	//////////////////////////////
-	// Need to update each object's surfac mesh
-	//////////////////////////////
-
-	for (int i = 0; i < allObjects.size(); i++)
-	{
-		allObjects[i].need_update_rest_position = false;
-	}
 
 }
 
@@ -334,21 +325,22 @@ void triMesh::readMeshes(std::vector<meshConfiguration>& configs)
 		obj_.breakable = config.breakable;
 		obj_.objectSurfaceMesh = triMesh_;
 		obj_.objectSurfaceMesh.updateVolume();
-		obj_.translation_vel_ABD = config.velocity;
 
-		obj_.volume = obj_.objectSurfaceMesh.volume;
 
 		obj_.objectSurfaceMesh.updateBEInfo();
 		obj_.pos_node_surface = obj_.objectSurfaceMesh.vertices;
 		obj_.pos_node_surface_prev = obj_.objectSurfaceMesh.vertices;
 		obj_.pos_node_surface_direction.resize(obj_.pos_node_surface.size(), Eigen::Vector3d::Zero());
-		obj_.contactForce_node_surface.resize(obj_.pos_node_surface.size(), Eigen::Vector3d::Zero());
 
 		obj_.affine[3] = 1.0;
 		obj_.affine[7] = 1.0;
 		obj_.affine[11] = 1.0;
 
 		obj_.affine_prev = obj_.affine;
+		obj_.affine_last = obj_.affine;
+		obj_.affine_vel[0] = config.velocity[0];
+		obj_.affine_vel[1] = config.velocity[1];
+		obj_.affine_vel[2] = config.velocity[2];
 
 		obj_.per_point_volume = config.per_point_volume;
 		allObjects.push_back(obj_);
@@ -393,47 +385,23 @@ void triMesh::sample_points_inside()
 	// sample points inside first
 	for (int i = 0; i < allObjects.size(); i++)
 	{
-
-		int num_points = std::floor(allObjects[i].objectSurfaceMesh.volume / allObjects[i].per_point_volume);
-		std::vector<Eigen::Vector3d> pts = allObjects[i].objectSurfaceMesh.sample_points_inside_mesh(num_points);
-
-		/*pts.clear();
-		int count = 0;
-		for (int x = 1; x < 6 && count < num_points; x++)
+		if(allObjects[i].need_update)
 		{
-			for (int y = 1; y < 6 && count < num_points; y++)
+			int num_points = std::floor(allObjects[i].objectSurfaceMesh.volume / allObjects[i].per_point_volume);
+			std::vector<Eigen::Vector3d> pts = allObjects[i].objectSurfaceMesh.sample_points_inside_mesh(num_points);
+
+			allObjects[i].pos_node_interior = pts;
+			allObjects[i].pos_node_interior_prev = pts;
+			allObjects[i].pos_node_Rest_interior = pts;
+
+			// store the note infor of each object
+			for (int n = 0; n < pts.size(); n++)
 			{
-				for (int z = 1; z < 6 && count < num_points; z++)
-				{
-					Eigen::Vector3d pt = { 0,0,0 };
+				allObjects[i].vol_node_interior.push_back(allObjects[i].per_point_volume);
+				allObjects[i].mass_node_interior.push_back(allObjects[i].per_point_volume * allObjects[i].objectMaterial.density);
 
-					if (i == 0)
-					{
-						pt = { (double)x * 0.19 - 1.02, (double)y * 0.19 , (double)z * 0.19 };
-					}
-					else
-					{
-						pt = { (double)x * 0.19, (double)y * 0.19 , (double)z * 0.19 };
-
-					}
-					count += 1;
-					pts.push_back(pt);
-				}
 			}
-		}*/
-
-		allObjects[i].pos_node_interior = pts;
-		allObjects[i].pos_node_interior_prev = pts;
-		allObjects[i].pos_node_Rest_interior = pts;
-
-
-		// store the note infor of each object
-		for (int n = 0; n < pts.size(); n++)
-		{
-			allObjects[i].vol_node_interior.push_back(allObjects[i].per_point_volume);
-			allObjects[i].mass_node_interior.push_back(allObjects[i].per_point_volume * allObjects[i].objectMaterial.density);
-
-		}
+		}	
 	}
 
 }
@@ -442,11 +410,14 @@ void triMesh::update_ABD_info()
 {
 	for (int i = 0; i < allObjects.size(); i++)
 	{
-		for (int j = 0; j < allObjects[i].pos_node_interior.size(); j++)
+		if (allObjects[i].need_update)
 		{
-			Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(allObjects[i].pos_node_interior[j]);
+			for (int j = 0; j < allObjects[i].pos_node_interior.size(); j++)
+			{
+				Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(allObjects[i].pos_node_interior[j]);
 
-			allObjects[i].massMatrix_ABD += allObjects[i].mass_node_interior[j] * Jx.transpose() * Jx;
+				allObjects[i].massMatrix_ABD += allObjects[i].mass_node_interior[j] * Jx.transpose() * Jx;
+			}
 		}
 	}
 
@@ -462,31 +433,37 @@ void triMesh::exportSurfaceMesh(std::string fileName, int timestep)
 	surfaceMeshGlobal.outputFile(fileName, timestep);
 }
 
-double triMesh::calLargestEdgeLength()
+void triMesh::reset_object_state()
 {
-	double largestLength = -1.0E9;
-	//for (std::map<int, Eigen::Vector2i>::iterator it = surfaceInfo.index_boundaryEdge.begin();
-	//	it != surfaceInfo.index_boundaryEdge.end(); it++)
-	//{
-	//	int v1_index = it->second[0], v2_index = it->second[1];
-	//	Eigen::Vector3d v1 = pos_node_surface[v1_index], v2 = pos_node_surface[v2_index];
-	//	double length = (v1 - v2).norm();
-	//	if (largestLength < length)
-	//	{
-	//		largestLength = length;
-	//	}
-	//}
-	return largestLength;
+	for (int i = 0; i < allObjects.size(); i++)
+	{
+		allObjects[i].need_update = false;
+	}
+
 }
 
-void triMesh::updateEachObjectSurfaceMesh()
+void triMesh::update_position_world_after_cutting()
 {
-	/*for (int i = 0; i < allObjects.size(); i++)
+	for (int i = 0; i < allObjects.size(); i++)
 	{
-		for (int j = allObjects[i].objectSurfaceMeshes_node_start_end[0]; j < allObjects[i].objectSurfaceMeshes_node_start_end[1]; j++)
+		if (allObjects[i].need_update)
 		{
-			int localIndex = j - allObjects[i].objectSurfaceMeshes_node_start_end[0];
-			allObjects[i].objectSurfaceMesh.vertices[localIndex] = pos_node_surface[j];
+			// update interior
+#pragma omp parallel for 
+			for (int iv = 0; iv < allObjects[i].pos_node_interior.size(); iv++)
+			{
+				Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(allObjects[i].pos_node_interior[iv]);
+				allObjects[i].pos_node_interior[iv] = Jx * allObjects[i].affine;
+			}
+
+			// update surface
+#pragma omp parallel for 
+			for (int sv = 0; sv < allObjects[i].pos_node_surface.size(); sv++)
+			{
+				Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(allObjects[i].pos_node_surface[sv]);
+				allObjects[i].pos_node_surface[sv] = Jx * allObjects[i].affine;
+			}
 		}
-	}*/
+	}
+
 }

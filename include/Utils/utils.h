@@ -239,22 +239,6 @@ struct boundaryCondition
 
 struct contact_Info
 {
-	//std::vector<std::pair<int, int>> PT; // 1st int: point index; 2nd int: triangle index
-	//std::vector<std::pair<int, int>> EE; // 1st int: 1st edge index; 2nd int: 2nd edge index
-
-
-	//// 1st int: 0(PT), 1(EE), 2(PG); 
-	//// 2nd int: index of P(E1)(P: for ground contact case); 
-	//// 3rd int: index of T(E2); 
-	//// 4th int: type; 
-	//// 5th int: actual involved elements, i.e. PP(2), PE(3), PT(4) and EE(4)  
-	//std::vector<Vector5i> PG_PG;
-	//std::vector<Vector5i> PT_PP;
-	//std::vector<Vector5i> PT_PE;
-	//std::vector<Vector5i> PT_PT;
-	//std::vector<Vector5i> EE_EE;
-
-
 
 
 	////////////////////////////////////////
