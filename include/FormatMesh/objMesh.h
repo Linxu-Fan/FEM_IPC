@@ -2,6 +2,7 @@
 #define OBJMESH_H
 
 #include "utils.h"
+#include <igl/connected_components.h>
 
 
 // 用于表示三角形面，包含三个节点的ID
@@ -69,7 +70,7 @@ struct objMeshFormat
 	std::vector<std::vector<int>> facesPolygonal; // polygonal face
 	std::vector<std::vector<int>> vertFaces; // faces that share this vertex
 	std::vector<objMeshFormat> componentsSep; // separated connected-components
-	
+	bool updated = false; // if the mesh has been updated by updateBEInfo()
 
 	// initial velocity of this mesh. It is useful when the mesh is used for simulation
 	Eigen::Vector3d initialVelocity = Eigen::Vector3d::Zero();

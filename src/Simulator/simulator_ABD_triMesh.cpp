@@ -14,6 +14,15 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 		if (timestep % parameters.outputFrequency == 0)
 		{
 			triSimMesh.exportSurfaceMesh("surfMesh", timestep);
+			
+			//for (int i = 0; i < triSimMesh.allObjects.size(); i++)
+			//{
+			//	objMeshFormat test;
+			//	test.vertices = triSimMesh.allObjects[i].pos_node_surface;
+			//	test.faces = triSimMesh.allObjects[i].objectSurfaceMesh.faces;
+			//	test.outputFile(triSimMesh.allObjects[i].objectNote, timestep);
+			//}
+
 		}
 
 		for (int i = 0; i < triSimMesh.allObjects.size(); i++)
@@ -819,7 +828,7 @@ void cut_object_with_cracks(FEMParamters& parameters, triMesh& triSimMesh, std::
 	{
 		int objectIndex = it->first;
 		objMeshFormat full_cut = it->second;
-		float voxel_size = static_cast<float>(parameters.IPC_dis);
+		float voxel_size = static_cast<float>(parameters.IPC_dis) * 3;
 		objMeshFormat full_cut_surf = full_cut.reconstruct_with_vdb(voxel_size);
 
 		objMeshFormat children = triSimMesh.allObjects[objectIndex].objectSurfaceMesh.boolean_difference_with_mesh(full_cut_surf);
@@ -847,6 +856,8 @@ void cut_object_with_cracks(FEMParamters& parameters, triMesh& triSimMesh, std::
 			child_object.pos_node_surface = childMesh.vertices;
 			child_object.pos_node_surface_prev = childMesh.vertices;
 			child_object.pos_node_surface_direction.resize(childMesh.vertices.size());
+
+			
 
 			// the first child replaces the parent object
 			if (cc == 0)

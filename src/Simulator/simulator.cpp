@@ -180,7 +180,7 @@ std::vector<std::pair<int, int>> find_contact_pair_BBX_level(
 		triSimMesh.allObjects[ii].BBX.cal_min_max_ABD(triSimMesh.allObjects[ii].affine, dilation);
 
 
-		//triSimMesh.allObjects[ii].BBX.export_BBX_world("bbx_"+std::to_string(ii));
+		//triSimMesh.allObjects[ii].BBX.export_BBX_world(triSimMesh.allObjects[ii].objectNote+"_" + std::to_string(ii));
 	}
 
 
@@ -609,6 +609,8 @@ double calMaxStep(
 	double dist_threshold = parameters.IPC_dis;
 	double eta = parameters.IPC_eta;
 	double step = 1.0;
+
+	std::cout << "			Step size calculation: PT = " << contact_pairs.Point_Triangle.size() << "; EE = " << contact_pairs.Edge_Edge.size() << "; PG = " << contact_pairs.Point_Ground.size() << std::endl;
 
 
 

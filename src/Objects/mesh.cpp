@@ -240,6 +240,10 @@ void triMesh::update_box_corner()
 				allObjects[ii].BBX.left_back_top[1] += dy;
 				allObjects[ii].BBX.left_back_top[2] += dz;
 			}
+
+			deleteBVH(allObjects[ii].object_BVH_nodes);
+			allObjects[ii].object_BVH_nodes = nullptr;
+
 		}
 		
 	}
@@ -357,6 +361,8 @@ void triMesh::readMeshes(std::vector<meshConfiguration>& configs)
 
 void triMesh::build_surface_mesh()
 {
+	surfaceMeshGlobal.clear();
+
 	// surface points
 	for (int i = 0; i < allObjects.size(); i++)
 	{

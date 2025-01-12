@@ -405,6 +405,7 @@ void objMeshFormat::updateBEInfo()
 		edges[it->first] = it->second;
 	}
 
+	updated = true;
 
 }
 
@@ -425,47 +426,106 @@ void depthFirstSearch(int v, const std::vector<std::set<int>>& adjList,
 void objMeshFormat::sepConnectedComponents()
 {
 
-	// find connected components
+	if (!updated)
+	{
+		updateBEInfo();
+	}
+
+	// find connected components. Int: index of face that is in this component
 	std::vector<std::vector<int>> components;
-	std::vector<std::set<int>> adjList(vertices.size());
-	for (const auto& f : faces)
+
+
+
+	std::set<int> unvisited_faces;
+	for (int i = 0; i < faces.size(); i++)
 	{
-		adjList[f[0]].insert(f[1]);
-		adjList[f[0]].insert(f[2]);
-		adjList[f[1]].insert(f[0]);
-		adjList[f[1]].insert(f[2]);
-		adjList[f[2]].insert(f[0]);
-		adjList[f[2]].insert(f[1]);
+		unvisited_faces.insert(i);
 	}
-	std::vector<bool> visited(vertices.size(), false);
-	for (size_t i = 0; i < vertices.size(); ++i)
+	// serach for connected components by BFS search
+	do
 	{
-		if (!visited[i])
+		std::vector<int> component_one;
+
+		std::vector<int> seed_face_current;
+		seed_face_current.push_back(*unvisited_faces.begin());
+		unvisited_faces.erase(seed_face_current[0]);
+		component_one.push_back(seed_face_current[0]);
+
+		std::vector<int> seed_face_next;
+		do
 		{
-			std::vector<int> component;
-			depthFirstSearch(i, adjList, visited, component);
-			components.push_back(component);
-		}
-	}
+			for (int i = 0; i < seed_face_current.size(); i++)
+			{
+				int face_index = seed_face_current[i];
+				for (int j = 0; j < 3; j++)
+				{
+					int vert_index = faces[face_index][j];
+					std::set<int> neig_faces = boundaryVertices[vert_index];
+					// next level faces
+					for (std::set<int>::iterator it = neig_faces.begin(); it != neig_faces.end(); it++)
+					{
+						int new_face_index = *it;
+						if (unvisited_faces.find(new_face_index) != unvisited_faces.end())
+						{
+							component_one.push_back(new_face_index);
+							seed_face_next.push_back(new_face_index);
+							unvisited_faces.erase(new_face_index);
+						}
+
+					}
+				}
+			}
+			seed_face_current = seed_face_next;
+			seed_face_next.clear();
+		} while (seed_face_current.size() != 0);
+
+
+		components.push_back(component_one);
+
+	} while (unvisited_faces.size() != 0);
+
+
+
+
+
 
 	// remove unnecessary vertices
 	for (size_t i = 0; i < components.size(); ++i)
 	{
-		objMeshFormat cop;
-		std::unordered_map<int, int> vertexMap;
-
-		for (int idx : components[i]) {
-			vertexMap[idx] = cop.vertices.size();
-			cop.vertices.push_back(vertices[idx]);
-		}
-
-		for (const auto& f : faces)
+		std::set<int> essential_vertices;
+		// find necessary faces
+		for (size_t j = 0; j < components[i].size(); j++)
 		{
-			if (vertexMap.count(f[0]) && vertexMap.count(f[1]) && vertexMap.count(f[2]))
+			for (size_t k = 0; k < 3; k++)
 			{
-				cop.faces.push_back({ vertexMap[f[0]], vertexMap[f[1]], vertexMap[f[2]] });
+				int vert_index = faces[components[i][j]][k];
+				essential_vertices.insert(vert_index);
 			}
 		}
+
+
+		objMeshFormat cop;
+		std::map<int, int> vert_convert_map;
+		int count = 0;
+		for (std::set<int>::iterator it = essential_vertices.begin(); it != essential_vertices.end(); it++)
+		{
+			cop.vertices.push_back(vertices[*it]);
+			vert_convert_map[*it] = count;
+			count += 1;
+		}
+
+
+		for (int j = 0; j < components[i].size(); j++)
+		{
+			Eigen::Vector3i new_face;
+			for (int k = 0; k < 3; k++)
+			{
+				int vert_index_old = faces[components[i][j]][k];
+				new_face[k] = vert_convert_map[vert_index_old];
+			}
+			cop.faces.push_back(new_face);
+		}
+		
 
 		cop.updateBEInfo();
 		componentsSep.push_back(cop);
@@ -476,10 +536,26 @@ void objMeshFormat::sepConnectedComponents()
 void objMeshFormat::clear()
 {
 	vertices.clear();
+	edges.clear();
 	faces.clear();
 	vertFaces.clear();
 	componentsSep.clear();
 	facesPolygonal.clear();
+	componentsSep.clear();
+	updated = false;
+	initialVelocity = Eigen::Vector3d::Zero();
+	volume = 0;
+	boundaryVertices.clear();
+	boundaryVertices_egde.clear();
+	boundaryVertices_vec.clear();
+	boundaryVertices_area.clear();
+	boundaryEdges.clear();
+	boundaryEdges_area.clear();
+	boundaryEdge_index.clear();
+	index_boundaryEdge.clear();
+	index_boundaryEdge_vec.clear();
+	boundaryTriangles_area.clear();
+
 }
 
 void objMeshFormat::outputFile(std::string fileName, int timestep, bool polygonal)

@@ -26,200 +26,15 @@ int main()
 	if (0)
 	{
 		
-		double dilation = 0;
-
-		std::string bunny = "D:/Research/Hydrostatic_object/code/FEM_IPC/input/bunny_highRes.obj";
-		objMeshFormat bunny1;
-		bunny1.readObjFile(bunny, false);
-
-
-
-
-		std::vector<AABB> bunny1_AABBs(bunny1.faces.size());
-		for (size_t i = 0; i < bunny1.faces.size(); ++i) 
+		objMeshFormat bunny;
+		bunny.readObjFile("D:/Research/Hydrostatic_object/code/FEM_IPC/build/output/child_-999.obj");
+		bunny.updateBEInfo();
+		bunny.sepConnectedComponents();
+		for (int i = 0; i < bunny.componentsSep.size(); i++)
 		{
-			AABB aabb_;
-			aabb_.init(bunny1.vertices, bunny1.faces[i],i, dilation);
-			bunny1_AABBs[i] = aabb_;
+			bunny.componentsSep[i].outputFile("child_"+std::to_string(i));
+
 		}
-
-		double startTime1_, endTime1_;
-		startTime1_ = omp_get_wtime();
-
-		//std::cout << "111" << std::endl;
-
-		BVHNode* bunny1_root = buildBVH(bunny1_AABBs, 0, bunny1_AABBs.size(), 0);
-
-
-		endTime1_ = omp_get_wtime();
-		std::cout << "Build BVH Time is : " << endTime1_ - startTime1_ << "s" << std::endl;
-
-
-
-
-
-
-
-
-
-
-
-		int num_leaves = 0;
-		count_leaf_node(bunny1_root, num_leaves);
-		std::cout << "num_leaves = " << num_leaves << std::endl;
-
-		std::cout << "222" << std::endl;
-
-
-
-		objMeshFormat bunny2 = bunny1;
-		Eigen::Vector3d translation = { 3.0066,0,0 };
-		for (int i = 0; i < bunny1.vertices.size(); i++)
-		{
-			bunny2.vertices[i] = bunny1.vertices[i] + translation;
-		}
-		std::vector<AABB> bunny2_AABBs;
-		for (size_t i = 0; i < bunny2.faces.size(); ++i)
-		{
-			AABB aabb_;
-			aabb_.init(bunny2.vertices, bunny2.faces[i], i, dilation);
-			bunny2_AABBs.push_back(aabb_);
-		}
-		BVHNode* bunny2_root = buildBVH(bunny2_AABBs, 0, bunny2_AABBs.size(), 0);
-
-		std::cout << "333" << std::endl;
-
-
-		bunny1.outputFile("bunny1", -99);
-		bunny2.outputFile("bunny2", -99);
-
-		std::vector<std::pair<int, int>> results;
-
-
-		double startTime1, endTime1;
-		startTime1 = omp_get_wtime();
-
-		queryBVH(bunny1_root, bunny2_root, results);
-
-		endTime1 = omp_get_wtime();
-		std::cout << "Query Time is : " << endTime1 - startTime1 << "s" << std::endl;
-
-
-		{
-			std::ofstream outfile9("./output/collision.obj", std::ios::trunc);
-			for (int k = 0; k < bunny1.vertices.size(); k++)
-			{
-				Eigen::Vector3d scale = bunny1.vertices[k];
-				outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
-			}
-
-			for (int km = 0; km < results.size(); km++)
-			{
-				int k = results[km].first;
-				outfile9 << "f ";
-				for (int m = 0; m < bunny1.faces[k].size(); m++)
-				{
-					outfile9 << bunny1.faces[k][m] + 1 << " ";
-				}
-				outfile9 << std::endl;
-			}
-
-
-			for (int k = 0; k < bunny2.vertices.size(); k++)
-			{
-				Eigen::Vector3d scale = bunny2.vertices[k];
-				outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
-			}
-
-			for (int km = 0; km < results.size(); km++)
-			{
-				int k = results[km].second;
-				outfile9 << "f ";
-				for (int m = 0; m < bunny2.faces[k].size(); m++)
-				{
-					outfile9 << bunny2.faces[k][m] + 1 + bunny1.vertices.size() << " ";
-				}
-				outfile9 << std::endl;
-			}
-
-		
-			outfile9.close();
-		}
-
-
-		std::cout << "results = " << results.size() << std::endl;
-		{
-			std::ofstream outfile9("./output/collision.txt", std::ios::trunc);
-			for (int km = 0; km < results.size(); km++)
-			{
-				outfile9 << results[km].first << " - " << results[km].second << std::endl;
-			}
-			outfile9.close();
-		}
-
-
-
-
-
-		Eigen::Vector3d translation_2 = { -1.0,0,0 };
-		for (int i = 0; i < bunny2.vertices.size(); i++)
-		{
-			bunny2.vertices[i] = bunny2.vertices[i] + translation_2;
-		}
-
-
-
-		parallelUpdateBVH(bunny2_root, bunny2.vertices, dilation);
-
-		std::vector<std::pair<int, int>> results2;
-		queryBVH(bunny1_root, bunny2_root, results2);
-		std::cout << "results2 = " << results2.size() << std::endl;
-
-
-		{
-			std::ofstream outfile9("./output/collision2.obj", std::ios::trunc);
-			for (int k = 0; k < bunny1.vertices.size(); k++)
-			{
-				Eigen::Vector3d scale = bunny1.vertices[k];
-				outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
-			}
-
-			for (int km = 0; km < results2.size(); km++)
-			{
-				int k = results2[km].first;
-				outfile9 << "f ";
-				for (int m = 0; m < bunny1.faces[k].size(); m++)
-				{
-					outfile9 << bunny1.faces[k][m] + 1 << " ";
-				}
-				outfile9 << std::endl;
-			}
-
-
-			for (int k = 0; k < bunny2.vertices.size(); k++)
-			{
-				Eigen::Vector3d scale = bunny2.vertices[k];
-				outfile9 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
-			}
-
-			for (int km = 0; km < results2.size(); km++)
-			{
-				int k = results2[km].second;
-				outfile9 << "f ";
-				for (int m = 0; m < bunny2.faces[k].size(); m++)
-				{
-					outfile9 << bunny2.faces[k][m] + 1 + bunny1.vertices.size() << " ";
-				}
-				outfile9 << std::endl;
-			}
-
-
-			outfile9.close();
-		}
-
-
-
-
 
 
 
@@ -1013,7 +828,7 @@ int main()
 			meshConfiguration m1;
 			m1.filePath = "../input/bunny_highRes.obj";
 			m1.mesh_material = mat1;
-			m1.note = "bunny";
+			m1.note = "bunny1";
 			m1.breakable = true;
 			m1.translation = { 0, 0, 6 };
 			m1.rotation_angle = {0,20,45};
@@ -1024,7 +839,7 @@ int main()
 			meshConfiguration m2;
 			m2.filePath = "../input/bunny_highRes.obj";
 			m2.mesh_material = mat1;
-			m2.note = "cube";
+			m2.note = "bunny2";
 			m2.translation = { 1, 4, 4 };
 			m2.velocity = {0,0,0};
 			m2.breakable = false;
