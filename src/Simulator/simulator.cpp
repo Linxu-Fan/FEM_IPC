@@ -196,8 +196,7 @@ std::vector<std::pair<int, int>> find_contact_pair_BBX_level(
 	}
 
 
-
-	std::vector<std::pair<int, int>> contact_objects_BBX_level;
+	std::vector<std::pair<int, int>> contact_objects_BBX_level; 
 	for (int i = 0; i < triSimMesh.allObjects.size() - 1; i++)
 	{
 		for (int j = i + 1; j < triSimMesh.allObjects.size(); j++)
@@ -208,6 +207,7 @@ std::vector<std::pair<int, int>> find_contact_pair_BBX_level(
 			}
 		}
 	}
+
 
 	return contact_objects_BBX_level;
 
@@ -225,11 +225,23 @@ std::vector<std::pair<int, int>> find_contact_pair_BVH_level(
 	for (int i = 0; i < BBX_pair.size(); i++)
 	{
 		need_BVH_objects.insert(BBX_pair[i].first);
-		need_BVH_objects.insert(BBX_pair[i].second);
+		need_BVH_objects.insert(BBX_pair[i].second);	
 	}
-
+	// Some object also need to build BVH for object-ground contact
+	for (int ft = 0; ft < triSimMesh.allObjects.size(); ft++)
+	{
+		if (triSimMesh.allObjects[ft].BBX.min[2] <= dilation)
+		{
+			need_BVH_objects.insert(ft);
+		}
+	}
 	BVH_objects.clear();
 	BVH_objects.insert(BVH_objects.end(), need_BVH_objects.begin(), need_BVH_objects.end());
+
+
+
+
+
 	if (!advection)
 	{
 #pragma omp parallel for 
@@ -247,19 +259,23 @@ std::vector<std::pair<int, int>> find_contact_pair_BVH_level(
 		}
 	}
 
+
 	// find contact pairs between objects
-	std::vector<std::pair<int, int>> result;
+	std::vector<std::pair<int, int>> result; // if the 2nd int is -1, then it is an object-ground contact
 	for (int i = 0; i < BBX_pair.size(); i++)
 	{
 		int obj1 = BBX_pair[i].first, obj2 = BBX_pair[i].second;
-		bool intersect = triSimMesh.allObjects[obj1].object_BVH_faces->box.intersects(triSimMesh.allObjects[obj2].object_BVH_faces->box);
-		if (intersect)
+		if (obj2 != -1)
 		{
-			
-			result.push_back(std::make_pair(obj1, obj2));
+			bool intersect = triSimMesh.allObjects[obj1].object_BVH_faces->box.intersects(triSimMesh.allObjects[obj2].object_BVH_faces->box);
+			if (intersect)
+			{
+				result.push_back(std::make_pair(obj1, obj2));
+			}
 		}
-
 	}
+
+
 
 
 	return result;
@@ -409,20 +425,33 @@ void find_contact_pair_element_IPC(
 
 
 
-	// Step 3: find ground contact pairs if any
+	if (triSimMesh.ground_BVH == nullptr)
+	{
+		AABB ground;
+		ground.min = { -1.0E8, -1.0e8, 0.0 };
+		ground.max = { 1.0E8, 1.0e8, parameters.IPC_dis };
+		std::vector<AABB> ground_AABB_vec;
+		ground_AABB_vec.push_back(ground);
+
+		triSimMesh.ground_BVH = buildBVH(ground_AABB_vec, 0, ground_AABB_vec.size(), 0);
+	}
+
+
+	// find ground contact pairs if any
 	if (parameters.enableGround == true)
 	{
 		for (int ft = 0; ft < triSimMesh.allObjects.size(); ft++)
 		{
-			for (int vt = 0; vt < triSimMesh.allObjects[ft].pos_node_surface.size(); vt++)
+			if (triSimMesh.allObjects[ft].BBX.min[2] <= parameters.IPC_dis)
 			{
-				if (triSimMesh.allObjects[ft].pos_node_surface[vt][2] <= parameters.IPC_dis)
+				std::vector<std::pair<int, int>> result_;
+				queryBVH(triSimMesh.allObjects[ft].object_BVH_nodes, triSimMesh.ground_BVH, result_);
+				for (int k = 0; k < result_.size(); k++)
 				{
-					Vector2i gt = { ft,vt };
+					Vector2i gt = { ft,result_[k].first };
 					contact_pairs.Point_Ground.push_back(gt);
 				}
 			}
-
 		}
 
 	}
@@ -484,7 +513,6 @@ void find_contact_pair_element_advect(
 	}
 
 
-
 	// find final actual contact pairs
 	for (int i = 0; i < contact_pointTriangle_pair.size(); i++)
 	{
@@ -505,20 +533,34 @@ void find_contact_pair_element_advect(
 
 
 
-	// Step 3: find ground contact pairs if any
+
+	if (triSimMesh.ground_BVH == nullptr)
+	{
+		AABB ground;
+		ground.min = { -1.0E8, -1.0e8, 0.0 };
+		ground.max = { 1.0E8, 1.0e8, parameters.IPC_dis };
+		std::vector<AABB> ground_AABB_vec;
+		ground_AABB_vec.push_back(ground);
+
+		triSimMesh.ground_BVH = buildBVH(ground_AABB_vec, 0, ground_AABB_vec.size(), 0);
+	}
+
+
+	// find ground contact pairs if any
 	if (parameters.enableGround == true)
 	{
 		for (int ft = 0; ft < triSimMesh.allObjects.size(); ft++)
 		{
-			for (int vt = 0; vt < triSimMesh.allObjects[ft].pos_node_surface.size(); vt++)
+			if (triSimMesh.allObjects[ft].BBX.min[2] <= parameters.IPC_dis)
 			{
-				if (triSimMesh.allObjects[ft].pos_node_surface[vt][2] <= parameters.IPC_dis)
+				std::vector<std::pair<int, int>> result_;
+				queryBVH(triSimMesh.allObjects[ft].object_BVH_nodes, triSimMesh.ground_BVH, result_);
+				for (int k = 0; k < result_.size(); k++)
 				{
-					Vector2i gt = {ft,vt};
+					Vector2i gt = { ft,result_[k].first};
 					contact_pairs.Point_Ground.push_back(gt);
 				}
 			}
-
 		}
 
 	}

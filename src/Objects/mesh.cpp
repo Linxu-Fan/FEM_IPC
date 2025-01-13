@@ -415,9 +415,10 @@ void triMesh::sample_points_inside()
 void triMesh::update_ABD_info()
 {
 	for (int i = 0; i < allObjects.size(); i++)
-	{
+	{	
 		if (allObjects[i].need_update)
 		{
+			allObjects[i].massMatrix_ABD = Matrix12d::Zero();
 			for (int j = 0; j < allObjects[i].pos_node_interior.size(); j++)
 			{
 				Eigen::Matrix<double, 3, 12> Jx = build_Jx_matrix_for_ABD(allObjects[i].pos_node_interior[j]);

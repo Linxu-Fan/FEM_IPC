@@ -38,6 +38,146 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 		double lastEnergyVal = compute_IP_energy_ABD_triMesh(triSimMesh, parameters, timestep, contact_pairs);
 
 
+		//// Export contact region
+		//if(timestep >= 16)
+		//{
+
+		//	std::ofstream outfile9("./output/contact_PT_" + std::to_string(timestep) + ".obj", std::ios::trunc);
+		//	for (int k = 0; k < contact_pairs.Point_Triangle_PT_index.size(); k++)
+		//	{
+		//		int ct_index = contact_pairs.Point_Triangle_PT_index[k];
+		//		Vector5i ct = contact_pairs.Point_Triangle[ct_index];
+		//		int obj1 = ct[0], obj2 = ct[2];
+		//		Eigen::Vector3d pos_p = triSimMesh.allObjects[obj1].pos_node_surface[ct[1]];
+		//		Eigen::Vector3i tri_index = triSimMesh.allObjects[obj2].objectSurfaceMesh.faces[ct[3]];
+		//		Eigen::Vector3d pos_t1 = triSimMesh.allObjects[obj2].pos_node_surface[tri_index[0]];
+		//		Eigen::Vector3d pos_t2 = triSimMesh.allObjects[obj2].pos_node_surface[tri_index[1]];
+		//		Eigen::Vector3d pos_t3 = triSimMesh.allObjects[obj2].pos_node_surface[tri_index[2]];
+
+		//		outfile9 << std::scientific << std::setprecision(8) << "v " << pos_p[0] << " " << pos_p[1] << " " << pos_p[2] << std::endl;
+		//		outfile9 << std::scientific << std::setprecision(8) << "v " << pos_t1[0] << " " << pos_t1[1] << " " << pos_t1[2] << std::endl;
+		//		outfile9 << std::scientific << std::setprecision(8) << "v " << pos_t2[0] << " " << pos_t2[1] << " " << pos_t2[2] << std::endl;
+		//		outfile9 << std::scientific << std::setprecision(8) << "v " << pos_t3[0] << " " << pos_t3[1] << " " << pos_t3[2] << std::endl;
+		//	}
+		//	outfile9.close();
+
+
+
+		//	{
+		//		std::ofstream outfile9("./output/contact_PT_P_" + std::to_string(timestep) + ".obj", std::ios::trunc);
+		//		for (int k = 0; k < contact_pairs.Point_Triangle_PT_index.size(); k++)
+		//		{
+		//			int ct_index = contact_pairs.Point_Triangle_PT_index[k];
+		//			Vector5i ct = contact_pairs.Point_Triangle[ct_index];
+		//			int obj1 = ct[0], obj2 = ct[2];
+		//			Eigen::Vector3d pos_p = triSimMesh.allObjects[obj1].pos_node_surface[ct[1]];
+
+		//			outfile9 << std::scientific << std::setprecision(8) << "v " << pos_p[0] << " " << pos_p[1] << " " << pos_p[2] << std::endl;
+
+		//		}
+		//		outfile9.close();
+		//	}
+		//	{
+		//		std::ofstream outfile9("./output/contact_PT_T_" + std::to_string(timestep) + ".obj", std::ios::trunc);
+		//		for (int k = 0; k < contact_pairs.Point_Triangle_PT_index.size(); k++)
+		//		{
+		//			int ct_index = contact_pairs.Point_Triangle_PT_index[k];
+		//			Vector5i ct = contact_pairs.Point_Triangle[ct_index];
+		//			int obj1 = ct[0], obj2 = ct[2];
+		//			Eigen::Vector3d pos_p = triSimMesh.allObjects[obj1].pos_node_surface[ct[1]];
+		//			Eigen::Vector3i tri_index = triSimMesh.allObjects[obj2].objectSurfaceMesh.faces[ct[3]];
+		//			Eigen::Vector3d pos_t1 = triSimMesh.allObjects[obj2].pos_node_surface[tri_index[0]];
+		//			Eigen::Vector3d pos_t2 = triSimMesh.allObjects[obj2].pos_node_surface[tri_index[1]];
+		//			Eigen::Vector3d pos_t3 = triSimMesh.allObjects[obj2].pos_node_surface[tri_index[2]];
+
+		//			outfile9 << std::scientific << std::setprecision(8) << "v " << pos_t1[0] << " " << pos_t1[1] << " " << pos_t1[2] << std::endl;
+		//			outfile9 << std::scientific << std::setprecision(8) << "v " << pos_t2[0] << " " << pos_t2[1] << " " << pos_t2[2] << std::endl;
+		//			outfile9 << std::scientific << std::setprecision(8) << "v " << pos_t3[0] << " " << pos_t3[1] << " " << pos_t3[2] << std::endl;
+
+		//		}
+		//		outfile9.close();
+		//	}
+
+
+		//	std::ofstream outfile19("./output/contact_EE_" + std::to_string(timestep) + ".obj", std::ios::trunc);
+		//	for (int k = 0; k < contact_pairs.Edge_Edge.size(); k++)
+		//	{
+		//		Vector5i cont_PT = contact_pairs.Edge_Edge[k];
+		//		int obj_1 = cont_PT[0], obj_2 = cont_PT[2];
+		//		int edge1 = cont_PT[1], edge2 = cont_PT[3];
+
+
+		//		Eigen::Vector2i edge1_vert = triSimMesh.allObjects[obj_1].objectSurfaceMesh.index_boundaryEdge[edge1];
+		//		Eigen::Vector2i edge2_vert = triSimMesh.allObjects[obj_2].objectSurfaceMesh.index_boundaryEdge[edge2];
+
+
+		//		int P1I = edge1_vert[0], P2I = edge1_vert[1], Q1I = edge2_vert[0], Q2I = edge2_vert[1];
+		//		double surface_area = triSimMesh.allObjects[obj_1].objectSurfaceMesh.boundaryEdges_area[P1I][P2I];
+
+		//		Eigen::Vector3d P1 = triSimMesh.allObjects[obj_1].pos_node_surface[P1I];
+		//		Eigen::Vector3d P2 = triSimMesh.allObjects[obj_1].pos_node_surface[P2I];
+		//		Eigen::Vector3d Q1 = triSimMesh.allObjects[obj_2].pos_node_surface[Q1I];
+		//		Eigen::Vector3d Q2 = triSimMesh.allObjects[obj_2].pos_node_surface[Q2I];
+
+
+		//		outfile19 << std::scientific << std::setprecision(8) << "v " << P1[0] << " " << P1[1] << " " << P1[2] << std::endl;
+		//		outfile19 << std::scientific << std::setprecision(8) << "v " << P2[0] << " " << P2[1] << " " << P2[2] << std::endl;
+		//		outfile19 << std::scientific << std::setprecision(8) << "v " << Q1[0] << " " << Q1[1] << " " << Q1[2] << std::endl;
+		//		outfile19 << std::scientific << std::setprecision(8) << "v " << Q2[0] << " " << Q2[1] << " " << Q2[2] << std::endl;
+		//	}
+		//	outfile19.close();
+
+
+		//	std::ofstream outfile29("./output/contact_" + std::to_string(timestep) + ".obj", std::ios::trunc);
+		//	for (int k = 0; k < contact_pairs.Point_Triangle_PT_index.size(); k++)
+		//	{
+		//		int ct_index = contact_pairs.Point_Triangle_PT_index[k];
+		//		Vector5i ct = contact_pairs.Point_Triangle[ct_index];
+		//		int obj1 = ct[0], obj2 = ct[2];
+		//		Eigen::Vector3d pos_p = triSimMesh.allObjects[obj1].pos_node_surface[ct[1]];
+		//		Eigen::Vector3i tri_index = triSimMesh.allObjects[obj2].objectSurfaceMesh.faces[ct[3]];
+		//		Eigen::Vector3d pos_t1 = triSimMesh.allObjects[obj2].pos_node_surface[tri_index[0]];
+		//		Eigen::Vector3d pos_t2 = triSimMesh.allObjects[obj2].pos_node_surface[tri_index[1]];
+		//		Eigen::Vector3d pos_t3 = triSimMesh.allObjects[obj2].pos_node_surface[tri_index[2]];
+
+		//		outfile29 << std::scientific << std::setprecision(8) << "v " << pos_p[0] << " " << pos_p[1] << " " << pos_p[2] << std::endl;
+		//		outfile29 << std::scientific << std::setprecision(8) << "v " << pos_t1[0] << " " << pos_t1[1] << " " << pos_t1[2] << std::endl;
+		//		outfile29 << std::scientific << std::setprecision(8) << "v " << pos_t2[0] << " " << pos_t2[1] << " " << pos_t2[2] << std::endl;
+		//		outfile29 << std::scientific << std::setprecision(8) << "v " << pos_t3[0] << " " << pos_t3[1] << " " << pos_t3[2] << std::endl;
+		//	}
+		//	for (int k = 0; k < contact_pairs.Edge_Edge.size(); k++)
+		//	{
+		//		Vector5i cont_PT = contact_pairs.Edge_Edge[k];
+		//		int obj_1 = cont_PT[0], obj_2 = cont_PT[2];
+		//		int edge1 = cont_PT[1], edge2 = cont_PT[3];
+
+
+		//		Eigen::Vector2i edge1_vert = triSimMesh.allObjects[obj_1].objectSurfaceMesh.index_boundaryEdge[edge1];
+		//		Eigen::Vector2i edge2_vert = triSimMesh.allObjects[obj_2].objectSurfaceMesh.index_boundaryEdge[edge2];
+
+
+		//		int P1I = edge1_vert[0], P2I = edge1_vert[1], Q1I = edge2_vert[0], Q2I = edge2_vert[1];
+		//		double surface_area = triSimMesh.allObjects[obj_1].objectSurfaceMesh.boundaryEdges_area[P1I][P2I];
+
+		//		Eigen::Vector3d P1 = triSimMesh.allObjects[obj_1].pos_node_surface[P1I];
+		//		Eigen::Vector3d P2 = triSimMesh.allObjects[obj_1].pos_node_surface[P2I];
+		//		Eigen::Vector3d Q1 = triSimMesh.allObjects[obj_2].pos_node_surface[Q1I];
+		//		Eigen::Vector3d Q2 = triSimMesh.allObjects[obj_2].pos_node_surface[Q2I];
+
+
+		//		outfile29 << std::scientific << std::setprecision(8) << "v " << P1[0] << " " << P1[1] << " " << P1[2] << std::endl;
+		//		outfile29 << std::scientific << std::setprecision(8) << "v " << P2[0] << " " << P2[1] << " " << P2[2] << std::endl;
+		//		outfile29 << std::scientific << std::setprecision(8) << "v " << Q1[0] << " " << Q1[1] << " " << Q1[2] << std::endl;
+		//		outfile29 << std::scientific << std::setprecision(8) << "v " << Q2[0] << " " << Q2[1] << " " << Q2[2] << std::endl;
+		//	}
+		//	outfile29.close();
+
+		//	
+		//	std::cout << "contact_pairs.Point_Triangle_PT_index.size() = " << contact_pairs.Point_Triangle_PT_index.size() << std::endl;
+
+		//}
+
+
 		for (int ite = 0; ite < 15; ite++)
 		{
 
@@ -828,9 +968,14 @@ void cut_object_with_cracks(FEMParamters& parameters, triMesh& triSimMesh, std::
 	{
 		int objectIndex = it->first;
 		objMeshFormat full_cut = it->second;
-		float voxel_size = static_cast<float>(parameters.IPC_dis) * 3;
-		objMeshFormat full_cut_surf = full_cut.reconstruct_with_vdb(voxel_size);
+		float voxel_size = static_cast<float>(parameters.IPC_dis) / 2.0 / std::sqrt(3);
+		//voxel_size = static_cast<float>(parameters.IPC_dis) * 3;
 
+		full_cut.outputFile("Crack_surface");
+		std::cout << "Voxelize crack mesh!" << std::endl;
+		objMeshFormat full_cut_surf = full_cut.reconstruct_with_vdb(voxel_size);
+		std::cout << "Decimate mesh!" << std::endl;
+		full_cut_surf.decimate_mesh(50000);
 		objMeshFormat children = triSimMesh.allObjects[objectIndex].objectSurfaceMesh.boolean_difference_with_mesh(full_cut_surf);
 		children.outputFile("child", -999, false);
 		children.triangulate();

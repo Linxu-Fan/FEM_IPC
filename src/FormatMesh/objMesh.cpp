@@ -900,7 +900,6 @@ objMeshFormat objMeshFormat::reconstruct_with_vdb(float& voxel_size)
 	return result;
 }
 
-
 CGAL_Surface_mesh objMeshFormat::to_CGAL_mesh()
 {
 	CGAL_Surface_mesh mesh;
@@ -971,5 +970,51 @@ objMeshFormat objMeshFormat::boolean_difference_with_mesh(objMeshFormat& B_)
 	mesh_diff.triangulate();
 
 	return mesh_diff;
+
+}
+
+void objMeshFormat::build_with_libigl(Eigen::MatrixXd& V, Eigen::MatrixXi& F)
+{
+	vertices.clear();
+	faces.clear();
+	for (int k = 0; k < V.rows(); k++)
+	{
+		Eigen::Vector3d vert = {V(k,0), V(k,1) ,V(k,2) };
+		vertices.push_back(vert);
+	}
+	for (int k = 0; k < F.rows(); k++)
+	{
+		Eigen::Vector3i face = { F(k,0), F(k,1) ,F(k,2) };
+		faces.push_back(face);
+	}
+
+}
+
+void objMeshFormat::decimate_mesh(int target_num_faces)
+{
+
+	if (faces.size() > target_num_faces)
+	{
+		std::pair<Eigen::MatrixXd, Eigen::MatrixXi> VF = to_libigl_mesh();
+		Eigen::MatrixXd V = VF.first;
+		Eigen::MatrixXi F = VF.second;
+
+		Eigen::MatrixXd U; // 简化后的顶点
+		Eigen::MatrixXi G; // 简化后的面
+		Eigen::VectorXi J; // 面的映射
+		Eigen::VectorXi I; // 顶点的映射
+		bool block_intersections = false;
+
+		
+
+		if (!igl::decimate(V, F, target_num_faces, block_intersections, U, G, J, I)) {
+			std::cerr << "Decimation failed!" << std::endl;
+			std::exit(0); 
+		}
+
+		build_with_libigl(U, G);
+		updateBEInfo();
+	}
+
 
 }

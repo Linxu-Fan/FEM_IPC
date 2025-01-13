@@ -27,18 +27,53 @@ int main()
 	{
 		
 		objMeshFormat bunny;
-		bunny.readObjFile("D:/Research/Hydrostatic_object/code/FEM_IPC/build/output/child_-999.obj");
+		bunny.readObjFile("D:/Research/Hydrostatic_object/code/FEM_IPC/build/output/bunny.obj");
 		bunny.updateBEInfo();
-		bunny.sepConnectedComponents();
-		for (int i = 0; i < bunny.componentsSep.size(); i++)
+
+		objMeshFormat crack;
+		crack.readObjFile("D:/Research/Hydrostatic_object/code/FEM_IPC/build/output/crack.obj");
+		crack.updateBEInfo();
+
+
+		float voxel_size = 0.01f / 2.0 / std::sqrt(3);
+
+		objMeshFormat crack_surf = crack.reconstruct_with_vdb(voxel_size);
+		crack_surf.outputFile("crack_volumetric");
+		crack_surf.decimate_mesh(50000);
+
+
+
+		//std::pair<Eigen::MatrixXd, Eigen::MatrixXi> VF = crack_surf.to_libigl_mesh();
+		//Eigen::MatrixXd V = VF.first;
+		//Eigen::MatrixXi F = VF.second; 
+		//Eigen::MatrixXd U; // 简化后的顶点
+		//Eigen::MatrixXi G; // 简化后的面
+		//Eigen::VectorXi J; // 面的映射
+		//Eigen::VectorXi I; // 顶点的映射
+		//bool block_intersections = false;
+		//if (!igl::decimate(V, F, 50000, block_intersections, U, G, J, I)) {
+		//	std::cerr << "Decimation failed!" << std::endl;
+		//	return 1;
+		//}
+		//std::cout << "Simplified mesh: " << G.rows() << " faces, " << U.rows() << " vertices." << std::endl;
+		//// 保存简化后的网格
+		//if (!igl::writeOBJ("./output/reconstructed_surface_decimated.obj", U, G)) {
+		//	std::cerr << "Failed to save simplified mesh to " << std::endl;
+		//	return 1;
+		//}
+		//objMeshFormat crack_surf_decimate;
+		//crack_surf_decimate.build_with_libigl(U, G);
+
+
+
+
+		objMeshFormat children = bunny.boolean_difference_with_mesh(crack_surf);
+		children.triangulate();
+		children.sepConnectedComponents();
+		for (int i = 0; i < children.componentsSep.size(); i++)
 		{
-			bunny.componentsSep[i].outputFile("child_"+std::to_string(i));
-
+			children.componentsSep[i].outputFile("child_"+std::to_string(i));
 		}
-
-
-
-
 
 
 
@@ -833,6 +868,7 @@ int main()
 			m1.translation = { 0, 0, 6 };
 			m1.rotation_angle = {0,20,45};
 			m1.velocity = { 0,10,0 };
+			//m1.velocity = { 0,0,-10 };
 			m1.per_point_volume = 0.01;
 			config.push_back(m1);
 
@@ -842,6 +878,7 @@ int main()
 			m2.note = "bunny2";
 			m2.translation = { 1, 4, 4 };
 			m2.velocity = {0,0,0};
+			//m2.velocity = {0,0,-10};
 			m2.breakable = false;
 			m2.per_point_volume = 0.01;
 			config.push_back(m2);
@@ -858,7 +895,7 @@ int main()
 
 
 			FEMParamters parameters;
-			parameters.gravity = { 0, 0, 0 };
+			parameters.gravity = { 0, 0, -9.8 };
 			parameters.num_timesteps = 10000;
 			parameters.numOfThreads = 20;
 			parameters.dt = 1.0e-2;

@@ -104,6 +104,8 @@ struct objMeshFormat
 
 	void clear();
 
+	void build_with_libigl(Eigen::MatrixXd& V, Eigen::MatrixXi& F);
+
 	void readObjFile(std::string fileName, bool polygonal = false, Eigen::Affine3d rotation = Eigen::Affine3d::Identity(),
 		Eigen::Vector3d scale = Eigen::Vector3d::Ones(), Eigen::Vector3d translation = Eigen::Vector3d::Zero()); // if polygonal is true, read polygonal mesh
 
@@ -122,7 +124,13 @@ struct objMeshFormat
 	// convert to openvdb format
 	void to_openVDB_format(std::vector<openvdb::Vec3s>& verticesVdb, std::vector<openvdb::Vec3I>& trianglesVdb);
 
-
+	/**
+	 * @brief decimate the mesh using libigl
+	 *
+	 * @param target_num_faces target number of faces after decimation
+	 */
+	void decimate_mesh(int target_num_faces);
+	
 	/**
 	 * @brief update the volume of the object
 	 *

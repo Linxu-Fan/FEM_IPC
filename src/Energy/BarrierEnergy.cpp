@@ -196,7 +196,7 @@ void BarrierEnergy::gradAndHess_PT(
     double contactArea = triSimMesh.allObjects[obj_1].objectSurfaceMesh.boundaryVertices_area[vert];
 
     Eigen::Vector3d P = triSimMesh.allObjects[obj_1].pos_node_surface[vert];
-    Eigen::Vector3i tri = triSimMesh.allObjects[obj_1].objectSurfaceMesh.faces[tria];
+    Eigen::Vector3i tri = triSimMesh.allObjects[obj_2].objectSurfaceMesh.faces[tria];
 
 
     std::vector<int> pt_obj_index;

@@ -656,9 +656,10 @@ namespace mpmSimulator
 		bool simulationFailed = false;
 		std::tuple<bool, objMeshFormat, objMeshFormat, std::vector<objMeshFormat>> crackSurfs;
 		
+		std::cout << "MPM timestep = ";
 		for (int timestep = 0; timestep <= 2000 && generateFragments == false && !simulationFailed; timestep++)
 		{
-			std::cout << "MPM timestep = "<< timestep<<" "<<std::endl;
+			std::cout << timestep<<" ";
 			advanceStep(particles, param, contactForce, timestep);
 
 

@@ -105,6 +105,11 @@ public:
 	objMeshFormat surfaceMeshGlobal;
 
 
+	// the ground BVH for contact handling
+	BVHNode* ground_BVH = nullptr;
+
+
+
 	void reset_object_state();
 
 	// Update object's interior and surface vertices' position in the world space after cutting
