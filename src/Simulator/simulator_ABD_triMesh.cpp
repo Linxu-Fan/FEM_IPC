@@ -195,7 +195,7 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			std::vector<Vector12d> direction_ABD;
 			
 			solve_linear_system_ABD_triMesh(triSimMesh, parameters, timestep, direction_ABD, broken_objects, contact_pairs, ite);
-			if (broken_objects.size() != 0 && timestep == 16)
+			if (broken_objects.size() != 0)
 			{
 				break;
 			}
@@ -255,7 +255,7 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 			}
 
 			// The energy has been greatly minimized. It is time to stop
-			if (std::abs(newEnergyVal) / lastEnergyVal < 0.000001)
+			if (std::abs(newEnergyVal) / lastEnergyVal < 0.001)
 			{
 				break;
 			}
@@ -269,7 +269,7 @@ void implicitFEM_ABD_triMesh(triMesh& triSimMesh, FEMParamters& parameters)
 		}
 
 
-		if (broken_objects.size() != 0 && timestep == 16)
+		if (broken_objects.size() != 0)
 		{
 			std::map<int, objMeshFormat> crackSurface_object;
 			fracture_sim(parameters, triSimMesh, broken_objects, crackSurface_object);
@@ -760,7 +760,7 @@ void solve_linear_system_ABD_triMesh(
 
 
 		// check if any object will be broken
-		if (iteration == 0 && timestep == 16)
+		if (iteration == 0)
 		{
 			if_start_fracture_sim(triSimMesh, broken_objects, contact_force_all);
 			if (broken_objects.size() != 0)
@@ -796,12 +796,12 @@ void solve_linear_system_ABD_triMesh(
 
 	leftHandSide.makeCompressed();
 	//Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper, Eigen::IncompleteLUT<double>> solver;
-	//Eigen::SimplicialLLT<Eigen::SparseMatrix<double>> solver;
-	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> solver;
+	Eigen::SimplicialLLT<Eigen::SparseMatrix<double>> solver;
+	//Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> solver;
 	solver.compute(leftHandSide);
 	Eigen::VectorXd result = solver.solve(-rightHandSide);
-	solver.setTolerance(1e-12); // 设置容差
-	solver.setMaxIterations(10000); // 设置更大的最大迭代次数
+	//solver.setTolerance(1e-16); // 设置容差
+	//solver.setMaxIterations(10000); // 设置更大的最大迭代次数
 
 	
 	//std::cout << "			Newton solver iterations: " << solver.iterations() << "; error: " << solver.error() << std::endl;
@@ -905,7 +905,7 @@ void if_start_fracture_sim(triMesh& triSimMesh, std::map<int, std::vector<Vector
 				if (force_material.norm() > 0.0001) // to avoid numerical error
 				{
 					contact_position_force.block(0, 0, 3, 1) = position_material;
-					contact_position_force.block(3, 0, 3, 1) = force_material * 100;
+					contact_position_force.block(3, 0, 3, 1) = force_material * 200;
 					contactForce.push_back(contact_position_force);
 				}
 				max_force = std::max(force_material.norm(), max_force);
@@ -951,11 +951,15 @@ void fracture_sim(FEMParamters& parameters, triMesh& triSimMesh, std::map<int, s
 
 		if (std::get<0>(crack_res))
 		{
-			// output crack surface and fragments
-			objMeshFormat partial_cut = std::get<1>(crack_res);
-			objMeshFormat full_cut = std::get<2>(crack_res);
-			
-			crackSurface_object[objectIndex] = full_cut;
+			if (std::get<3>(crack_res).size() > 1)
+			{
+				// output crack surface and fragments
+				objMeshFormat partial_cut = std::get<1>(crack_res);
+				objMeshFormat full_cut = std::get<2>(crack_res);
+
+				crackSurface_object[objectIndex] = full_cut;
+			}
+
 		}
 
 	}
@@ -969,7 +973,7 @@ void cut_object_with_cracks(FEMParamters& parameters, triMesh& triSimMesh, std::
 		int objectIndex = it->first;
 		objMeshFormat full_cut = it->second;
 		float voxel_size = static_cast<float>(parameters.IPC_dis) / 2.0 / std::sqrt(3);
-		//voxel_size = static_cast<float>(parameters.IPC_dis) * 3;
+		voxel_size = static_cast<float>(parameters.IPC_dis);
 
 		full_cut.outputFile("Crack_surface");
 		std::cout << "Voxelize crack mesh!" << std::endl;
@@ -997,7 +1001,7 @@ void cut_object_with_cracks(FEMParamters& parameters, triMesh& triSimMesh, std::
 			child_object.objectNote = parent_object.objectNote + "_F_" + std::to_string(cc);
 			child_object.objectSurfaceMesh = childMesh;
 			child_object.need_update = true;
-
+			child_object.breakable = false;
 			child_object.pos_node_surface = childMesh.vertices;
 			child_object.pos_node_surface_prev = childMesh.vertices;
 			child_object.pos_node_surface_direction.resize(childMesh.vertices.size());

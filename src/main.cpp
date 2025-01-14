@@ -764,7 +764,8 @@ int main()
 		// Case:
 		// 0. Cube tower stress test for ABD of triMesh ABD implementation
 		// 1. Bunny test to verify the correctness of mpm simulation
-		int caseNum = 1;
+		// 2. Test for fracture simulation
+		int caseNum = 2;
 		if (caseNum == 0)
 		{
 
@@ -854,7 +855,7 @@ int main()
 			mat1.density = 3000;
 			mat1.E = 3.26e12;
 			mat1.thetaF = 8.0e9;
-			mat1.fracture_start_force = 1.0E1;
+			mat1.fracture_start_force = 1.0E10;
 			mat1.updateDenpendecies();
 
 
@@ -914,6 +915,106 @@ int main()
 
 
 			implicitFEM_ABD_triMesh(triSimMesh, parameters);
+
+		}
+		else if (caseNum == 2)
+		{
+
+			double IPC_dis = 0.01;
+
+			Material mat1;
+			mat1.density = 4000;
+			mat1.E = 7.26e12;
+			mat1.updateDenpendecies();
+
+			Material mat2;
+			mat2.density = 500;
+			mat2.E = 3.26e12;
+			mat2.thetaF = 8.0e9;
+			mat2.fracture_start_force = 1.0E0;
+			mat2.updateDenpendecies();
+
+
+
+			std::vector<meshConfiguration> config;
+			meshConfiguration m1;
+			m1.filePath = "../input/bunny_highRes.obj";
+			m1.mesh_material = mat1;
+			m1.note = "cube_0";
+			Eigen::Vector3d trans = { -1.5, 1.4, 2.0 };
+			m1.rotation_angle = { 0,20,45 };
+			m1.velocity = { 0,0,-5 };
+			m1.translation = trans;
+			m1.breakable = true;
+			m1.per_point_volume = 0.01;
+			//config.push_back(m1);
+
+
+
+
+			int count = 1;
+			for (int z = 0; z < 1; z++)
+			{
+				for (int x = 0; x < 2; x++)
+				{
+					for (int y = 0; y < 2; y++)
+					{
+						count += 1;
+						m1.mesh_material = mat2;
+						m1.note = "cube_" + std::to_string(count);
+						Eigen::Vector3d trans = { (double)x * 4.5 , (double)y * 4.5 , (double)z * 1.03 + 10.0 };
+
+
+						std::random_device rd; // Seed for the random number generator
+						std::mt19937 gen(rd()); // Mersenne Twister random number generator
+						std::uniform_real_distribution<> dis(0.0, 1.0); // Range [0.0, 1.0)
+						double rx = dis(gen); // Generate random double
+						double ry = dis(gen); // Generate random double
+						double rz = dis(gen); // Generate random double
+
+						m1.rotation_angle = { rx,ry,rz };
+						m1.translation = trans;
+						m1.breakable = true;
+						m1.velocity = { 0,0,0 };
+						if (x == 0)
+						{
+							m1.velocity = { 5,0,0 };
+						}
+						config.push_back(m1);
+					}
+				}
+			}
+
+
+
+			triMesh triSimMesh;
+			triSimMesh.createGlobalSimulationTriMesh_ABD(config);
+
+
+
+
+			FEMParamters parameters;
+			parameters.gravity = { 0, 0, -9.8 };
+			parameters.num_timesteps = 10000;
+			parameters.numOfThreads = 20;
+			parameters.dt = 1.0e-3;
+			parameters.outputFrequency = 1;
+			parameters.simulation_Mode = "ABD"; // Normal, ABD, Coupling
+			parameters.enableGround = false;
+			parameters.searchResidual = 0.01;
+			parameters.model = "neoHookean"; // neoHookean ARAP ARAP_linear ACAP
+			parameters.rigidMode = true;
+			parameters.IPC_dis = IPC_dis;
+			parameters.IPC_eta = 0.05;
+			parameters.IPC_kStiffness = 1.0e9;
+			parameters.IPC_B3Stiffness = 500;
+			parameters.ABD_Coeff = 1.0e12;
+
+
+
+			implicitFEM_ABD_triMesh(triSimMesh, parameters);
+
+
 
 		}
 

@@ -394,6 +394,7 @@ void triMesh::sample_points_inside()
 		if(allObjects[i].need_update)
 		{
 			int num_points = std::floor(allObjects[i].objectSurfaceMesh.volume / allObjects[i].per_point_volume);
+			num_points = 10000;
 			std::vector<Eigen::Vector3d> pts = allObjects[i].objectSurfaceMesh.sample_points_inside_mesh(num_points);
 
 			allObjects[i].pos_node_interior = pts;
