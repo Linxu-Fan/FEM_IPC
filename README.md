@@ -1,1 +1,1 @@
-# hydroStaticObject
+Code for variational fracture simulation.
